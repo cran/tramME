@@ -1,8 +1,10 @@
 library("tramME")
-library("lme4")
+suppressPackageStartupMessages(library("lme4"))
 
+oldopt <- options(digits = 5)
 chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
   stopifnot(isTRUE(all.equal(x, y, tol = tol, check.attributes = FALSE)))
+chkwarn <- function(expr, wm) tryCatch(expr, warning = function(w) grepl(wm, w))
 
 data("sleepstudy")
 
@@ -11,7 +13,7 @@ fit2 <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy, REML = FALSE
 
 ## coefficients w/ as.lm
 fit3 <- fit
-coef(fit3) <- coef(fit, with_baseline = TRUE) ## warning
+chkwarn(coef(fit3) <- coef(fit, with_baseline = TRUE), "unfitted") ## warning
 chktol(coef(fit, as.lm = TRUE), coef(fit3, as.lm  = TRUE))
 fit3 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
 chktol(names(coef(fit3, as.lm = TRUE))[1], "(Intercept)")
@@ -49,3 +51,5 @@ s <- sqrt(diag(cor))
 cor <- diag(1/s) %*% cor %*% diag(1/s)
 chktol(vc$Subject$var, var)
 chktol(vc$Subject$corr, cor)
+
+options(oldopt)

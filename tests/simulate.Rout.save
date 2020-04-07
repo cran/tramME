@@ -98,4 +98,4 @@ Error in simulate.tramME(mod, newdata = sleepstudy) :
 > 
 > proc.time()
    user  system elapsed 
-  2.564   0.108   2.651 
+  2.191   0.063   2.245 

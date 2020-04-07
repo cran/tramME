@@ -1,5 +1,5 @@
 %\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{Introduction to tramME}
+%\VignetteIndexEntry{tramME}
 %\VignetteDepends{variables, basefun, mlt, tram, survival, lme4, tramME, coxme}
 %\VignetteDepends{ordinal, ggplot2}
 

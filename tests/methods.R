@@ -1,9 +1,10 @@
 library("tramME")
 
+oldopt <- options(warn = -1) ## NOTE: no parallel implementation under Windows
 chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
   stopifnot(isTRUE(all.equal(x, y, tolerance = tol, check.attributes = FALSE)))
 
-chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+chkerr <- function(expr) stopifnot(isTRUE(inherits(try(expr, silent = TRUE), "try-error")))
 
 ## covariance matrix of the parameters
 data("sleepstudy", package = "lme4")
@@ -20,7 +21,7 @@ chktol(dim(vcov(fit, parm = c("foo", "bar"))), c(0, 0))
 
 ## random effects
 data("eortc", package = "coxme")
-library("survival")
+suppressPackageStartupMessages(library("survival"))
 fit <- CoxphME(Surv(y, uncens) ~ trt + (1 | center/trt), data = eortc,
                log_first = TRUE, order = 5)
 re <- ranef(fit, raw = TRUE)
@@ -45,7 +46,7 @@ ci <- confint(fit_np, "foo")
 chktol(dim(ci), c(0, 2))
 
 ## logLik and LR test
-library("ordinal")
+suppressPackageStartupMessages(library("ordinal"))
 fit1a <- PolrME(rating ~ temp + contact + (1 | judge), data = wine, method = "probit")
 fit2a <- clmm2(rating ~ temp + contact, random = judge, data = wine,
                Hess = TRUE, nAGQ = 1, link = "probit")
@@ -76,3 +77,5 @@ plot(tr3, xlim = c(0, 1), ylim = c(0, 1), col = c(1, 2), lwd = 2, fill = grey(0.
 tr4 <- trafo(fit_np, type = "distribution", confidence = "none", K = 100)
 plot(tr4,  col = 3, lwd = 2, add = TRUE)
 dev.off()
+
+options(oldopt)

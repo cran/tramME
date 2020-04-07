@@ -20,11 +20,12 @@ Loading required package: tram
 Loading required package: mlt
 Loading required package: basefun
 Loading required package: variables
-> library("lme4")
-Loading required package: Matrix
+> suppressPackageStartupMessages(library("lme4"))
 > 
+> oldopt <- options(digits = 5)
 > chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
 +   stopifnot(isTRUE(all.equal(x, y, tol = tol, check.attributes = FALSE)))
+> chkwarn <- function(expr, wm) tryCatch(expr, warning = function(w) grepl(wm, w))
 > 
 > data("sleepstudy")
 > 
@@ -33,10 +34,8 @@ Loading required package: Matrix
 > 
 > ## coefficients w/ as.lm
 > fit3 <- fit
-> coef(fit3) <- coef(fit, with_baseline = TRUE) ## warning
-Warning message:
-In `coef<-.tramME`(`*tmp*`, value = c(`(Intercept)` = -9.82365156109332,  :
-  The model object is fitted. Setting it to unfitted.
+> chkwarn(coef(fit3) <- coef(fit, with_baseline = TRUE), "unfitted") ## warning
+[1] TRUE
 > chktol(coef(fit, as.lm = TRUE), coef(fit3, as.lm  = TRUE))
 > fit3 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
 > chktol(names(coef(fit3, as.lm = TRUE))[1], "(Intercept)")
@@ -72,11 +71,11 @@ Error in confint.LmME(fit, as.lm = TRUE, pargroup = "ranef", type = "profile") :
 Grouping factor: Subject (18 levels)
 Standard deviation:
 (Intercept)        Days 
-    23.7810      5.7168 
+      23.80        5.72 
 
 Correlations:
      (Intercept)
-Days     0.08132
+Days      0.0813
 
 > th <- fit$tmb_sdr$value[4:6]
 > var <- exp(th[1:2])^2
@@ -87,6 +86,8 @@ Days     0.08132
 > chktol(vc$Subject$var, var)
 > chktol(vc$Subject$corr, cor)
 > 
+> options(oldopt)
+> 
 > proc.time()
    user  system elapsed 
-  1.215   0.067   1.277 
+  1.281   0.064   1.323 

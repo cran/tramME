@@ -1,5 +1,6 @@
 library("tramME")
 
+oldopt <- options(digits = 4)
 chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y, check.attributes = FALSE)))
 
 ## structure of the output
@@ -41,7 +42,7 @@ chk(pr1, pr2)
 
 ## Prediction with Surv objects as response
 data("eortc", package = "coxme")
-library("survival")
+suppressPackageStartupMessages(library("survival"))
 fit <- CoxphME(Surv(y, uncens) ~ trt + (1 | center/trt), data = eortc, log_first = TRUE)
 pdf(file = NULL)
 pl <- plot(fit, newdata = eortc[1, ], ranef = c(0, 0), type = "survivor", K = 100)
@@ -54,3 +55,5 @@ nd <- sleepstudy
 nd$Reaction <- NULL
 pr <- predict(fit, newdata = nd[1:2, ], ranef = 0, K = 10)
 pr
+
+options(oldopt)

@@ -21,21 +21,18 @@ Loading required package: mlt
 Loading required package: basefun
 Loading required package: variables
 > 
+> oldopt <- options(warn = -1) ## NOTE: no parallel implementation under Windows
 > chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
 +   stopifnot(isTRUE(all.equal(x, y, tolerance = tol, check.attributes = FALSE)))
 > 
-> chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+> chkerr <- function(expr) stopifnot(isTRUE(inherits(try(expr, silent = TRUE), "try-error")))
 > 
 > ## covariance matrix of the parameters
 > data("sleepstudy", package = "lme4")
 > fit <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy, order = 5)
 > fit2 <- fit
 > varcov(fit2) <- list(diag(1:2)) ## just to make it unfitted
-Warning message:
-In `varcov<-.tramME`(`*tmp*`, value = list(c(1L, 0L, 0L, 2L))) :
-  The model object is fitted. Setting it to unfitted.
 > chkerr(vcov(fit2))
-[1] TRUE
 > vc <- vcov(fit, pargroup = "baseline")
 > chktol(dim(vc), c(6, 6))
 > chktol(vc, vcov(fit, parm = "Reaction", pmatch = TRUE))
@@ -45,7 +42,7 @@ In `varcov<-.tramME`(`*tmp*`, value = list(c(1L, 0L, 0L, 2L))) :
 > 
 > ## random effects
 > data("eortc", package = "coxme")
-> library("survival")
+> suppressPackageStartupMessages(library("survival"))
 > fit <- CoxphME(Surv(y, uncens) ~ trt + (1 | center/trt), data = eortc,
 +                log_first = TRUE, order = 5)
 > re <- ranef(fit, raw = TRUE)
@@ -70,14 +67,7 @@ In `varcov<-.tramME`(`*tmp*`, value = list(c(1L, 0L, 0L, 2L))) :
 > chktol(dim(ci), c(0, 2))
 > 
 > ## logLik and LR test
-> library("ordinal")
-
-Attaching package: 'ordinal'
-
-The following objects are masked from 'package:tramME':
-
-    VarCorr, ranef
-
+> suppressPackageStartupMessages(library("ordinal"))
 > fit1a <- PolrME(rating ~ temp + contact + (1 | judge), data = wine, method = "probit")
 > fit2a <- clmm2(rating ~ temp + contact, random = judge, data = wine,
 +                Hess = TRUE, nAGQ = 1, link = "probit")
@@ -112,6 +102,8 @@ The following objects are masked from 'package:tramME':
 null device 
           1 
 > 
+> options(oldopt)
+> 
 > proc.time()
    user  system elapsed 
- 13.498   0.363   9.914 
+  7.895   0.182   6.295 
