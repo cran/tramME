@@ -1,7 +1,8 @@
 Package: tramME
 Title: Transformation Models with Mixed Effects
-Version: 0.0.2
-Authors@R: c(person("Balint", "Tamasi", email = "balint.tamasi@uzh.ch", role = c("aut", "cre")),
+Version: 0.0.3
+Authors@R: c(person("Balint", "Tamasi", role = c("aut", "cre"),
+                    email = "balint.tamasi@uzh.ch", comment = c(ORCID = "0000-0002-2629-7362")),
              person("Torsten", "Hothorn",  role = "ctb",
                     email = "Torsten.Hothorn@R-project.org", comment = c(ORCID = "0000-0001-8301-0471")))
 Description: Likelihood-based estimation of mixed-effects transformation models using the Template
@@ -19,11 +20,11 @@ VignetteBuilder: knitr
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
 NeedsCompilation: yes
-Packaged: 2020-04-06 12:09:57 UTC; balint
-Author: Balint Tamasi [aut, cre],
+Packaged: 2020-07-30 19:56:35 UTC; balint
+Author: Balint Tamasi [aut, cre] (<https://orcid.org/0000-0002-2629-7362>),
   Torsten Hothorn [ctb] (<https://orcid.org/0000-0001-8301-0471>)
 Maintainer: Balint Tamasi <balint.tamasi@uzh.ch>
 Repository: CRAN
-Date/Publication: 2020-04-07 15:00:02 UTC
+Date/Publication: 2020-07-31 08:30:03 UTC

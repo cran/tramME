@@ -1,6 +1,6 @@
 
-R version 3.6.1 (2019-07-05) -- "Action of the Toes"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-07-29 r78934) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,10 +20,12 @@ Loading required package: tram
 Loading required package: mlt
 Loading required package: basefun
 Loading required package: variables
+> source("test_util.R")
 > 
 > oldopt <- options(digits = 4)
-> chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
-> chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+> ## chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
+> ## chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+> .run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
 > 
 > ## nofit
 > suppressPackageStartupMessages(library("survival"))
@@ -59,38 +61,38 @@ In .tramME(formula, data, na.action = na.action, silent = silent,  :
 > chkerr(varcov(mod) <- vc) ## no error
 [1] FALSE
 > 
-> ## missing values and subsets
-> ## --- when a covariate is missing
-> set.seed(100)
-> dat1 <- eortc
-> idx <- sample(nrow(dat1), 200)
-> dat1[idx, "trt"] <- NA
-> dat2 <- eortc
-> dat2$id <- 1
-> dat2[idx, "id"] <- 0
-> fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-> fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat2, subset = id > 0,
+> if (.run_test) {
++ ## missing values and subsets
++ ## --- when a covariate is missing
++ set.seed(100)
++ dat1 <- eortc
++ idx <- sample(nrow(dat1), 200)
++ dat1[idx, "trt"] <- NA
++ dat2 <- eortc
++ dat2$id <- 1
++ dat2[idx, "id"] <- 0
++ fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
++ fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat2, subset = id > 0,
 +                 log_first = TRUE)
-> chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-> chk(logLik(fit1), logLik(fit2))
-> ## --- when the response is missing
-> dat1 <- eortc
-> dat1[idx, "y"] <- NA
-> fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-> chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-> chk(logLik(fit1), logLik(fit2))
-> ## --- when the RE grouping variable is missing
-> dat1 <- eortc
-> dat1[dat1$center <= 10, "center"] <- NA
-> fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-> fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = eortc, log_first = TRUE, subset = center > 10)
-> chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-> chk(logLik(fit1), logLik(fit2))
-> ## --- other na.actions
-> try(fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1,
++ chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
++ chk(logLik(fit1), logLik(fit2))
++ ## --- when the response is missing
++ dat1 <- eortc
++ dat1[idx, "y"] <- NA
++ fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
++ chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
++ chk(logLik(fit1), logLik(fit2))
++ ## --- when the RE grouping variable is missing
++ dat1 <- eortc
++ dat1[dat1$center <= 10, "center"] <- NA
++ fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
++ fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = eortc, log_first = TRUE, subset = center > 10)
++ chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
++ chk(logLik(fit1), logLik(fit2))
++ ## --- other na.actions
++ try(fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1,
 +                     log_first = TRUE, na.action = na.fail))
-Error in na.fail.default(structure(list(.index. = 1:2323, trt = c(1L,  : 
-  missing values in object
++ }
 > 
 > ## optional parameters
 > data("sleepstudy", package = "lme4")
@@ -101,131 +103,39 @@ Error in na.fail.default(structure(list(.index. = 1:2323, trt = c(1L,  :
 [1] TRUE
 > 
 > ## variable names
-> variable.names(fit1, which = "response")
-[1] "Surv(y, uncens)"
-> variable.names(fit1, which = "shifting")
-[1] "trt"
-> variable.names(fit1, which = "grouping")
-[1] "center"
-> variable.names(fit1)
-[1] "Surv(y, uncens)" "trt"             "center"         
+> variable.names(mod, which = "response")
+[1] "Reaction"
+> variable.names(mod, which = "shifting")
+[1] "Days"
+> variable.names(mod, which = "grouping")
+[1] "Subject"
+> variable.names(mod)
+[1] "Reaction" "Days"     "Subject" 
 > 
-> ## outputs/print methods
-> fit1 <- LmME(Reaction ~ Days + (1 | Subject), data = sleepstudy)
-> fit1 ## fitted
-
-Mixed-effects Normal Linear Regression Model
-
-	Formula: Reaction ~ Days + (1 | Subject)
-
-	Fitted to dataset sleepstudy
-
-	Estimated fixed effects:
-	========================
-
- Days 
-0.339 
-
-	Estimated random effects parameters:
-	====================================
-
-Grouping factor: Subject (18 levels)
-Standard deviation:
-(Intercept) 
-       1.17 
-
-
-	Log-likelihood: -897 (df = 4)
-
-> summary(fit1)
-
-Mixed-effects Normal Linear Regression Model
-
-	Formula: Reaction ~ Days + (1 | Subject)
-
-	Fitted to dataset [0;32msleepstudy[0m
-
-	Fixed effects:
-	==============
-
-     Estimate Std. Error z value Pr(>|z|)    
-Days   0.3388     0.0321    10.6   <2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-	Random effects:
-	===============
-
-Grouping factor: Subject (18 levels)
-Standard deviation:
-(Intercept) 
-       1.17 
-
-
-	Log-likelihood: -897 (df = 4)
-
-> mod ## unfitted
-
-Non-normal (Box-Cox-Type) Linear Mixed-effects Regression Model
-
-	Formula: Reaction ~ Days + (Days | Subject)
-
-	Not fitted
-
-
-> summary(mod)
-
-Non-normal (Box-Cox-Type) Linear Mixed-effects Regression Model
-
-	Formula: Reaction ~ Days + (Days | Subject)
-
-	[0;31mNot fitted[0m
-
-	Fixed effects:
-	==============
-
-     Estimate Std. Error z value Pr(>|z|)
-Days       NA         NA      NA       NA
-
-	Random effects:
-	===============
-
-Grouping factor: Subject (18 levels)
-Standard deviation:
-(Intercept)        Days 
-         NA          NA 
-
-Correlations:
-     (Intercept)
-Days          NA
-
-
-	Log-likelihood: NA
-
-> VarCorr(mod)
-
-Grouping factor: Subject (18 levels)
-Standard deviation:
-(Intercept)        Days 
-         NA          NA 
-
-Correlations:
-     (Intercept)
-Days          NA
-
+> if (.run_test) {
++   ## outputs/print methods
++   fit1 <- LmME(Reaction ~ Days + (1 | Subject), data = sleepstudy)
++   print(fit1) ## fitted
++   print(summary(fit1))
++   print(mod) ## unfitted
++   print(summary(mod))
++   print(VarCorr(mod))
++ }
 > 
-> ## weights
-> set.seed(100)
-> dat1 <- sleepstudy
-> dat1$w <- sample(10, nrow(sleepstudy), replace = TRUE)
-> fit1 <- LmME(Reaction ~ Days + (Days || Subject), weights = w, data = dat1)
-> dat2 <- dat1[rep(seq(nrow(dat1)), dat1$w), ]
-> fit2 <- LmME(Reaction ~ Days + (Days || Subject), data = dat2)
-> chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-> chk(logLik(fit1), logLik(fit2))
-> ##VarCorr(fit1)
-> ##summary(fit1)
-> ##logLik(fit1)
+> if (.run_test) {
++ ## weights
++ set.seed(100)
++ dat1 <- sleepstudy
++ dat1$w <- sample(10, nrow(sleepstudy), replace = TRUE)
++ fit1 <- LmME(Reaction ~ Days + (Days || Subject), weights = w, data = dat1)
++ dat2 <- dat1[rep(seq(nrow(dat1)), dat1$w), ]
++ fit2 <- LmME(Reaction ~ Days + (Days || Subject), data = dat2)
++ chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
++ chk(logLik(fit1), logLik(fit2))
++ ##VarCorr(fit1)
++ ##summary(fit1)
++ ##logLik(fit1)
++ }
 > 
 > ## RE structures
 > mod1 <- LmME(Reaction ~ Days + (Days || Subject), data = sleepstudy, nofit = TRUE)
@@ -237,4 +147,4 @@ Days          NA
 > 
 > proc.time()
    user  system elapsed 
-  9.538   0.084   9.612 
+  1.822   0.124   1.933 

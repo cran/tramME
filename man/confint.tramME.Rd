@@ -4,11 +4,18 @@
 \alias{confint.tramME}
 \title{Confidence intervals for tramME model parameters}
 \usage{
-\method{confint}{tramME}(object, parm = NULL, level = 0.95,
+\method{confint}{tramME}(
+  object,
+  parm = NULL,
+  level = 0.95,
   pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
-  type = c("Wald", "wald", "profile"), estimate = FALSE,
-  pmatch = FALSE, parallel = c("no", "multicore", "snow"),
-  ncpus = getOption("profile.ncpus", 1L), ...)
+  type = c("Wald", "wald", "profile"),
+  estimate = FALSE,
+  pmatch = FALSE,
+  parallel = c("no", "multicore", "snow"),
+  ncpus = getOption("profile.ncpus", 1L),
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted tramME object.}

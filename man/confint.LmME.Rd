@@ -4,10 +4,17 @@
 \alias{confint.LmME}
 \title{Confidence intervals for LmME model parameters}
 \usage{
-\method{confint}{LmME}(object, parm = NULL, level = 0.95,
-  as.lm = FALSE, pargroup = c("all", "fixef", "shift", "baseline",
-  "ranef"), type = c("Wald", "wald", "profile"), estimate = FALSE,
-  pmatch = FALSE, ...)
+\method{confint}{LmME}(
+  object,
+  parm = NULL,
+  level = 0.95,
+  as.lm = FALSE,
+  pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+  type = c("Wald", "wald", "profile"),
+  estimate = FALSE,
+  pmatch = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted LmME object.}

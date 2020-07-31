@@ -1,6 +1,6 @@
 
-R version 3.6.1 (2019-07-05) -- "Action of the Toes"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-07-29 r78934) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,12 +20,15 @@ Loading required package: tram
 Loading required package: mlt
 Loading required package: basefun
 Loading required package: variables
+> source("test_util.R")
 > 
 > oldopt <- options(warn = -1) ## NOTE: no parallel implementation under Windows
 > chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
 +   stopifnot(isTRUE(all.equal(x, y, tolerance = tol, check.attributes = FALSE)))
 > 
 > chkerr <- function(expr) stopifnot(isTRUE(inherits(try(expr, silent = TRUE), "try-error")))
+> .run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
+> 
 > 
 > ## covariance matrix of the parameters
 > data("sleepstudy", package = "lme4")
@@ -60,9 +63,11 @@ Loading required package: variables
 +                  bounds = c(0, 1), support = c(0, 1))
 > ci <- confint(fit_np, pargroup = "shift", estimate = TRUE)
 > chktol(dim(ci), c(5, 3))
-> ci <- confint(fit_np, parm = "time2", pmatch = TRUE, type = "profile",
+> if (.run_test) {
++ ci <- confint(fit_np, parm = "time2", pmatch = TRUE, type = "profile",
 +               parallel = "multicore", ncpus = 2)
-> chktol(dim(ci), c(2, 2))
++ chktol(dim(ci), c(2, 2))
++ }
 > ci <- confint(fit_np, "foo")
 > chktol(dim(ci), c(0, 2))
 > 
@@ -106,4 +111,4 @@ null device
 > 
 > proc.time()
    user  system elapsed 
-  7.895   0.182   6.295 
+  6.668   0.105   6.760 

@@ -1,10 +1,11 @@
 library("tramME")
+source("test_util.R")
 suppressPackageStartupMessages(library("lme4"))
 
 oldopt <- options(digits = 5)
 chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
   stopifnot(isTRUE(all.equal(x, y, tol = tol, check.attributes = FALSE)))
-chkwarn <- function(expr, wm) tryCatch(expr, warning = function(w) grepl(wm, w))
+## chkwarn <- function(expr, wm) tryCatch(expr, warning = function(w) grepl(wm, w))
 
 data("sleepstudy")
 

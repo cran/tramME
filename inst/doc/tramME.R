@@ -691,8 +691,8 @@ ggplot(dat, aes(x = Reaction)) +
   theme(legend.position = "bottom") +
   scale_color_manual(
     values = c(rgb(0, 84, 150, maxColorValue = 255),
-               rgb(.5, .5, .5, .5),
-               rgb(202, 108, 24, maxColorValue = 255)),
+               rgb(202, 108, 24, maxColorValue = 255),
+               rgb(.5, .5, .5, .5)),
     breaks = c("BoxCoxME", "LmME", "ECDF"))
 
 ## ----neckpain-data, echo=FALSE, fig.width=6, fig.height=3---------------------
@@ -1388,7 +1388,7 @@ logLik(soup_pr2)
 ## -----------------------------------------------------------------------------
 anova(soup_pr, soup_pr2)
 
-## ----include=FALSE-------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 ## NOTE: reset user's options and pars (as per CRAN submission request)
 options(oldopt)
 par(oldpar)

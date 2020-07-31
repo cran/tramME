@@ -1,10 +1,13 @@
 library("tramME")
+source("test_util.R")
 
 oldopt <- options(warn = -1) ## NOTE: no parallel implementation under Windows
 chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
   stopifnot(isTRUE(all.equal(x, y, tolerance = tol, check.attributes = FALSE)))
 
 chkerr <- function(expr) stopifnot(isTRUE(inherits(try(expr, silent = TRUE), "try-error")))
+.run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
+
 
 ## covariance matrix of the parameters
 data("sleepstudy", package = "lme4")
@@ -39,9 +42,11 @@ fit_np <- ColrME(vas ~ laser * time + (1 | id), data = neck_pain,
                  bounds = c(0, 1), support = c(0, 1))
 ci <- confint(fit_np, pargroup = "shift", estimate = TRUE)
 chktol(dim(ci), c(5, 3))
+if (.run_test) {
 ci <- confint(fit_np, parm = "time2", pmatch = TRUE, type = "profile",
               parallel = "multicore", ncpus = 2)
 chktol(dim(ci), c(2, 2))
+}
 ci <- confint(fit_np, "foo")
 chktol(dim(ci), c(0, 2))
 

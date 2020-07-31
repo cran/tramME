@@ -4,9 +4,14 @@
 \alias{vcov.LmME}
 \title{Get the variance-covariance matrix of the parameters of an LmME model}
 \usage{
-\method{vcov}{LmME}(object, as.lm = FALSE, parm = NULL,
+\method{vcov}{LmME}(
+  object,
+  as.lm = FALSE,
+  parm = NULL,
   pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
-  pmatch = FALSE, ...)
+  pmatch = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted LmME object.}

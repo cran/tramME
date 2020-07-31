@@ -4,9 +4,16 @@
 \alias{simulate.tramME}
 \title{Simulate outcome variable from an estimated model}
 \usage{
-\method{simulate}{tramME}(object, nsim = 1, seed = NULL,
-  newdata = NULL, ranef = NULL, what = c("response", "ranef",
-  "joint"), bysim = TRUE, ...)
+\method{simulate}{tramME}(
+  object,
+  nsim = 1,
+  seed = NULL,
+  newdata = NULL,
+  ranef = NULL,
+  what = c("response", "ranef", "joint"),
+  bysim = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted tramME object.}

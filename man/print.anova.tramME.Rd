@@ -4,8 +4,12 @@
 \alias{print.anova.tramME}
 \title{Printing \code{anova.tramME} table}
 \usage{
-\method{print}{anova.tramME}(x, digits = max(getOption("digits") - 2L,
-  3L), signif.stars = getOption("show.signif.stars"), ...)
+\method{print}{anova.tramME}(
+  x,
+  digits = max(getOption("digits") - 2L, 3L),
+  signif.stars = getOption("show.signif.stars"),
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{anova.tramME} object.}

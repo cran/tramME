@@ -4,15 +4,24 @@
 \alias{BoxCoxME}
 \title{ME version of tram::BoxCox}
 \usage{
-BoxCoxME(formula, data, subset, weights, offset, na.action = na.omit,
-  silent = TRUE, nofit = FALSE, optim_control = list(outer = list(),
-  optim = list()), ...)
+BoxCoxME(
+  formula,
+  data,
+  subset,
+  weights,
+  offset,
+  na.action = na.omit,
+  silent = TRUE,
+  nofit = FALSE,
+  optim_control = list(outer = list(), optim = list()),
+  ...
+)
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"}: a symbolic description 
           of the model structure to be
           fitted.  The details of model specification are given under
-          \code{\link{tram}} and in the package vignette.
+          \code{\link[tram]{tram}} and in the package vignette.
   }
 
 \item{data}{an optional data frame, list or environment (or object
@@ -46,7 +55,7 @@ BoxCoxME(formula, data, subset, weights, offset, na.action = na.omit,
 
 \item{optim_control}{List of optional arguments for the optimizer.}
 
-\item{...}{additional arguments to \code{\link{tram}}.}
+\item{...}{additional arguments to \code{\link[tram]{tram}}.}
 }
 \value{
 A BoxCoxME object.

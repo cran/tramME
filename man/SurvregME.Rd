@@ -4,17 +4,27 @@
 \alias{SurvregME}
 \title{ME version of tram::Survreg}
 \usage{
-SurvregME(formula, data, subset, weights, offset, na.action = na.omit,
-  dist = c("weibull", "logistic", "gaussian", "exponential", "rayleigh",
-  "loggaussian", "lognormal", "loglogistic"), scale = 0, silent = TRUE,
-  nofit = FALSE, optim_control = list(outer = list(), optim = list()),
-  ...)
+SurvregME(
+  formula,
+  data,
+  subset,
+  weights,
+  offset,
+  na.action = na.omit,
+  dist = c("weibull", "logistic", "gaussian", "exponential", "rayleigh", "loggaussian",
+    "lognormal", "loglogistic"),
+  scale = 0,
+  silent = TRUE,
+  nofit = FALSE,
+  optim_control = list(outer = list(), optim = list()),
+  ...
+)
 }
 \arguments{
 \item{formula}{an object of class \code{"formula"}: a symbolic description 
           of the model structure to be
           fitted.  The details of model specification are given under
-          \code{\link{tram}} and in the package vignette.
+          \code{\link[tram]{tram}} and in the package vignette.
   }
 
 \item{data}{an optional data frame, list or environment (or object
@@ -58,7 +68,7 @@ SurvregME(formula, data, subset, weights, offset, na.action = na.omit,
 
 \item{optim_control}{List of optional arguments for the optimizer.}
 
-\item{...}{additional arguments to \code{\link{tram}}.}
+\item{...}{additional arguments to \code{\link[tram]{tram}}.}
 }
 \value{
 A SurvregME object.

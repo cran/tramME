@@ -4,8 +4,7 @@
 \alias{.paridx}
 \title{Match parameters with parameter groups and indeces}
 \usage{
-.paridx(mst, which = NULL, pargroup = "all", pmatch = FALSE,
-  altpar = NULL)
+.paridx(mst, which = NULL, pargroup = "all", pmatch = FALSE, altpar = NULL)
 }
 \arguments{
 \item{mst}{model structure as in an obj$model}

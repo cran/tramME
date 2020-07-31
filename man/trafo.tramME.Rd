@@ -5,9 +5,15 @@
 \title{Get the baseline transformation function and its confidence
 interval}
 \usage{
-\method{trafo}{tramME}(object, newdata = NULL, type = c("trafo",
-  "distribution", "survivor", "cumhazard"), confidence = c("none",
-  "interval", "band", "asymptotic"), level = 0.95, K = 50, ...)
+\method{trafo}{tramME}(
+  object,
+  newdata = NULL,
+  type = c("trafo", "distribution", "survivor", "cumhazard"),
+  confidence = c("none", "interval", "band", "asymptotic"),
+  level = 0.95,
+  K = 50,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted tramME object.}

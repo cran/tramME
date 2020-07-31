@@ -4,8 +4,7 @@
 \alias{print.VarCorr.tramME}
 \title{Print method for the variance-correlation parameters of a tramME object}
 \usage{
-\method{print}{VarCorr.tramME}(x, sd = TRUE,
-  digits = max(getOption("digits") - 2L, 3L), ...)
+\method{print}{VarCorr.tramME}(x, sd = TRUE, digits = max(getOption("digits") - 2L, 3L), ...)
 }
 \arguments{
 \item{x}{A VarCorr.tramME object}

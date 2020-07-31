@@ -4,8 +4,7 @@
 \alias{print.tramME}
 \title{Print tramME model}
 \usage{
-\method{print}{tramME}(x, digits = max(getOption("digits") - 2L, 3L),
-  ...)
+\method{print}{tramME}(x, digits = max(getOption("digits") - 2L, 3L), ...)
 }
 \arguments{
 \item{x}{A fitted or unfitted tramME model}

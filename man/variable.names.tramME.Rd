@@ -4,8 +4,11 @@
 \alias{variable.names.tramME}
 \title{Return variable names.}
 \usage{
-\method{variable.names}{tramME}(object, which = c("all", "response",
-  "grouping", "shifting", "interacting"), ...)
+\method{variable.names}{tramME}(
+  object,
+  which = c("all", "response", "grouping", "shifting", "interacting"),
+  ...
+)
 }
 \arguments{
 \item{object}{a tramME object (fitted or unfitted)}

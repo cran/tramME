@@ -1,6 +1,6 @@
 
-R version 3.6.1 (2019-07-05) -- "Action of the Toes"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-07-29 r78934) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -98,4 +98,4 @@ Error in simulate.tramME(mod, newdata = sleepstudy) :
 > 
 > proc.time()
    user  system elapsed 
-  2.191   0.063   2.245 
+  3.759   0.111   3.858 

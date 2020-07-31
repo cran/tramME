@@ -4,8 +4,7 @@
 \alias{plot.trafo.tramME}
 \title{Plotting method for \code{trafo.tramME} objects}
 \usage{
-\method{plot}{trafo.tramME}(x, col = 1, fill = "lightgrey", lty = 1,
-  add = FALSE, ...)
+\method{plot}{trafo.tramME}(x, col = 1, fill = "lightgrey", lty = 1, add = FALSE, ...)
 }
 \arguments{
 \item{x}{A \code{trafo.tramME} object.}

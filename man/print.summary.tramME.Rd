@@ -4,8 +4,12 @@
 \alias{print.summary.tramME}
 \title{Print method for tramME model summary}
 \usage{
-\method{print}{summary.tramME}(x, digits = max(getOption("digits") - 2L,
-  3L), signif.stars = getOption("show.signif.stars"), ...)
+\method{print}{summary.tramME}(
+  x,
+  digits = max(getOption("digits") - 2L, 3L),
+  signif.stars = getOption("show.signif.stars"),
+  ...
+)
 }
 \arguments{
 \item{x}{a \code{summary.tramME} object}

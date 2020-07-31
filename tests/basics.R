@@ -1,8 +1,10 @@
 library("tramME")
+source("test_util.R")
 
 oldopt <- options(digits = 4)
-chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
-chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+## chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
+## chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
+.run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
 
 ## nofit
 suppressPackageStartupMessages(library("survival"))
@@ -26,6 +28,7 @@ chkerr(varcov(mod) <- vc)
 vc[[1]] <- matrix(c(1, 0, 0, 2), ncol = 2)
 chkerr(varcov(mod) <- vc) ## no error
 
+if (.run_test) {
 ## missing values and subsets
 ## --- when a covariate is missing
 set.seed(100)
@@ -56,6 +59,7 @@ chk(logLik(fit1), logLik(fit2))
 ## --- other na.actions
 try(fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1,
                     log_first = TRUE, na.action = na.fail))
+}
 
 ## optional parameters
 data("sleepstudy", package = "lme4")
@@ -65,19 +69,22 @@ chk(length(coef(mod, with_baseline = TRUE)), 11+1)
 attr(mod$model$response$basis, "log_first")
 
 ## variable names
-variable.names(fit1, which = "response")
-variable.names(fit1, which = "shifting")
-variable.names(fit1, which = "grouping")
-variable.names(fit1)
+variable.names(mod, which = "response")
+variable.names(mod, which = "shifting")
+variable.names(mod, which = "grouping")
+variable.names(mod)
 
-## outputs/print methods
-fit1 <- LmME(Reaction ~ Days + (1 | Subject), data = sleepstudy)
-fit1 ## fitted
-summary(fit1)
-mod ## unfitted
-summary(mod)
-VarCorr(mod)
+if (.run_test) {
+  ## outputs/print methods
+  fit1 <- LmME(Reaction ~ Days + (1 | Subject), data = sleepstudy)
+  print(fit1) ## fitted
+  print(summary(fit1))
+  print(mod) ## unfitted
+  print(summary(mod))
+  print(VarCorr(mod))
+}
 
+if (.run_test) {
 ## weights
 set.seed(100)
 dat1 <- sleepstudy
@@ -90,6 +97,7 @@ chk(logLik(fit1), logLik(fit2))
 ##VarCorr(fit1)
 ##summary(fit1)
 ##logLik(fit1)
+}
 
 ## RE structures
 mod1 <- LmME(Reaction ~ Days + (Days || Subject), data = sleepstudy, nofit = TRUE)

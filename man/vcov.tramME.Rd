@@ -4,8 +4,13 @@
 \alias{vcov.tramME}
 \title{Calculate the variance-covariance matrix of the parameters}
 \usage{
-\method{vcov}{tramME}(object, parm = NULL, pargroup = c("all", "fixef",
-  "shift", "baseline", "ranef"), pmatch = FALSE, ...)
+\method{vcov}{tramME}(
+  object,
+  parm = NULL,
+  pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+  pmatch = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted tramME object.}
