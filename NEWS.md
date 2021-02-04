@@ -1,3 +1,10 @@
+# tramME 0.0.4 (2021-02-04)
+
+* fixed bug in setting error distributions of 'dummy' ctms for predict and simulate methods 
+* updated Figure 6 in vignette, because the bug above affected predict in the case of CorlME
+* fixed bug in unit test for simulate that caused error with mlt 1.2-1 
+* fixed simulate output structure with `what = "joint"` option 
+
 # tramME 0.0.3 (2020-07-30)
 
 * Added author ORCID

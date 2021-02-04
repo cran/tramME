@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2020-07-29 r78934) -- "Unsuffered Consequences"
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
 Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -72,7 +72,7 @@ Error in simulate.tramME(fit, nsim = 2, what = "joint", bysim = FALSE) :
 > 
 > ## simulating from an unfitted model
 > mod <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
-> coef(mod) <- c(-1, 4, 1)
+> coef(mod) <- c(-10, 0.05, 0.6)
 > nd <- sleepstudy
 > nd$Reaction <- NULL
 > s1 <- simulate(mod, newdata = nd, ranef = rep(0, 2 * nlevels(sleepstudy$Subject)))
@@ -81,7 +81,7 @@ Error in simulate.tramME(mod, newdata = sleepstudy) :
   Random effects parameters must be set forsimulations from the joint/marginal distributions
 [1] TRUE
 > vc <- varcov(mod)
-> vc[[1]] <- diag(c(1, 2))
+> vc[[1]] <- diag(c(1, 0.05))
 > varcov(mod) <- vc
 > s1 <- simulate(mod, newdata = sleepstudy)
 > 
@@ -98,4 +98,4 @@ Error in simulate.tramME(mod, newdata = sleepstudy) :
 > 
 > proc.time()
    user  system elapsed 
-  3.759   0.111   3.858 
+  4.001   0.091   4.084 

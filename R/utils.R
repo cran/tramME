@@ -221,7 +221,7 @@ NULL
     newshift <- reb
   }
   mod <- ctm(response = mst$response$basis, interacting = mst$fixef$bases$interacting,
-             shifting = newshift, todsitr = distr)
+             shifting = newshift, todistr = distr)
   coef(mod) <- c(coef, re_ = 1)
   return(mod)
 }

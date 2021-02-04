@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2020-07-29 r78934) -- "Unsuffered Consequences"
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
 Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -97,4 +97,4 @@ Reaction      [,1]      [,2]
 > 
 > proc.time()
    user  system elapsed 
-  5.983   0.126   6.094 
+  4.540   0.121   4.651 

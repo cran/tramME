@@ -45,13 +45,13 @@ chk(s1, s2)
 
 ## simulating from an unfitted model
 mod <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
-coef(mod) <- c(-1, 4, 1)
+coef(mod) <- c(-10, 0.05, 0.6)
 nd <- sleepstudy
 nd$Reaction <- NULL
 s1 <- simulate(mod, newdata = nd, ranef = rep(0, 2 * nlevels(sleepstudy$Subject)))
 chkerr(s1 <- simulate(mod, newdata = sleepstudy))
 vc <- varcov(mod)
-vc[[1]] <- diag(c(1, 2))
+vc[[1]] <- diag(c(1, 0.05))
 varcov(mod) <- vc
 s1 <- simulate(mod, newdata = sleepstudy)
 

@@ -51,7 +51,7 @@ simulate.tramME <- function(object, nsim = 1, seed = NULL,
       stop(paste(c("Random effects parameters must be set for",
                    "simulations from the joint/marginal distributions")))
   }
-  ## --- bysim only when random effects are also estimated
+  ## --- bysim only when random effects are also simulated
   what <- match.arg(what)
   if (what != "response")
     stopifnot(isTRUE(bysim), is.null(ranef))
@@ -116,9 +116,14 @@ simulate.tramME <- function(object, nsim = 1, seed = NULL,
     newdata$re_ <- as.numeric(Matrix::crossprod(re_struct$Zt, re))
     out <- simulate(fmlt, newdata = newdata, nsim = nsim, bysim = bysim, ...)
   }
-  if (what == "joint")
-    out <- mapply(function(y, g) list(responses = y, ranef = g),
-                  y = out, g = re, SIMPLIFY = FALSE)
+  if (what == "joint") {
+    if (inherits(out, "response") && (length(re) == 1)) {
+      out <- list(responses = out, ranef = unlist(re))
+    } else {
+      out <- mapply(function(y, g) list(responses = y, ranef = g),
+                    y = out, g = re, SIMPLIFY = FALSE)
+    }
+  }
   attr(out, "seed") <- RNGstate
   class(out) <- c("simulate.tramME", class(out))
   return(out)
