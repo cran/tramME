@@ -4,19 +4,44 @@
 \alias{plot.tramME}
 \title{Plotting method for tramME objects}
 \usage{
-\method{plot}{tramME}(x, newdata = NULL, ranef = NULL, ...)
+\method{plot}{tramME}(
+  x,
+  newdata = model.frame(x),
+  ranef = NULL,
+  type = c("trafo", "distribution", "survivor", "density", "logdensity", "hazard",
+    "loghazard", "cumhazard", "odds", "logodds", "quantile"),
+  ...
+)
 }
 \arguments{
-\item{x}{A tramME object}
+\item{x}{A \code{tramME} object.}
 
 \item{newdata}{an optional data frame of observations}
 
-\item{ranef}{Vector of random effects or the word "zero". See details.}
+\item{ranef}{Random effects (either in named list format or a numeric vector)
+or the word "zero". See Details.}
+
+\item{type}{The scale on which the predictions are evaluated:
+\itemize{
+  \item trafo: The prediction evaluated on the scale of the
+    transformation function.
+  \item distribution: The prediction evaluated on the scale of the
+    conditional CDF.
+  \item survivor: The prediction evaluated on the scale of the
+    (conditional) survivor function.
+  \item density, logdensity: The prediction evaluated on the scale of
+    the conditional (log-)PDF.
+  \item hazard, loghazard, cumhazard: The prediction evaluated on the
+    hazard/log-hazard/cumulative hazard scale.
+  \item odds, logodds: The prediction evaluated on the (log-)odds scale.
+  \item quantile: Return the quantiles of the conditional outcome distribution
+    corresponding to \code{newdata}. For more information, see Details.
+}}
 
 \item{...}{Additional arguments, passed to \code{\link[mlt]{plot.mlt}}.}
 }
 \value{
-A numeric matrix of the predicted values invisibly
+A numeric matrix of the predicted values invisibly.
 }
 \description{
 Plot the conditional distribution evaluated at a grid of possible response
@@ -25,6 +50,9 @@ values and a set of covariate and random effects values on a specified scale.
 \details{
 When \code{ranef} is equal to "zero", a vector of zeros with the right size is
 substituted.
+
+For more information on how to control the grid on which the functions are evaluated,
+see the documentation of \code{\link[mlt]{predict.mlt}}.
 }
 \examples{
 data("sleepstudy", package = "lme4")

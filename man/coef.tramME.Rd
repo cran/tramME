@@ -4,12 +4,14 @@
 \alias{coef.tramME}
 \title{Extract the coefficients of the fixed effects terms.}
 \usage{
-\method{coef}{tramME}(object, with_baseline = FALSE, ...)
+\method{coef}{tramME}(object, with_baseline = FALSE, fixed = TRUE, ...)
 }
 \arguments{
-\item{object}{A tramME object (fitted or unfitted)}
+\item{object}{A \code{tramME} object.}
 
-\item{with_baseline}{If TRUE, include the baseline parameters, too.}
+\item{with_baseline}{If \code{TRUE}, also include the baseline parameters.}
+
+\item{fixed}{If \code{TRUE}, also include the fixed parameters.}
 
 \item{...}{Optional parameters (ignored).}
 }
@@ -20,7 +22,9 @@ Numeric vector of parameter values.
 Extract the coefficients of the fixed effects terms.
 }
 \examples{
-data("sleepstudy", package = "lme4")
-mod <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
+library("survival")
+mod <- SurvregME(Surv(time, status) ~ rx + (1 | litter/rx), data = rats,
+                 dist = "exponential", nofit = TRUE)
 coef(mod, with_baseline = TRUE)
+coef(mod, with_baseline = TRUE, fixed = FALSE)
 }

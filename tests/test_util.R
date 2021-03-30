@@ -5,6 +5,27 @@ if (length(strsplit(packageDescription("tramME")$Version, "\\.")[[1]]) > 3) {
 }
 
 
-chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
-chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
-chkwarn <- function(expr, wm) stopifnot(tryCatch(expr, warning = function(w) grepl(wm, w)))
+chkeq <- function(x, y, ...) stopifnot(isTRUE(all.equal(x, y, ...)))
+chkid <- function(x, y, ...) stopifnot(isTRUE(identical(x, y, ...)))
+
+chkerr <- function(expr, em = NULL) {
+  stopifnot(
+    tryCatch(expr,
+      error = function(e) {
+        if (!is.null(em)) return(grepl(em, e))
+        else return(TRUE)
+      }
+      )
+  )
+}
+
+chkwarn <- function(expr, wm = NULL) {
+  stopifnot(
+    tryCatch(expr,
+      warning = function(w) {
+        if (!is.null(wm)) return(grepl(wm, w))
+        else return(TRUE)
+      }
+      )
+  )
+}

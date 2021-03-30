@@ -2,13 +2,13 @@
 % Please edit documentation in R/simulate.R
 \name{simulate.tramME}
 \alias{simulate.tramME}
-\title{Simulate outcome variable from an estimated model}
+\title{Simulate from a tramME model}
 \usage{
 \method{simulate}{tramME}(
   object,
   nsim = 1,
   seed = NULL,
-  newdata = NULL,
+  newdata = model.frame(object),
   ranef = NULL,
   what = c("response", "ranef", "joint"),
   bysim = TRUE,
@@ -24,15 +24,15 @@
 
 \item{newdata}{an optional data frame of observations}
 
-\item{ranef}{If NULL, random effects are simulated from their estimated
-distribution for each draw in nsim, i.e. the simulation is from the
+\item{ranef}{If \code{NULL}, random effects are simulated from their estimated
+distribution for each of the \code{nsim} draws, i.e. the simulation is from the
 marginal/joint distribution of the response (and random effects).
 Otherwise the simulation is conditional on the supplied random effects.
 When \code{ranef = "zero"}, a vector of zeros with the right size is
 substituted.}
 
-\item{what}{Defaults to \code{'response'}. \code{'ranef'} returns draws from
-the random effects distribution, \code{'joint'} results in simulated data
+\item{what}{Defaults to \code{"response"}. \code{what = "ranef"} returns draws from
+the random effects distribution, \code{what = "joint"} results in simulated data
 from the joint distribution of random effects and responses. When it is
 set to other than 'response', \code{ranef=NULL} and \code{bysim=TRUE} must
 be set.}
@@ -47,11 +47,15 @@ be set.}
 \item{...}{Additional arguments, passed to \code{\link[mlt]{simulate.mlt}}.}
 }
 \value{
-A simulate.tramME object with the structure defined by the inputs.
+A \code{simulate.tramME} object with the structure defined by the inputs.
 }
 \description{
 Utilizes the simulation method of mlt. When the vector of random effects is supplied, the
 simulation is conditional on it.
+}
+\details{
+In certain settings, the conditional CDF of the outcome cannot be inverted on some
+some intervals. In these cases, \code{simulate.mlt} returns censored observations.
 }
 \examples{
 data("sleepstudy", package = "lme4")

@@ -4,22 +4,27 @@
 \alias{varcov.tramME}
 \title{Extract the variance-covariance matrix of the random effects}
 \usage{
-\method{varcov}{tramME}(object, ...)
+\method{varcov}{tramME}(object, as.theta = FALSE, ...)
 }
 \arguments{
-\item{object}{A tramME object (fitted or unfitted).}
+\item{object}{A \code{tramME} object.}
 
-\item{...}{Optional arguments (unused)}
+\item{as.theta}{Logical value, if \code{TRUE}, the values are returned
+in their reparameterized form.}
+
+\item{...}{Optional arguments (unused).}
 }
 \value{
-A list of the covariance matrices.
+A list of the covariance matrices or a vector of theta values.
 }
 \description{
-Returns the covariance matrix of the random effects as saved in the tramME object.
+Returns the covariance matrix of the random effects as saved in the \code{tramME}
+object.
 The returned values correspond to the transformation model parametrization.
 }
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 varcov(fit)
+varcov(fit, as.theta = TRUE)
 }

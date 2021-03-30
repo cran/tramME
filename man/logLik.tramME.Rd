@@ -4,15 +4,27 @@
 \alias{logLik.tramME}
 \title{Get the log-likelihood of the model}
 \usage{
-\method{logLik}{tramME}(object, ...)
+\method{logLik}{tramME}(
+  object,
+  param = c(coef(object, with_baseline = TRUE, fixed = FALSE), varcov(object, as.theta
+    = TRUE)),
+  newdata = NULL,
+  ...
+)
 }
 \arguments{
-\item{object}{A fitted tramME model}
+\item{object}{A \code{tramME} object.}
 
-\item{...}{Optional argument (for consistency with generic)}
+\item{param}{An optional vector of parameter values in the structure
+(beta, theta).}
+
+\item{newdata}{An optional data.frame to calculate the out-of-sample
+log-likelihood.}
+
+\item{...}{Optional argument (for consistency with generic).}
 }
 \value{
-A numeric value of the log-likelihood at its optimum.
+A numeric value of the log-likelihood.
 }
 \description{
 Get the log-likelihood of the model

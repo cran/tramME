@@ -6,13 +6,16 @@
 \usage{
 \method{print}{summary.tramME}(
   x,
+  fancy = !isTRUE(getOption("knitr.in.progress")) && interactive(),
   digits = max(getOption("digits") - 2L, 3L),
   signif.stars = getOption("show.signif.stars"),
   ...
 )
 }
 \arguments{
-\item{x}{a \code{summary.tramME} object}
+\item{x}{A \code{summary.tramME} object.}
+
+\item{fancy}{Logical, if \code{TRUE}, use color in outputs.}
 
 \item{digits}{minimum number of significant digits to be used for
     most numbers.}

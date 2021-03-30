@@ -7,7 +7,7 @@
 \method{print}{VarCorr.tramME}(x, sd = TRUE, digits = max(getOption("digits") - 2L, 3L), ...)
 }
 \arguments{
-\item{x}{A VarCorr.tramME object}
+\item{x}{A \code{VarCorr.tramME} object.}
 
 \item{sd}{Logical. Print standard deviations instead of variances.}
 

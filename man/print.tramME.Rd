@@ -7,14 +7,14 @@
 \method{print}{tramME}(x, digits = max(getOption("digits") - 2L, 3L), ...)
 }
 \arguments{
-\item{x}{A fitted or unfitted tramME model}
+\item{x}{A \code{tramME} object.}
 
 \item{digits}{Number of significant digits}
 
 \item{...}{Optional arguments (for consistency with the generic)}
 }
 \value{
-The original tramME obejct invisibly
+The original \code{tramME} object invisibly
 }
 \description{
 Print tramME model

@@ -1,337 +1,458 @@
-##' General ME tram model
-##'
-##' @param silent Logical, if TRUE, prints all tracing information.
-##' @param nofit Logical, if TRUE, creates the model objects, but does not run the optimization.
-##' @param optim_control List of optional arguments for the optimizer.
-##' @inheritParams tram::tram
-##' @importFrom Matrix Matrix
-##' @importMethodsFrom Matrix t
-##' @importFrom mlt mlt
-##' @importFrom tram Lm Coxph BoxCox Colr Polr Survreg Lehmann
-##' @useDynLib tramME, .registration = TRUE
-.tramME <- function(formula, data, na.action, silent, nofit, optim_control) {
-  fcall <- match.call(definition = sys.function(-1), call = sys.call(-1),
-                      expand.dots = TRUE) ## matching a higher level call
+##' Mixed-effects version of \code{\link[tram]{Coxph}}
+##' @inheritParams LmME
+##' @inheritParams tram::Coxph
+##' @return A CoxphME object.
+##' @importFrom stats na.omit model.offset model.weights
+##' @importFrom tram Coxph
+##' @export
+CoxphME <- function(formula, data, subset, weights, offset, na.action = na.omit,
+                    silent = TRUE, resid = FALSE, do_update = FALSE,
+                    estinit = TRUE, initpar = NULL,
+                    fixed = NULL, nofit = FALSE,
+                    control = optim_control(),
+                    ...) {
+  cl <- match.call()
 
-  ## --- Check RE terms and return tram model if FE only
-  fc <- fcall
-  m <- !(names(fc) %in% c("silent", "nofit", "optim_control"))
-  fc <- fc[m]
-  fname <- sub("ME", "", fc[[1L]])
-  fc[[1L]] <- str2lang(paste0("tram::", fname))
-  fc$formula <- .nobars(fc$formula)
-  if (nofit)
-    fc$model_only <- TRUE
-  if (identical(fc$formula, fcall$formula)) {
-    warnm <- paste0("The model does not contain random effects. Falling back on tram::",
-                    fname)
-    warning(warnm)
-    mod_fe <- eval(fc, parent.frame(n = 2L)) ## NOTE: 2 levels up
-    return(mod_fe)
+  ## -- create intial model structure
+  fc <- cl
+  fc[[1L]] <- quote(tramME_model)
+  fc$tram  <-  "Coxph"
+  mod <- eval(fc, parent.frame())
+
+  ## -- sanitize initial parameter settings
+  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
+    estinit <- FALSE
   }
 
-  ## --- Get data for the extended model
-  ## NOTE: this will handle subsets and na.actions properly
-  fc <- fcall
-  m <- match(c("formula", "data", "subset", "offset", "weights", "na.action"), names(fc),
-             nomatch = 0L)
-  fc <- fc[c(1L, m)]
-  fc[[1L]] <- quote(tram_data)
-  fc$formula <- .subbars(fcall$formula)
-  trdat2 <- eval(fc, parent.frame(n = 2L))
-
-  ## --- Define the corresponding ctm (NOTE: FE only!)
-  fc <- fcall
-  fc$formula <- .nobars(fcall$formula)
-  fc[[1L]] <- str2lang(paste0("tram::", fname))
-  fc$model_only <- TRUE
-  ctrm1 <- eval(fc, parent.frame(n = 2L))
-
-  ## --- Create a non-fitted mlt model from the FE only ctm AND the data of the
-  ##     extended model
-  mltm <- mlt(ctrm1, data = trdat2$mf, weights = trdat2$weights,
-              offset = trdat2$offset, dofit = FALSE)
-  mltdat <- .mlt_data(mltm)
-  if (is.null(trdat2$weights)) {
-    mltdat$weights <- rep(1, nrow(trdat2$mf))
+  ## -- create model frame
+  if (missing(data) || !inherits(data, "tramME_data")) {
+    fc <- cl
+    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
+               names(fc), 0L)
+    fc <- fc[c(1L, m)]
+    fc$formula <- .combine_formulas(mod$formula)
+    fc[[1L]] <- quote(tram::tram_data)
+    out <- eval(fc, parent.frame())
+    dat <- out$mf
+    class(dat) <- c("tramME_data", class(dat))
   } else {
-    mltdat$weights <- trdat2$weights
-  }
-  ## NOTE: hard-coded bec some edge-cases would break it
-  ## changed from:
-  ## mltdat$negative <- get("negative", environment(ctrm1$bases$shifting))
-  mltdat$negative <- switch(fname, Lm = TRUE, Coxph = FALSE, Survreg = TRUE, Colr = FALSE,
-                            Polr = TRUE, BoxCox = TRUE, Lehmann = TRUE)
-
-  ## --- RE specification
-  redat <- .re_data(fcall$formula[-2L], trdat2$mf, negative = mltdat$negative)
-
-  ## --- Constraints
-  constr <- list(ui = Matrix::bdiag(mltdat$constr$ui, redat$ui),
-                 ci = c(mltdat$constr$ci, redat$ci))
-  ui <- as.matrix(constr$ui)
-  ci <- constr$ci
-
-  ## --- Model structure to return
-  vnm <- variable.names(ctrm1)
-  model <- list(
-    name = fname,
-    response = list(name = ctrm1$response, basis = ctrm1$bases$response),
-    ranef = list(termsize = redat$termsize, blocksize = redat$blocksize,
-                 npar = redat$npar, names = redat$names, levels = redat$levels),
-    fixef = list(names = vnm[vnm != ctrm1$response],
-                 bases = list(shifting = ctrm1$bases$shifting,
-                              interacting = ctrm1$bases$interacting),
-                 npar = c(all = length(mltdat$pargroup),
-                          baseline = sum(mltdat$pargroup == "baseline"),
-                          shift = sum(mltdat$pargroup == "shift")),
-                 parnames = names(coef(ctrm1))),
-    distr = mltdat$errdistr,
-    negative = mltdat$negative,
-    constraint = constr
-  )
-
-  if (!nofit) {
-    ## --- Model type TODO: bundle these steps into a dedicated .tramME_data function
-    mt <- which(fname ==
-      c("Lm", "BoxCox", "Colr", "Survreg", "Coxph", "Polr", "Lehmann")) - 1L
-
-    ## --- Error distribution
-    ed <- which(mltdat$errdistr ==
-      c("normal", "logistic", "minimum extreme value", "maximum extreme value")) - 1L
-
-    ## --- Initial parameter values TODO: to a dedicated function later
-    estim <- mlt(ctrm1, data = trdat2$mf, weights = trdat2$weights,
-              offset = trdat2$offset, dofit = TRUE)
-    params <- list(beta = estim$coef, gamma = rep(0, nrow(redat$Zt)),
-                   theta = rep(0, redat$npar))
-
-    ## --- Set up the data input NOTE: add truncated observations later
-    Z <- t(redat$Zt)
-    datalist <- list(
-      modtype = mt, errdist = ed,
-      MMl = mltdat$censl$ay, MMr = mltdat$censr$ay,
-      MMil = mltdat$censi$ayl, MMir = mltdat$censi$ayr,
-      MMe = mltdat$exact$ay, MMeprime = mltdat$exact$aypr,
-      Zl = Z[mltdat$censl$which, , drop = FALSE],
-      Zr = Z[mltdat$censr$which, , drop = FALSE],
-      Zi = Z[mltdat$censi$which, , drop = FALSE],
-      Ze = Z[mltdat$exact$which, , drop = FALSE],
-      re_termsize = redat$termsize, re_blocksize = redat$blocksize,
-      offsetl = mltdat$offset[mltdat$censl$which], offsetr = mltdat$offset[mltdat$censr$which],
-      offseti = mltdat$offset[mltdat$censi$which], offsete = mltdat$offset[mltdat$exact$which],
-      weightsl = mltdat$weights[mltdat$censl$which], weightsr = mltdat$weights[mltdat$censr$which],
-      weightsi = mltdat$weights[mltdat$censi$which], weightse = mltdat$weights[mltdat$exact$which])
-
-    ## --- Model
-    obj <- TMB::MakeADFun(data = datalist, parameters = params, random = "gamma",
-                          DLL = "tramME", silent = silent)
-    ## ===================================================================
-    ## FIXME: clean up
-    ## TODO: list of custom optimiziers and starting values
-    ## --- Optimize
-    control.outer <- optim_control$outer
-    control.outer$method <- "nlminb"
-    control.outer$kkt2.check <- FALSE
-    control.outer$trace <- !silent
-    control.optim <- optim_control$optim
-    if (FALSE) {
-    ##obj$env$validpar <- function(par) all(ui %*% par - ci > 0) ## NOTE: is this necessary
-      opt_time <- system.time(
-        opt <- alabama::auglag(par = obj$par, fn = obj$fn, gr = obj$gr,
-          hin = function(par) ui %*% par - ci,
-          hin.jac = function(par) ui,
-          control.outer = list(method = "nlminb", kkt2.check = FALSE, trace = !silent)))
-    }
-    if (TRUE) {
-      #obj$env$validpar <- function(par) all(ui %*% par - ci > 0) ## NOTE: is this necessary
-      warn <- NULL
-      opt_time <- system.time(
-        opt <- withCallingHandlers(
-          alabama::auglag(par = obj$par, fn = obj$fn, gr = obj$gr,
-            hin = function(par) ui %*% par - ci,
-            hin.jac = function(par) ui,
-            control.outer = control.outer, control.optim = control.optim),
-          warning = function(w) {
-            warn <<- append(warn, conditionMessage(w))
-            invokeRestart("muffleWarning")
-          }))
-    }
-    if (FALSE) { ## NOTE: alternative solution, does not work
-      obj$env$validpar <- function(par) all(ui %*% par - ci > 0)
-      opt_time <- system.time(
-        opt <- optim(par = obj$par, fn = obj$fn, gr = obj$gr, method = "BFGS",
-          control = list(trace = !silent)))
-    }
-    ## ===================================================================
-    ## --- Collect results
-    param_all <- obj$env$parList(opt$par, obj$env$last.par.best)
-    param_fix <- opt$par
-    sdr <- TMB::sdreport(obj, par.fixed = param_fix)
+    dat <- data
   }
 
-  ## --- Output
-  out <- list(call = fcall, model = model, fitted = !nofit)
+  cf <- coef(mod$ctm)
+
+  ## -- create terms required by tramTMB
+  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
+              weights = model.weights(dat), ## TODO: offset and weights might not be needed
+              fixed = fixed, dofit = estinit)
+  fe <- fe_terms(mmlt)
+  re <- re_terms(mod$ranef, dat, mod$negative)
+  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
+
+  cf[names(fixed)] <- fixed
+
+  mp <- list()
+  if (!is.null(fixed)) {
+    idx <- which(names(cf) %in% names(fixed))
+    bb <- rep(NA, length(cf))
+    bb[-idx] <- seq_along(bb[-idx])
+    mp <- list(beta = as.factor(bb))
+  }
+
+  ## -- create the tramTMB object
+  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
+                 map = mp, resid = resid, do_update = do_update, silent = silent)
+
+  ## -- model fitting
   if (!nofit) {
-    out$tmb_obj <- obj
-    out$data <- list(mf = trdat2$mf, offset = mltdat$offset, weights = mltdat$weights)
-    out$opt <- opt
-    out$opt$opt_time <- opt_time
-    if (!sdr$pdHess)
-      warn <- append("Non-positive definite Hessian matrix!", warn)
-    out$opt$warnings <- warn
-    out$opt$max_gr_comp <- max(abs(sdr$gradient.fixed))
-    out$tmb_sdr <- sdr
-    ## --- ML estimates of parameters to return
-    cf <- param_all$beta
-    names(cf) <- names(ctrm1$coef)
-    rep <- obj$report(unlist(param_all))
-    cv <- mapply(FUN = function(sd, cr, nm) {
-      ss <- diag(sd, nrow = length(sd), ncol = length(sd))
-      m <- crossprod(ss, cr) %*% ss
-      colnames(m) <- rownames(m) <- nm
-      m
-    }, sd = rep$sd_rep, cr = rep$corr_rep, nm = redat$names,
-    SIMPLIFY = FALSE)
-    names(cv) <- names(redat$names)
-    out$pars <- list(coef = cf, varcov = cv)
+
+    if (is.null(initpar) && !estinit) {
+      par <- .optim_start(obj, resp = dat[[1]])
+    } else par <- NULL
+
+    opt <- optim_tramTMB(obj, par = par,
+                         method = control$method, control = control$control,
+                         trace = control$trace, ntry = control$ntry,
+                         scale = control$scale)
+    parm <- .get_par(obj)
   } else {
-    ## --- Blank structure of parameters
-    cv <- lapply(redat$names, function(nm) {
-      m <- matrix(NA, nrow = length(nm), ncol = length(nm))
-      colnames(m) <- rownames(m) <- nm
-      m
-    })
-    names(cv) <- names(redat$names)
-    out$pars <- list(coef = ctrm1$coef,
-                     varcov = cv)
+    opt <- NULL
+    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
   }
-  class(out) <- "tramME"
-  return(out)
+
+  param <- .gen_param(parm, fe = list(names = names(cf)),
+                      re = list(names = re$names, blocksize = re$blocksize,
+                                levels = re$levels, termsize = re$termsize),
+                      varnames = names(dat))
+  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
+                 param = param),
+            class = c("CoxphME", "tramME"))
 }
 
-##' ME version of tram::Colr
+
+##' Mixed-effects version of \code{\link[tram]{Colr}}
+##' @inheritParams LmME
 ##' @inheritParams tram::Colr
-##' @inheritParams .tramME
 ##' @return A ColrME object.
-##' @importFrom stats na.omit
+##' @importFrom stats na.omit model.offset model.weights
+##' @importFrom tram Colr
 ##' @export
 ColrME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                   silent = TRUE, nofit = FALSE,
-                   optim_control = list(outer = list(), optim = list()),
+                   silent = TRUE, resid = FALSE, do_update = FALSE,
+                   estinit = TRUE, initpar = NULL,
+                   fixed = NULL, nofit = FALSE,
+                   control = optim_control(),
                    ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("ColrME", class(out))
-  return(out)
+  cl <- match.call()
+
+  ## -- create intial model structure
+  fc <- cl
+  fc[[1L]] <- quote(tramME_model)
+  fc$tram  <-  "Colr"
+  mod <- eval(fc, parent.frame())
+
+  ## -- sanitize initial parameter settings
+  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
+    estinit <- FALSE
+  }
+
+  ## -- create model frame
+  if (missing(data) || !inherits(data, "tramME_data")) {
+    fc <- cl
+    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
+               names(fc), 0L)
+    fc <- fc[c(1L, m)]
+    fc$formula <- .combine_formulas(mod$formula)
+    fc[[1L]] <- quote(tram::tram_data)
+    out <- eval(fc, parent.frame())
+    dat <- out$mf
+    class(dat) <- c("tramME_data", class(dat))
+  } else {
+    dat <- data
+  }
+
+  cf <- coef(mod$ctm)
+
+  ## -- create terms required by tramTMB
+  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
+              weights = model.weights(dat), ## TODO: offset and weights might not be needed
+              fixed = fixed, dofit = estinit)
+  fe <- fe_terms(mmlt)
+  re <- re_terms(mod$ranef, dat, mod$negative)
+  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
+
+  cf[names(fixed)] <- fixed
+
+  mp <- list()
+  if (!is.null(fixed)) {
+    idx <- which(names(cf) %in% names(fixed))
+    bb <- rep(NA, length(cf))
+    bb[-idx] <- seq_along(bb[-idx])
+    mp <- list(beta = as.factor(bb))
+  }
+
+  ## -- create the tramTMB object
+  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
+                 map = mp, resid = resid, do_update = do_update, silent = silent)
+
+  ## -- model fitting
+  if (!nofit) {
+
+    if (is.null(initpar) && !estinit) {
+      par <- .optim_start(obj, resp = dat[[1]])
+    } else par <- NULL
+
+    opt <- optim_tramTMB(obj, par = par,
+                         method = control$method, control = control$control,
+                         trace = control$trace, ntry = control$ntry,
+                         scale = control$scale)
+    parm <- .get_par(obj)
+  } else {
+    opt <- NULL
+    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
+  }
+
+  param <- .gen_param(parm, fe = list(names = names(cf)),
+                      re = list(names = re$names, blocksize = re$blocksize,
+                                levels = re$levels, termsize = re$termsize),
+                      varnames = names(dat))
+  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
+                 param = param),
+            class = c("ColrME", "tramME"))
 }
 
-##' ME version of tram::Lm
-##' @inheritParams tram::Lm
-##' @inheritParams .tramME
-##' @return A LmME object.
-##' @importFrom stats na.omit
+
+##' Mixed-effects version of \code{\link[tram]{BoxCox}}
+##' @inheritParams LmME
+##' @inheritParams tram::BoxCox
+##' @return A BoxCoxME object.
+##' @importFrom stats na.omit model.offset model.weights
+##' @importFrom tram BoxCox
 ##' @export
-LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                 silent = TRUE, nofit = FALSE,
-                 optim_control = list(outer = list(), optim = list()),
-                 ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("LmME", class(out))
-  return(out)
+BoxCoxME <- function(formula, data, subset, weights, offset, na.action = na.omit,
+                     silent = TRUE, resid = FALSE, do_update = FALSE,
+                     estinit = TRUE, initpar = NULL,
+                     fixed = NULL, nofit = FALSE,
+                     control = optim_control(),
+                     ...) {
+  cl <- match.call()
+
+  ## -- create intial model structure
+  fc <- cl
+  fc[[1L]] <- quote(tramME_model)
+  fc$tram  <-  "BoxCox"
+  mod <- eval(fc, parent.frame())
+
+  ## -- sanitize initial parameter settings
+  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
+    estinit <- FALSE
+  }
+
+  ## -- create model frame
+  if (missing(data) || !inherits(data, "tramME_data")) {
+    fc <- cl
+    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
+               names(fc), 0L)
+    fc <- fc[c(1L, m)]
+    fc$formula <- .combine_formulas(mod$formula)
+    fc[[1L]] <- quote(tram::tram_data)
+    out <- eval(fc, parent.frame())
+    dat <- out$mf
+    class(dat) <- c("tramME_data", class(dat))
+  } else {
+    dat <- data
+  }
+
+  cf <- coef(mod$ctm)
+
+  ## -- create terms required by tramTMB
+  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
+              weights = model.weights(dat), ## TODO: offset and weights might not be needed
+              fixed = fixed, dofit = estinit)
+  fe <- fe_terms(mmlt)
+  re <- re_terms(mod$ranef, dat, mod$negative)
+  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
+
+  cf[names(fixed)] <- fixed
+
+  mp <- list()
+  if (!is.null(fixed)) {
+    idx <- which(names(cf) %in% names(fixed))
+    bb <- rep(NA, length(cf))
+    bb[-idx] <- seq_along(bb[-idx])
+    mp <- list(beta = as.factor(bb))
+  }
+
+  ## -- create the tramTMB object
+  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
+                 map = mp, resid = resid, do_update = do_update, silent = silent)
+
+  ## -- model fitting
+  if (!nofit) {
+
+    if (is.null(initpar) && !estinit) {
+      par <- .optim_start(obj, resp = dat[[1]])
+    } else par <- NULL
+
+    opt <- optim_tramTMB(obj, method = control$method, control = control$control,
+                         trace = control$trace, ntry = control$ntry,
+                         scale = control$scale)
+    parm <- .get_par(obj)
+  } else {
+    opt <- NULL
+    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
+  }
+
+  param <- .gen_param(parm, fe = list(names = names(cf)),
+                      re = list(names = re$names, blocksize = re$blocksize,
+                                levels = re$levels, termsize = re$termsize),
+                      varnames = names(dat))
+  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
+                 param = param),
+            class = c("BoxCoxME", "tramME"))
 }
 
-##' ME version of tram::Polr
+
+##' Mixed-effects version of \code{\link[tram]{Lehmann}}
+##' @inheritParams LmME
+##' @inheritParams tram::Lehmann
+##' @return A LehmannME object.
+##' @importFrom stats na.omit model.offset model.weights
+##' @importFrom tram Lehmann
+##' @export
+LehmannME <- function(formula, data, subset, weights, offset, na.action = na.omit,
+                      silent = TRUE, resid = FALSE, do_update = FALSE,
+                      estinit = TRUE, initpar = NULL,
+                      fixed = NULL, nofit = FALSE,
+                      control = optim_control(),
+                      ...) {
+  cl <- match.call()
+
+  ## -- create intial model structure
+  fc <- cl
+  fc[[1L]] <- quote(tramME_model)
+  fc$tram  <-  "Lehmann"
+  mod <- eval(fc, parent.frame())
+
+  ## -- sanitize initial parameter settings
+  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
+    estinit <- FALSE
+  }
+
+  ## -- create model frame
+  if (missing(data) || !inherits(data, "tramME_data")) {
+    fc <- cl
+    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
+               names(fc), 0L)
+    fc <- fc[c(1L, m)]
+    fc$formula <- .combine_formulas(mod$formula)
+    fc[[1L]] <- quote(tram::tram_data)
+    out <- eval(fc, parent.frame())
+    dat <- out$mf
+    class(dat) <- c("tramME_data", class(dat))
+  } else {
+    dat <- data
+  }
+
+  cf <- coef(mod$ctm)
+
+  ## -- create terms required by tramTMB
+  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
+              weights = model.weights(dat), ## TODO: offset and weights might not be needed
+              fixed = fixed, dofit = estinit)
+  fe <- fe_terms(mmlt)
+  re <- re_terms(mod$ranef, dat, mod$negative)
+  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
+
+  cf[names(fixed)] <- fixed
+
+  mp <- list()
+  if (!is.null(fixed)) {
+    idx <- which(names(cf) %in% names(fixed))
+    bb <- rep(NA, length(cf))
+    bb[-idx] <- seq_along(bb[-idx])
+    mp <- list(beta = as.factor(bb))
+  }
+
+  ## -- create the tramTMB object
+  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
+                 map = mp, resid = resid, do_update = do_update, silent = silent)
+
+  ## -- model fitting
+  if (!nofit) {
+
+    if (is.null(initpar) && !estinit) {
+      par <- .optim_start(obj, resp = dat[[1]])
+    } else par <- NULL
+
+    opt <- optim_tramTMB(obj, method = control$method, control = control$control,
+                         trace = control$trace, ntry = control$ntry,
+                         scale = control$scale)
+    parm <- .get_par(obj)
+  } else {
+    opt <- NULL
+    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
+  }
+
+  param <- .gen_param(parm, fe = list(names = names(cf)),
+                      re = list(names = re$names, blocksize = re$blocksize,
+                                levels = re$levels, termsize = re$termsize),
+                      varnames = names(dat))
+  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
+                 param = param),
+            class = c("LehmannME", "tramME"))
+}
+
+
+##' Mixed-effects version of \code{\link[tram]{Polr}}
+##' @inheritParams LmME
 ##' @inheritParams tram::Polr
-##' @inheritParams .tramME
 ##' @return A PolrME object.
-##' @importFrom stats na.omit
+##' @importFrom stats na.omit model.offset model.weights
+##' @importFrom tram Polr
 ##' @export
 PolrME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                    method = c("logistic", "probit", "loglog", "cloglog"),
-                   silent = TRUE, nofit = FALSE,
-                   optim_control = list(outer = list(), optim = list()),
+                   silent = TRUE, resid = FALSE, do_update = FALSE,
+                   estinit = TRUE, initpar = NULL,
+                   fixed = NULL, nofit = FALSE,
+                   control = optim_control(),
                    ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("PolrME", class(out))
-  return(out)
-}
+  cl <- match.call()
 
-##' ME version of tram::Coxph
-##' @inheritParams tram::Coxph
-##' @inheritParams .tramME
-##' @return A CoxphME object.
-##' @importFrom stats na.omit
-##' @export
-CoxphME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                    silent = TRUE, nofit = FALSE,
-                    optim_control = list(outer = list(), optim = list()),
-                    ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("CoxphME", class(out))
-  return(out)
-}
+  ## -- create intial model structure
+  fc <- cl
+  fc[[1L]] <- quote(tramME_model)
+  fc$tram  <-  "Polr"
+  mod <- eval(fc, parent.frame())
 
-##' ME version of tram::BoxCox
-##' @inheritParams tram::BoxCox
-##' @inheritParams .tramME
-##' @return A BoxCoxME object.
-##' @importFrom stats na.omit
-##' @export
-BoxCoxME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                     silent = TRUE, nofit = FALSE,
-                     optim_control = list(outer = list(), optim = list()),
-                     ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("BoxCoxME", class(out))
-  return(out)
-}
-
-## FIXME: Exponential and Rayleigh (scale > 0) are not compatible with the current
-## implementation.
-##' ME version of tram::Survreg
-##' @inheritParams tram::Survreg
-##' @inheritParams .tramME
-##' @return A SurvregME object.
-##' @importFrom stats na.omit
-##' @section Warning:
-##'   Fixing the scale parameter is currently not available.
-##' @export
-SurvregME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                      dist = c("weibull", "logistic", "gaussian", "exponential",
-                               "rayleigh", "loggaussian", "lognormal", "loglogistic"),
-                      scale = 0,
-                      silent = TRUE, nofit = FALSE,
-                      optim_control = list(outer = list(), optim = list()),
-                      ...) {
-  dist <- match.arg(dist)
-  if (scale > 0 | dist %in% c("exponential", "rayleigh"))
-    stop("Fixed scale is currently not available")
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) {
-    class(out) <- c("SurvregME", class(out))
-    out$model$name <- c(out$model$name, dist)
+  ## -- sanitize initial parameter settings
+  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
+    estinit <- FALSE
   }
-  return(out)
-}
 
-##' ME version of tram::Lehmann
-##' @inheritParams tram::Lehmann
-##' @inheritParams .tramME
-##' @return A LehmannME object.
-##' @importFrom stats na.omit
-##' @export
-LehmannME <- function(formula, data, subset, weights, offset, na.action = na.omit,
-                      silent = TRUE, nofit = FALSE,
-                      optim_control = list(outer = list(), optim = list()),
-                      ...) {
-  out <- .tramME(formula, data, na.action = na.action,
-                 silent = silent, nofit = nofit, optim_control = optim_control)
-  if (inherits(out, "tramME")) class(out) <- c("LehmannME", class(out))
-  return(out)
+  ## -- create model frame
+  if (missing(data) || !inherits(data, "tramME_data")) {
+    fc <- cl
+    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
+               names(fc), 0L)
+    fc <- fc[c(1L, m)]
+    fc$formula <- .combine_formulas(mod$formula)
+    fc[[1L]] <- quote(tram::tram_data)
+    out <- eval(fc, parent.frame())
+    dat <- out$mf
+    class(dat) <- c("tramME_data", class(dat))
+  } else {
+    dat <- data
+  }
+
+  cf <- coef(mod$ctm)
+
+  ## -- create terms required by tramTMB
+  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
+              weights = model.weights(dat), ## TODO: offset and weights might not be needed
+              fixed = fixed, dofit = estinit)
+  fe <- fe_terms(mmlt)
+  re <- re_terms(mod$ranef, dat, mod$negative)
+  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
+
+  cf[names(fixed)] <- fixed
+
+  mp <- list()
+  if (!is.null(fixed)) {
+    idx <- which(names(cf) %in% names(fixed))
+    bb <- rep(NA, length(cf))
+    bb[-idx] <- seq_along(bb[-idx])
+    mp <- list(beta = as.factor(bb))
+  }
+
+  ## -- create the tramTMB object
+  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
+                 map = mp, resid = resid, do_update = do_update, silent = silent)
+
+  ## -- model fitting
+  if (!nofit) {
+
+    if (is.null(initpar) && !estinit) {
+      par <- .optim_start(obj, resp = dat[[1]])
+    } else
+      par <- NULL
+
+    opt <- optim_tramTMB(obj, par = par,
+                         method = control$method, control = control$control,
+                         trace = control$trace, ntry = control$ntry,
+                         scale = control$scale)
+    parm <- .get_par(obj)
+  } else {
+    opt <- NULL
+    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
+  }
+
+  param <- .gen_param(parm, fe = list(names = names(cf)),
+                      re = list(names = re$names, blocksize = re$blocksize,
+                                levels = re$levels, termsize = re$termsize),
+                      varnames = names(dat))
+  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
+                 param = param),
+            class = c("PolrME", "tramME"))
 }

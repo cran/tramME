@@ -7,9 +7,9 @@
 varcov(object, ...)
 }
 \arguments{
-\item{object}{A model object}
+\item{object}{A model object.}
 
-\item{...}{Optional parameters}
+\item{...}{Optional inputs.}
 }
 \value{
 A variance-covariance matrix.

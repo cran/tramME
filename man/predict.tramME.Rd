@@ -4,32 +4,80 @@
 \alias{predict.tramME}
 \title{Predict method for tramME objects}
 \usage{
-\method{predict}{tramME}(object, newdata = NULL, ranef = NULL, ...)
+\method{predict}{tramME}(
+  object,
+  newdata = model.frame(object),
+  ranef = NULL,
+  type = c("lp", "trafo", "distribution", "survivor", "density", "logdensity",
+    "hazard", "loghazard", "cumhazard", "odds", "logodds", "quantile"),
+  ...
+)
 }
 \arguments{
-\item{object}{A tramME object}
+\item{object}{A \code{tramME} object.}
 
 \item{newdata}{an optional data frame of observations}
 
-\item{ranef}{Vector of random effects or the word "zero". See details.}
+\item{ranef}{Random effects (either in named list format or a numeric vector)
+or the word "zero". See Details.}
+
+\item{type}{The scale on which the predictions are evaluated:
+\itemize{
+  \item lp: Linear predictor (Xb + Zg). For more information, see Details.
+  \item trafo: The prediction evaluated on the scale of the
+    transformation function.
+  \item distribution: The prediction evaluated on the scale of the
+    conditional CDF.
+  \item survivor: The prediction evaluated on the scale of the
+    (conditional) survivor function.
+  \item density, logdensity: The prediction evaluated on the scale of
+    the conditional (log-)PDF.
+  \item hazard, loghazard, cumhazard: The prediction evaluated on the
+    hazard/log-hazard/cumulative hazard scale.
+  \item odds, logodds: The prediction evaluated on the (log-)odds scale.
+  \item quantile: Return the quantiles of the conditional outcome distribution
+    corresponding to \code{newdata}. For more information, see Details.
+}}
 
 \item{...}{Additional arguments, passed to \code{\link[mlt]{predict.mlt}}.}
 }
 \value{
-A numeric matrix of the predicted values invisibly
+A numeric vector/matrix of the predicted values (depending on the inputs)
+  or a \code{response} object, when the some of the requested conditonal quantiles
+  fall outside of the support of the response distribution specified when the model
+  was set up (only can occur with \code{type = "quantile"}).
 }
 \description{
 Evaluates the _conditional_ distribution implied by a tramME model, given by a
-set of covariates and random effects on a desired scale.
-When \code{newdata} contains values of the response variable, prediction is only
-done for those values. When no response values are supplied, prediction is done on
-a grid of values.
-Unfitted tramME models can also be used for prediction as long as the coefficent
-parameter are set manually (with \code{coef<-}).
+set of covariates and random effects on a selected scale.
 }
 \details{
+When \code{newdata} contains values of the response variable, prediction is only
+done for those values. In this case, if random effects vector (\code{ranef}) is not
+supplied by the user, the function predicts the random effects from the model
+using \code{newdata}.
+
+When no response values are supplied in \code{newdata}, the prediction is done
+on a grid of values for each line of the dataset (see \code{\link[mlt]{predict.mlt}}
+for information on how to control the setup of this grid).
+In this case, the user has to specify the vector of random effects to avoid ambiguities.
+
+The linear predictor (\code{type = "lp"}) equals to the shift terms plus the random
+effects terms _without the baseline transfromation function_.
+
+The linear predictor (\code{type = "lp"}) and the conditional quantile function
+(\code{type = "quantile"}) are special in that they do not return results evaluated
+on a grid, even when the response variable in \code{newdata} is missing. The probabilities
+for the evaluation of the quantile function can be supplied with the \code{prob} argument
+of \code{\link[mlt]{predict.mlt}}.
+
+In the case of \code{type = "quantile"}, when the some of the requested conditonal
+quantiles fall outside of the support of the response distribution
+(specified when the model was set up), the inversion of the CDF cannot be done exactly
+and \code{tramME} returns censored values.
+
 When \code{ranef} is equal to "zero", a vector of zeros with the right size is
-substituted.
+used.
 }
 \examples{
 data("sleepstudy", package = "lme4")
@@ -37,6 +85,6 @@ fit <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 predict(fit, type = "trafo") ## evaluate on the transformation function scale
 nd <- sleepstudy
 nd$Reaction <- NULL
-pr <- predict(fit, newdata = nd, ranef = ranef(fit, raw = TRUE), type = "distribution",
+pr <- predict(fit, newdata = nd, ranef = ranef(fit), type = "distribution",
               K = 100)
 }

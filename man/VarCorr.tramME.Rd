@@ -8,7 +8,7 @@
 \method{VarCorr}{tramME}(x, ...)
 }
 \arguments{
-\item{x}{A tramME object}
+\item{x}{A \code{tramME} object}
 
 \item{...}{optional arguments (for consistency with the generic method)}
 }

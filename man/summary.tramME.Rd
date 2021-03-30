@@ -7,7 +7,7 @@
 \method{summary}{tramME}(object, ...)
 }
 \arguments{
-\item{object}{A tramME object}
+\item{object}{A \code{tramME} object}
 
 \item{...}{Optional arguments (for consistency with the generic)}
 }

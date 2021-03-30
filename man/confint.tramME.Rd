@@ -18,7 +18,7 @@
 )
 }
 \arguments{
-\item{object}{A fitted tramME object.}
+\item{object}{A \code{tramME} object.}
 
 \item{parm}{The indeces or names of the parameters of interest. See in details.}
 
@@ -30,15 +30,15 @@ baseline transformation function, ranef: variance components parameters.}
 
 \item{type}{Type of the CI: either Wald or profile.}
 
-\item{estimate}{Logical, add the point estimates in a thrid column}
+\item{estimate}{Logical, add the point estimates in a thrid column.}
 
 \item{pmatch}{Logical. If \code{TRUE}, partial name matching is allowed.}
 
-\item{parallel}{Method for parallel computation}
+\item{parallel}{Method for parallel computation.}
 
-\item{ncpus}{Number of cores to use for parallel computation}
+\item{ncpus}{Number of cores to use for parallel computation.}
 
-\item{...}{Optional parameters}
+\item{...}{Optional parameters.}
 }
 \value{
 A matrix with lower and upper bounds.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/models.R
 \name{ColrME}
 \alias{ColrME}
-\title{ME version of tram::Colr}
+\title{Mixed-effects version of \code{\link[tram]{Colr}}}
 \usage{
 ColrME(
   formula,
@@ -12,8 +12,13 @@ ColrME(
   offset,
   na.action = na.omit,
   silent = TRUE,
+  resid = FALSE,
+  do_update = FALSE,
+  estinit = TRUE,
+  initpar = NULL,
+  fixed = NULL,
   nofit = FALSE,
-  optim_control = list(outer = list(), optim = list()),
+  control = optim_control(),
   ...
 )
 }
@@ -46,15 +51,28 @@ ColrME(
   }
 
 \item{na.action}{a function which indicates what should happen when the data
-          contain \code{NA}s.  The default is set by the \code{na.action} setting
-          of \code{options}, and is \code{na.fail} if that is unset.
+          contain \code{NA}s.  The default is set to \code{na.omit}.
   }
 
-\item{silent}{Logical, if TRUE, prints all tracing information.}
+\item{silent}{Logical. Make \pkg{TMB} functionality silent.}
 
-\item{nofit}{Logical, if TRUE, creates the model objects, but does not run the optimization.}
+\item{resid}{Logical. If \code{TRUE}, the score residuals are also calculated.
+This comes with some performance cost.}
 
-\item{optim_control}{List of optional arguments for the optimizer.}
+\item{do_update}{Logical. If \code{TRUE}, the model is set up so that the weights and the
+offsets are updateable. This comes with some performance cost.}
+
+\item{estinit}{logical, estimate a vector of initial values for the fixed effects parameters
+from a (fixed effects only) mlt model}
+
+\item{initpar}{named list of initial parameter values, if \code{NULL}, it is ignored}
+
+\item{fixed}{a named vector of fixed regression coefficients; the names
+               need to correspond to column names of the design matrix}
+
+\item{nofit}{logical, if TRUE, creates the model object, but does not run the optimization}
+
+\item{control}{list with controls for optimization}
 
 \item{...}{additional arguments to \code{\link[tram]{tram}}.}
 }
@@ -62,5 +80,5 @@ ColrME(
 A ColrME object.
 }
 \description{
-ME version of tram::Colr
+Mixed-effects version of \code{\link[tram]{Colr}}
 }

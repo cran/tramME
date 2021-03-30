@@ -1,108 +1,40 @@
-library("tramME")
+## -- Test utils & settings
 source("test_util.R")
-
-oldopt <- options(digits = 4)
-## chk <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
-## chkerr <- function(expr) inherits(try(expr, silent = TRUE), "try-error")
 .run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
-
-## nofit
-suppressPackageStartupMessages(library("survival"))
-data("eortc", package = "coxme")
-fit <- CoxphME(Surv(y, uncens) ~ trt, data = eortc, log_first = TRUE, nofit = TRUE)
-inherits(fit, "ctm")
-names(fit)
-
-## setting parameters
-data("sleepstudy", package = "lme4")
-mod <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
-mod$fitted
-chkerr(coef(mod) <- c(1, -1, 0.5))
-chkerr(coef(mod) <- c(1, 1))
-chkerr(coef(mod) <- c(-1, 0.5, 1)) ## no error
-vc <- varcov(mod)
-vc[[1]] <- matrix(c(1, 0.2, 0.6, 2), ncol = 2)
-chkerr(varcov(mod) <- vc)
-vc[[1]] <- diag(1, 3)
-chkerr(varcov(mod) <- vc)
-vc[[1]] <- matrix(c(1, 0, 0, 2), ncol = 2)
-chkerr(varcov(mod) <- vc) ## no error
-
-if (.run_test) {
-## missing values and subsets
-## --- when a covariate is missing
+oldopt <- options(digits = 4)
 set.seed(100)
-dat1 <- eortc
-idx <- sample(nrow(dat1), 200)
-dat1[idx, "trt"] <- NA
-dat2 <- eortc
-dat2$id <- 1
-dat2[idx, "id"] <- 0
-fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat2, subset = id > 0,
-                log_first = TRUE)
-chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-chk(logLik(fit1), logLik(fit2))
-## --- when the response is missing
-dat1 <- eortc
-dat1[idx, "y"] <- NA
-fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-chk(logLik(fit1), logLik(fit2))
-## --- when the RE grouping variable is missing
-dat1 <- eortc
-dat1[dat1$center <= 10, "center"] <- NA
-fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1, log_first = TRUE) ## na.omit is the default
-fit2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = eortc, log_first = TRUE, subset = center > 10)
-chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-chk(logLik(fit1), logLik(fit2))
-## --- other na.actions
-try(fit1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat1,
-                    log_first = TRUE, na.action = na.fail))
-}
 
-## optional parameters
+library("tramME")
+
+## -- Model setup with initpar
+ip <- list(beta = c(1.5, 0.08, 0.2))
+mod <- LmME(dist ~ speed, data = cars, initpar = ip, nofit = TRUE)
+## NOTE: initpars are not set as actual model parameters...
+chkerr(chkeq(ip$beta, coef(mod, with_baseline = TRUE), check.attributes = FALSE))
+## ... but the tramTMB object is set up with using them
+chkeq(ip$beta, mod$tmb_obj$env$par_checked, check.attributes = FALSE)
+
+## -- Data can come from the gobal environment
 data("sleepstudy", package = "lme4")
-mod <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE,
-                order = 10, log_first = TRUE)
-chk(length(coef(mod, with_baseline = TRUE)), 11+1)
-attr(mod$model$response$basis, "log_first")
+fit_lm1 <- LmME(Reaction ~ Days + (Days || Subject), data = sleepstudy)
+attach(sleepstudy)
+fit_lm2 <- LmME(Reaction ~ Days + (Days || Subject))
+chkeq(logLik(fit_lm1), logLik(fit_lm2))
 
-## variable names
-variable.names(mod, which = "response")
-variable.names(mod, which = "shifting")
-variable.names(mod, which = "grouping")
-variable.names(mod)
-
-if (.run_test) {
-  ## outputs/print methods
-  fit1 <- LmME(Reaction ~ Days + (1 | Subject), data = sleepstudy)
-  print(fit1) ## fitted
-  print(summary(fit1))
-  print(mod) ## unfitted
-  print(summary(mod))
-  print(VarCorr(mod))
-}
-
-if (.run_test) {
-## weights
-set.seed(100)
-dat1 <- sleepstudy
-dat1$w <- sample(10, nrow(sleepstudy), replace = TRUE)
-fit1 <- LmME(Reaction ~ Days + (Days || Subject), weights = w, data = dat1)
-dat2 <- dat1[rep(seq(nrow(dat1)), dat1$w), ]
-fit2 <- LmME(Reaction ~ Days + (Days || Subject), data = dat2)
-chk(coef(fit1, with_baseline = TRUE), coef(fit2, with_baseline = TRUE))
-chk(logLik(fit1), logLik(fit2))
-##VarCorr(fit1)
-##summary(fit1)
-##logLik(fit1)
-}
-
-## RE structures
-mod1 <- LmME(Reaction ~ Days + (Days || Subject), data = sleepstudy, nofit = TRUE)
-mod2 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
-chk(lapply(varcov(mod1), dim), list(Subject = c(1L, 1L), Subject = c(1L, 1L)))
-chk(lapply(varcov(mod2), dim), list(Subject = c(2L, 2L)))
+## -- Check .th2vc and .vc2th helper functions
+library("survival")
+mod <- CoxphME(
+  Surv(tstart, tstop, status) ~ treat + age + weight + height + (age + weight + height |id),
+  data = cgd, log_first = TRUE, order = 5, nofit = TRUE)
+pr <- mod$tmb_obj$env$last.par
+th <- runif(sum(names(pr) == "theta"))
+pr[names(pr) == "theta"] <- th
+vc1 <- mod$tmb_obj$report(pr) ## NOTE: using REPORT from TMB
+vc1 <- diag(vc1$sd_rep[[1]]) %*% vc1$corr_rep[[1]] %*% diag(vc1$sd_rep[[1]])
+rs <- attr(mod$param, "re")
+vc2 <- tramME:::.th2vc(th, rs$blocksize)
+chkeq(vc1, vc2[[1]])
+th2 <- tramME:::.vc2th(vc2, rs$blocksize) ## NOTE: check back-transformation
+chkeq(th, th2, check.attributes = FALSE)
 
 options(oldopt)

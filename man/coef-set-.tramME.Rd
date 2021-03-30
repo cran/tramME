@@ -7,17 +7,20 @@
 \method{coef}{tramME}(object) <- value
 }
 \arguments{
-\item{object}{A tramME object (fitted or unfitted).}
+\item{object}{A \code{tramME} object.}
 
 \item{value}{Numeric vector of new coefficient values.}
 }
 \value{
-An unfitted tramME object with the new coefficient values.
+A \code{tramME} object with the new coefficient values.
 }
 \description{
 Sets the whole vector of coefficients of a tramME model. The parameters of
 the baseline transformation function should respect the restrictions of
-the parameter space. This is checked before setting the new parameter values.
+the parameter space. This is checked before setting the new parameter values
+provided that the parameters for the variance components has already been set.
+If the model contains fixed coefficient parameters, the input should also respect
+that.
 When called on a fitted tram object, the function sets it to unfitted and removes
 all parts that come from the estimation.
 }

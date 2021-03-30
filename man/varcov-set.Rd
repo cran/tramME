@@ -4,16 +4,18 @@
 \alias{varcov<-}
 \title{Generic method for \code{"varcov<-"}}
 \usage{
-varcov(object) <- value
+varcov(object, ...) <- value
 }
 \arguments{
-\item{object}{A model object}
+\item{object}{A model object.}
 
-\item{value}{The new value of the covariance matrix}
+\item{...}{Optional inputs.}
+
+\item{value}{The new value of the covariance matrix.}
 }
 \value{
 An object with the same class as \code{object}, with updated
-  variance-covariance matrix.
+  variance-covariance matrix of random effects.
 }
 \description{
 Generic method for \code{"varcov<-"}

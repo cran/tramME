@@ -9,7 +9,7 @@ interval}
   object,
   newdata = NULL,
   type = c("trafo", "distribution", "survivor", "cumhazard"),
-  confidence = c("none", "interval", "band", "asymptotic"),
+  confidence = c("none", "interval", "band"),
   level = 0.95,
   K = 50,
   ...

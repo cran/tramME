@@ -23,7 +23,7 @@ baseline transformation function, ranef: variance components parameters.}
 
 \item{pmatch}{Logical. If \code{TRUE}, partial name matching is allowed.}
 
-\item{...}{Optional arguments}
+\item{...}{Optional arguments passed to \code{vcov.tramTMB}}
 }
 \value{
 A numeric covariance matrix.

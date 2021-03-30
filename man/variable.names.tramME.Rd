@@ -13,11 +13,13 @@
 \arguments{
 \item{object}{a tramME object (fitted or unfitted)}
 
-\item{which}{all: all non-eliminated variable names,
-response: response variable,
-grouping: grouping factors for random effects,
-shifting: shifting variables,
-interacting: interacting variables.}
+\item{which}{\enumerate{
+\item all: all variables,
+\item response: response variable,
+\item grouping: grouping factors for random effects,
+\item shifting: shifting variables,
+\item interacting: interacting variables.
+}}
 
 \item{...}{optional parameters}
 }
@@ -26,9 +28,9 @@ A vector of variable names.
 }
 \description{
 Returns the variable names corresponding the selected group.
-The returned names are derived names as tramME uses them. For example, when the
-response is a Surv object, \code{variable.names} returns the name of that object, and
-the names of the variables used to create it.
+The returned names are the names as they are used by tramME. For example,
+when the response is a \code{Surv} object, \code{variable.names} returns
+the name of that object, and not the names of the variables used to create it.
 }
 \examples{
 data("sleepstudy", package = "lme4")

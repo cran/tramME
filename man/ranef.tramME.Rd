@@ -5,12 +5,26 @@
 \alias{ranef}
 \title{Extract the conditional modes and conditional variances of random effects}
 \usage{
-\method{ranef}{tramME}(object, condVar = FALSE, raw = FALSE, ...)
+\method{ranef}{tramME}(
+  object,
+  param = c(coef(object, with_baseline = TRUE, fixed = FALSE), varcov(object, as.theta
+    = TRUE)),
+  newdata = NULL,
+  condVar = FALSE,
+  raw = FALSE,
+  ...
+)
 }
 \arguments{
-\item{object}{A fitted tramME object.}
+\item{object}{A \code{tramME} object.}
 
-\item{condVar}{If TRUE, include the conditional variances as attributes.}
+\item{param}{An optional vector of parameter values in the structure
+(beta, theta).}
+
+\item{newdata}{An optional \code{data.frame} of new observations for which the
+new random effects values are predicted.}
+
+\item{condVar}{If \code{TRUE}, include the conditional variances as attributes.}
 
 \item{raw}{Return the unformatted RE estimates as fitted by the model.}
 

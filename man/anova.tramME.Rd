@@ -7,14 +7,14 @@
 \method{anova}{tramME}(object, object2, ...)
 }
 \arguments{
-\item{object}{A fitted tramME model.}
+\item{object}{A \code{tramME} object.}
 
-\item{object2}{A fitted tramME model.}
+\item{object2}{A \code{tramME} object.}
 
 \item{...}{Optional arguments, for compatibility with the generic. (Ignored)}
 }
 \value{
-A data.frame with the calculated statistics.
+A \code{data.frame} with the calculated statistics.
 }
 \description{
 Calculates information criteria and LR ratio test for nested tramME models.

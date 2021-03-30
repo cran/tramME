@@ -1,56 +1,69 @@
-library("tramME")
+## -- Test utils & settings
 source("test_util.R")
-suppressPackageStartupMessages(library("lme4"))
+.run_test <- identical(Sys.getenv("NOT_CRAN"), "true")
+oldopt <- options(digits = 4)
+set.seed(100)
 
-oldopt <- options(digits = 5)
-chktol <- function(x, y, tol = sqrt(.Machine$double.eps))
-  stopifnot(isTRUE(all.equal(x, y, tol = tol, check.attributes = FALSE)))
-## chkwarn <- function(expr, wm) tryCatch(expr, warning = function(w) grepl(wm, w))
+library("tramME")
+library("tram")
+library("lme4")
 
-data("sleepstudy")
+## -- Fixed effects only model
+m01 <- LmME(Reaction ~ Days, data = sleepstudy, fixed = c("Days" = 0.6))
+m02 <- Lm(Reaction ~ Days, data = sleepstudy, fixed = c("Days" = 0.6))
+stopifnot(m01$opt$convergence == 0)
+stopifnot(m02$convergence == 0)
+chkeq(logLik(m01), logLik(m02), check.attributes = FALSE)
+chkeq(coef(m01, with_baseline = TRUE), coef(m02, with_baseline = TRUE), tol = 1e-5)
+vc1 <- vcov(m01, pargroup = "all")
+vc2 <- vcov(m01, pargroup = "all", method = "analytical")
+chkeq(vc1, vcov(m02, with_baseline = TRUE), tol = 1e-3)
+chkeq(vc2, vcov(m02, with_baseline = TRUE), tol = 1e-5)
 
-fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-fit2 <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy, REML = FALSE)
+## -- Compare with lmer
+m1 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
+m2 <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy, REML = FALSE)
+stopifnot(m1$opt$convergence == 0)
 
-## coefficients w/ as.lm
-fit3 <- fit
-chkwarn(coef(fit3) <- coef(fit, with_baseline = TRUE), "unfitted") ## warning
-chktol(coef(fit, as.lm = TRUE), coef(fit3, as.lm  = TRUE))
-fit3 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
-chktol(names(coef(fit3, as.lm = TRUE))[1], "(Intercept)")
+## logLik, fixed effects, sigma
+chkeq(logLik(m1), logLik(m2), check.attributes = FALSE)
+chkeq(fixef(m2), coef(m1, as.lm = TRUE), tol = 1e-6)
+chkeq(sigma(m1), sigma(m2), tol = 1e-5)
 
-## compare to lme4
-chktol(fixef(fit2), coef(fit, as.lm = TRUE), tol = 1e-6)
-chktol(sigma(fit2), sigma(fit), tol = 1e-5)
-chktol(logLik(fit), logLik(fit2))
 ## --- SEs of fixed effects
-chktol(sqrt(diag(vcov(fit, as.lm = TRUE, pargroup = "fixef"))),
-       sqrt(diag(vcov(fit2))), tol = 1e-4)
-## --- Variances and correlations of the random effects
-vc1 <- VarCorr(fit, as.lm = TRUE)
-vc2 <- lme4::VarCorr(fit2)
-chktol(vc1$Subject$var, diag(vc2[[1]]), tol = 1e-4)
-chktol(vc1$Subject$corr[1, 2], as.data.frame(vc2)[3, "sdcor"], tol = 1e-4)
-## --- Random effects
-re1 <- ranef(fit, as.lm = TRUE)
-re2 <- lme4::ranef(fit2)
-chktol(colnames(re1$Subject), colnames(re2$Subject))
-chktol(re1$Subject, re2$Subject, tol = 1e-4)
-## --- Confidence intervals for the fixed effects
-ci1 <- confint(fit, as.lm = TRUE, pargroup = "fixef")
-ci2 <- confint(fit2, 5:6, method = "Wald")
-chktol(ci1, ci2, tol = 1e-5)
-try(confint(fit, as.lm = TRUE, pargroup = "ranef", type = "profile")) ## error
+vc1 <- vcov(m1, as.lm = TRUE, pargroup = "fixef")
+vc2 <- vcov(m2)
+chkeq(sqrt(diag(vc1)), sqrt(diag(vc2)), tol = 1e-4, check.attributes = FALSE)
 
-## internal compatibility of VarCorr.LmME
-(vc <- VarCorr(fit, as.lm = TRUE))
-th <- fit$tmb_sdr$value[4:6]
-var <- exp(th[1:2])^2
-cor <- matrix(c(1, th[3], 0, 1), ncol = 2)
-cor <- cor %*% t(cor)
-s <- sqrt(diag(cor))
-cor <- diag(1/s) %*% cor %*% diag(1/s)
-chktol(vc$Subject$var, var)
-chktol(vc$Subject$corr, cor)
+## --- Variances and correlations of the random effects
+vc1 <- VarCorr(m1, as.lm = TRUE)
+vc2 <- lme4::VarCorr(m2)
+chkeq(vc1$Subject$var, diag(vc2[[1]]), tol = 1e-4)
+chkeq(vc1$Subject$corr[1, 2], as.data.frame(vc2)[3, "sdcor"], tol = 1e-4)
+v <- diag(varcov(m1, as.lm = TRUE)[[1]])
+chkeq(v, vc1$Subject$var)
+## chek original parametrization of the covariance matrix and its as.lm version
+th1 <- varcov(m1, as.lm = TRUE, as.theta = TRUE)
+th2 <- varcov(m1, as.theta = TRUE)
+sig <- sigma(m1)
+chkeq(th1, th2 + c(log(sig), log(sig), 0))
+
+## --- Confidence intervals for the fixed effects
+ci1 <- confint(m1, as.lm = TRUE, pargroup = "fixef")
+ci2 <- confint(m2, 5:6, method = "Wald")
+chkeq(ci1, ci2, tol = 1e-5, check.attributes = FALSE)
+
+## --- Random effects
+re1 <- ranef(m1, as.lm = TRUE)
+re2 <- lme4::ranef(m2)
+chkid(colnames(re1$Subject), colnames(re2$Subject))
+chkeq(re1$Subject, re2$Subject, tol = 1e-4, check.attributes = FALSE)
+pr <- c(coef(m1, with_baseline = TRUE), varcov(m1, as.theta = TRUE))
+chkerr(ranef(m1, as.lm = TRUE, param = pr), "not supported")
+
+## --- Residuals
+res1 <- resid(m1, as.lm = TRUE)
+res2 <- resid(m2)
+chkeq(res1, res2, tol = 1e-5)
 
 options(oldopt)

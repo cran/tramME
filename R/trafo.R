@@ -31,14 +31,13 @@ trafo <- function(object, ...) {
 ##' @export
 trafo.tramME <- function(object, newdata = NULL,
                   type = c("trafo", "distribution", "survivor", "cumhazard"),
-                  confidence = c("none", "interval", "band", "asymptotic"), level = 0.95,
+                  confidence = c("none", "interval", "band"), level = 0.95,
                   K = 50, ...) {
-  stopifnot(object$fitted)
   type <- match.arg(type)
   confidence <- match.arg(confidence)
   rv <- variable.names(object, "response")
   if (is.null(newdata)) {
-    newdata <- object$data$mf
+    newdata <- model.frame(object)
     newdata <- newdata[, variable.names(object, "interacting"), drop = FALSE]
     newdata <- unique(newdata)
   }
@@ -53,47 +52,48 @@ trafo.tramME <- function(object, newdata = NULL,
     return(out)
   }
   nd <- newdata[rep(1, K), , drop = FALSE]
-  nd[[rv]] <- mkgrid(object$model$response$basis, n = K)[[rv]]
-  dist <- switch(object$model$distr, "normal" = "Normal", "logistic" = "Logistic",
+  nd[[rv]] <- mkgrid(object$model$ctm$bases$response, n = K)[[rv]]
+  dist <- switch(object$model$ctm$todistr$name, "normal" = "Normal", "logistic" = "Logistic",
                  "minimum extreme value" = "MinExtrVal",
                  "maximum extreme value" = "MaxExtrVal")
-  mod <- ctm(response = object$model$response$basis,
-             interacting = object$model$fixef$bases$interacting,
+  mod <- ctm(response = object$model$ctm$bases$response,
+             interacting = object$model$ctm$bases$interacting,
              todistr = dist)
   X <- model.matrix(mod, data = nd)
-  cf <- coef(object, with_baseline = TRUE)[.paridx(object$model, pargroup = "baseline")]
+  cci <- complete.cases(X)
+  X <- X[cci, , drop = FALSE] ## NOTE: drop rows with missing obs
+  cf <- coef(object, with_baseline = TRUE)
+  cf <- cf[.idx(object, fixed = TRUE, pargroup = "baseline")]
   vc <- vcov(object, pargroup = "baseline")
+  if (length(fixn <- setdiff(names(cf), rownames(vc)))) { ## NOTE: handling fixed parameters
+    fixi <- match(fixn, names(cf))
+    os <- X[, fixi, drop = FALSE] %*% cf[fixi]
+    cf <- cf[-fixi]
+    X <- X[, -fixi, drop = FALSE]
+  } else {
+    os <- 0
+  }
   out <- switch(confidence,
     none = {
       ci <- X %*% cf
       colnames(ci) <- "trafo"
-      ci
+      ci + os
     },
     interval = {
       ci <- confint(multcomp::glht(multcomp::parm(cf, vc), linfct = X),
                     calpha = multcomp::univariate_calpha(), level = level)$confint
       colnames(ci)[1] <- "trafo"
-      ci
+      ci + os
     },
     band = {
       ci <- confint(multcomp::glht(multcomp::parm(cf, vc), linfct = X),
                     calpha = multcomp::adjusted_calpha(), level = level)$confint
       colnames(ci)[1] <- "trafo"
-      ci
-    },
-    asymptotic = { ## NOTE: should be same as interval, to be removed later
-      hy <- drop(X %*% cf) ## mean
-      va <- drop(rowSums(X * tcrossprod(X, vc))) ## variance
-      se <- sqrt(va)
-      ci <- hy + qnorm((1-level)/2) * se %o% c(1, -1) ## Wald Ci
-      ci <- cbind(hy, ci)
-      colnames(ci) <- c("trafo", "lwr", "upr")
-      attr(ci, "conf.level") <- level
-      ci
+      ci + os
     })
   dn <- vector("list", 2)
   names(dn) <- c(rv, "estim")
-  dn[[rv]] <- nd[[rv]]
+  dn[[rv]] <- nd[cci, rv]
   dn[[2]] <- colnames(out)
   dimnames(out) <- dn
   out <- switch(type,

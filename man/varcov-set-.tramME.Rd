@@ -4,26 +4,33 @@
 \alias{varcov<-.tramME}
 \title{Set the values of the random effects covariance matrices of a tramME model.}
 \usage{
-\method{varcov}{tramME}(object) <- value
+\method{varcov}{tramME}(object, as.theta = FALSE, ...) <- value
 }
 \arguments{
-\item{object}{A tramME object (fitted or unfitted).}
+\item{object}{A \code{tramME} object.}
+
+\item{as.theta}{Logical value, if \code{TRUE}, indicating that the new values are supplied
+in their reparameterized form.}
+
+\item{...}{Optional arguments (ignored).}
 
 \item{value}{A list of positive definite covariance matrices.}
 }
 \value{
-An unfitted tramME object with the new coefficient values.
+A  \code{tramME} object with the new coefficient values.
 }
 \description{
 Sets the list containing the covariance matrices of a tramME model. The matrices have
 to be positive definite. Just as in \code{"coef<-"}, when the function is called
-on a fitted object, it will be set to unfitted.
+on a fitted object, the function will remove the infromation about the optimization.
 }
 \details{
-The supplied list does not have to be named, and the names will be ignored.
-When multiple grouping factors are present, the function assumes the same order as in the
-object to be modified. Hence, it might be a good idea to call \code{varcov} first, and
+The supplied list has to be named with the same names as implied by the model.
+Hence, it might be a good idea to call \code{varcov} first, and
 modify this list to make sure that the input has the right structure.
+
+The new values can also be supplied in a form that corresponds to the reparametrization
+used by the \code{tramTMB} model (see the option \code{as.theta = TRUE}).
 }
 \examples{
 data("sleepstudy", package = "lme4")
