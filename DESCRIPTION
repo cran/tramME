@@ -1,6 +1,6 @@
 Package: tramME
 Title: Transformation Models with Mixed Effects
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(person("Balint", "Tamasi", role = c("aut", "cre"),
                     email = "balint.tamasi@uzh.ch", comment = c(ORCID = "0000-0002-2629-7362")),
              person("Torsten", "Hothorn",  role = "ctb",
@@ -24,9 +24,9 @@ License: GPL-2
 Encoding: UTF-8
 RoxygenNote: 7.1.1
 NeedsCompilation: yes
-Packaged: 2021-03-30 08:33:27 UTC; balint
+Packaged: 2021-04-05 17:50:20 UTC; balint
 Author: Balint Tamasi [aut, cre] (<https://orcid.org/0000-0002-2629-7362>),
   Torsten Hothorn [ctb] (<https://orcid.org/0000-0001-8301-0471>)
 Maintainer: Balint Tamasi <balint.tamasi@uzh.ch>
 Repository: CRAN
-Date/Publication: 2021-03-30 12:10:03 UTC
+Date/Publication: 2021-04-13 21:30:09 UTC

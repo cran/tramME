@@ -1,3 +1,7 @@
+# tramME 0.1.1 (2021-04-05)
+
+* Fixed uninitialized value problem indicated by valgrind
+
 # tramME 0.1.0 (2021-03-29)
 
 * Updated internal functions for estimation transformation models with TMB:

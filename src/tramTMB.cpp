@@ -167,6 +167,7 @@ Type objective_function<Type>::operator() ()
   }
 
   vector<Type> res(errdist.size()); // default: w/o auxiliary parameters
+  res.setZero();
 
   if (resid_flag) {
     res += alpha0;
