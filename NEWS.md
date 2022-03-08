@@ -1,3 +1,7 @@
+# tramME 0.1.3 (2022-03-08)
+
+* Fixed `duplicate.tramTMB` method to work with TMB 1.8.0.
+
 # tramME 0.1.2 (2021-08-16)
 
 * Added R-Forge URL

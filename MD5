@@ -1,6 +1,6 @@
-ce1faa0b6ac29aafdedc5eaff0fe62d9 *DESCRIPTION
+b29d8aff06e88a8404817f95e47f38ec *DESCRIPTION
 d5e89c3767b36e39cee9067f1b7dacc3 *NAMESPACE
-dc57c4ef3fc320bbafb9adacd05c9697 *NEWS.md
+628f5a872d9cb0e448641a1c3d1836f7 *NEWS.md
 a789a11a4a45c7aa55de686c6bc028ed *R/AaregME.R
 a74627fd5b226b7c0019c742cf242349 *R/LmME.R
 2f3e2a55049bff06096ad36d614a3cc8 *R/SurvregME.R
@@ -10,14 +10,14 @@ f8b8199efaf0f97581af5857fbde0e86 *R/models.R
 94796bcb168905e1513eef158961dfdd *R/predict.R
 f90865e84275e5eee3077684fe19afdb *R/simulate.R
 974e3b1dd2fbf6676cebb21211d5f60e *R/trafo.R
-3cbf5c644a65e28d25311639a3f1ad09 *R/tramTMB.R
+ed98ea826192fd88c5d38e5c4cad28bd *R/tramTMB.R
 5bc6ba97a8f31bc8cd3f1f44fa0a4ad6 *R/util.R
-70959135964e62b63992708d3047fc65 *build/vignette.rds
+f5d74cf13d0377b0415aa819fae7991a *build/vignette.rds
 da3984fc33469e3054a897ae27627060 *demo/00Index
 e1a60074be0b9b4e2af9df7c9a8614f8 *demo/IPD-MA.R
 90616e3750321b94ef79a1cc2aaa1629 *inst/doc/tramME.R
 f65c3b0a428d1918fe1ebcde5bbddbc1 *inst/doc/tramME.Rnw
-ae1476156d8fd888c71889a29b7b8d2f *inst/doc/tramME.pdf
+f848ddb1b5be029a4a99d6b1d0525249 *inst/doc/tramME.pdf
 54f9716115650ff11f705c8058c5503a *man/AaregME.Rd
 af179638ff82c4ec5f87348a68202b3b *man/BoxCoxME.Rd
 06011cb40de6a82de0aa54a88fcfa12a *man/ColrME.Rd
@@ -123,5 +123,7 @@ d94c8c388c58864507d0dd04d3cb2993 *tests/predict.R
 f6ade02fab87f4e94e2e8cbc9d8cfccb *tests/simulate.R
 3d256d0a9e4026b4609765e17373f6aa *tests/test_util.R
 9a67f9b230c48542967ed339f9106a4c *tests/tramTMB.R
+8934f7aed56c528aa357ae6f5109ea54 *vignettes/MEE-example-analyses.pdf
+9b449cb23542b5e2b6a57fbd62fc915d *vignettes/MEE-example-analyses.tex
 f65c3b0a428d1918fe1ebcde5bbddbc1 *vignettes/tramME.Rnw
 64817a4ef937e24eca2eb1bebcf39dbd *vignettes/tramME.bib

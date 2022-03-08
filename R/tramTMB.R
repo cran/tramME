@@ -846,29 +846,5 @@ duplicate <- function(object, ...) {
 ##' @importFrom utils lsf.str
 ##' @export
 duplicate.tramTMB <- function(object, ...) {
-  newobj <- object
-  newobj$env <- as.environment(as.list(object$env))
-  parent.env(newobj$env) <- parent.env(object$env)
-  env <- as.environment(as.list(environment(newobj$fn)))
-  parent.env(env) <- parent.env(environment(newobj$fn))
-  nm <- c("fn", "gr", "he")
-  for (n in nm) {
-    environment(env[[n]]) <- newobj$env
-  }
-  nm <- c("fn", "gr", "he", "resid")
-  for (n in nm) {
-    environment(newobj[[n]]) <- env
-  }
-  nm <- c("report", "retape", "simulate")
-  for (n in nm) {
-    environment(newobj[[n]]) <- newobj$env
-  }
-  nm <- as.character(lsf.str(envir = newobj$env))
-  for (n in nm) {
-    environment(newobj$env[[n]]) <- newobj$env
-  }
-  ## NOTE: spHess is special (see its def in TMB)
-  env2 <- environment(object$env$spHess)
-  environment(newobj$env$spHess) <- env2
-  return(newobj)
+    unserialize(serialize(object,NULL))
 }
