@@ -7,7 +7,7 @@
 \method{vcov}{tramME}(
   object,
   parm = NULL,
-  pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+  pargroup = c("all", "fixef", "shift", "baseline", "ranef", "smooth"),
   pmatch = FALSE,
   ...
 )
@@ -17,9 +17,16 @@
 
 \item{parm}{The indeces or names of the parameters of interest. See in details.}
 
-\item{pargroup}{fixef: fixed-effects, shift: shift parameters, all: fixed
-effects and variance component parameters, baseline: parameters of the
-baseline transformation function, ranef: variance components parameters.}
+\item{pargroup}{The name of the parameter group to return:
+\itemize{
+  \item all: All parameters.
+  \item fixef: Fixed effects parameters.
+  \item shift: Shift parameters.
+  \item baseline: Parameters of the baseline transformation function.
+  \item ranef: Variance components parameters.
+  \item smooth: Paramaters that belong to the smooth shift terms
+    (both FE and smoothing parameters).
+}}
 
 \item{pmatch}{Logical. If \code{TRUE}, partial name matching is allowed.}
 

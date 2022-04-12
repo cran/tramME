@@ -18,7 +18,7 @@ nd <- sleepstudy
 nd[["Reaction"]] <- NULL
 pr1 <- predict(fit, newdata = nd, ranef = ranef(fit, raw = TRUE), type = "trafo", K = 100)
 chkid(unname(dim(pr1)), c(100L, nrow(sleepstudy)))
-chkerr(pr2 <- predict(fit, newdata = nd, K = 100), "specified")
+chkerr(pr2 <- predict(fit, newdata = nd, K = 100))
 
 ## -- check "zero" option of ranef
 nd <- sleepstudy[c(4, 14, 24), ]
@@ -27,7 +27,6 @@ pr2 <- predict(fit, newdata = nd, ranef = "zero", q = c(300, 320), type = "distr
 chkid(pr1, pr2)
 
 ## -- various formatting of ranef
-## NOTE: unnecessary, but can be done...
 pr1 <- predict(fit, ranef = ranef(fit, raw = TRUE), type = "quantile", prob = 0.5)
 ## ... also with formatted ranefs
 pr2 <- predict(fit, ranef = ranef(fit), type = "quantile", prob = 0.5)
@@ -94,29 +93,43 @@ pr <- predict(m, newdata = nd, type = "trafo", ranef = "zero", K = 5)
 pr2 <- predict(m, newdata = nd, type = "trafo", ranef = 2, K = 5)
 chkeq(pr - 2, pr2)
 
-## -- compare lpterms and predict
-data("neck_pain", package = "ordinalCont")
-fit_np1 <- ColrME(vas ~ laser * time + (1 | id), data = neck_pain,
-                  bounds = c(0, 1), support = c(0, 1))
-nd <- neck_pain[4, ] ## a 'baseline' obeservation
-nd <- nd[rep(1, 100), ]
-nd[[variable.names(fit_np1, "response")]] <- seq(0.01, 0.99, length.out = 100)
-## NOTE: there are very small differences at the edges of the support (0 and 1)
-bt1 <- lpterms(fit_np1, newdata = nd, term = "baseline",
-               confidence = "none", type = "distribution")
-bt2 <- predict(fit_np1, newdata = nd, ranef = "zero", type = "distribution")
-chkeq(bt1$baseline[, 1], bt2, check.attributes = FALSE)
 
-fit_np2 <- ColrME(vas | 0 + laser ~ time + (1 | id), data = neck_pain,
-                  bounds = c(0, 1), support = c(0, 1), order = 4)
-nd <- neck_pain[c(1, 4), ]
-nd[["vas"]] <- NULL
-bt1 <- lpterms(fit_np2, newdata = nd, term = "baseline", K = 100,
-               confidence = "none", type = "trafo")
-bt2 <- predict(fit_np2, newdata = nd, ranef = "zero", type = "trafo",
-               K = 100)
-chkeq(bt1[[1]]$laser1[c(-1, -100), 1], bt2[c(-1, -100), 1], check.attributes = FALSE)
-chkeq(bt1[[2]]$laser2[c(-1, -100), 1], bt2[c(-1, -100), 2], check.attributes = FALSE)
+## --- w/ smooth terms
+## lp
+library("mgcv")
+fit_sm1 <- LmME(Reaction ~ s(Days) + (1 | Subject), data = sleepstudy)
+fit_sm2 <- gam(Reaction ~ s(Days) + s(Subject, bs = "re"), data = sleepstudy, method = "ML")
+## fitted REs
+pr1a <- (predict(fit_sm1) - coef(fit_sm1, with_baseline = TRUE)[1]) * sigma(fit_sm1)
+pr2 <- predict(fit_sm2)
+chkeq(pr1a, c(pr2), tol = 1e-5)
+## zero REs
+pr1b <- (predict(fit_sm1, ranef = "zero") - coef(fit_sm1, with_baseline = TRUE)[1]) * sigma(fit_sm1)
+pr2 <- predict(fit_sm2, exclude = "s(Subject)")
+chkeq(pr1b, c(pr2), tol = 1e-5)
+## new data
+nd <- sleepstudy[1:10,  ]
+pr1c <- (predict(fit_sm1, newdata = nd) - coef(fit_sm1, with_baseline = TRUE)[1]) * sigma(fit_sm1)
+chkeq(pr1a[1:10], pr1c)
+pr2 <- predict(fit_sm2, newdata = nd)
+chkeq(pr1c, c(pr2), tol = 1e-5)
 
+## density
+data("mcycle", package = "MASS")
+m <- LmME(accel ~ s(times, bs = "cr"), data = mcycle)
+nd <- data.frame(times = seq(5, 30, by = 5))
+qs <- seq(-134, 75, length.out = 50)
+lp <- predict(m, nd, type = "lp")
+lp2 <- (lp - coef(m, with_baseline = TRUE)[1]) * sigma(m)
+pr1 <- predict(m, nd, type = "density", q = qs)
+pr2 <- sapply(lp2, function(x) dnorm(qs, mean = x, sd = sigma(m)))
+chkeq(pr1, pr2, check.attributes = FALSE)
+
+## a complicated plot
+mod_su <- SurvregME(Surv(time, status) | celltype ~ age + s(karno, by = trt),
+                    data = veteran, dist = "loglogistic")
+pdf(file = NULL)
+plot(mod_su, type = "density")
+dev.off()
 
 options(oldopt)

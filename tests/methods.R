@@ -7,6 +7,9 @@ set.seed(100)
 library("tramME")
 library("survival")
 data("sleepstudy", package = "lme4")
+set.seed(100)
+gamdat <- mgcv::gamSim(6, n = 500, scale = 2, verbose = FALSE)
+data("mcycle", package = "MASS")
 
 ## -- Set and get parameters
 mod_lm <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
@@ -21,26 +24,19 @@ chkeq(varcov(mod_lm)$Subject, diag(2), check.attributes = FALSE)
 vc[[1]][] <- matrix(c(1, 0.2, 0.6, 2), ncol = 2)
 chkerr(varcov(mod_lm) <- vc)
 
-## NOTE: strange behavior -- accidentally create new objects, that share the same
-## param:
-mod_lm <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-pr1 <- coef(mod_lm, with_baseline = TRUE)
-par1 <- tramME:::.get_par(mod_lm$tmb_obj)
-## Expected behavior: the function call creates a copy of the object,
-## setting the parameters in the function shouldn't affect the origiginal
-fun <- function(obj) {coef(obj) <- c(-1, 0.05, 0.5); logLik(obj)}
-chkwarn(fun(mod_lm), "Removing")
-## However, originally, the values in mod_lm object also changed,
-## because environments (param$env) are not copied but changed in-place.
-pr2 <- coef(mod_lm, with_baseline = TRUE)
-par2 <- tramME:::.get_par(mod_lm$tmb_obj)
-chkeq(pr1, pr2)
-chkeq(par1, par2) ## Check the tmb_object separately
+mod_gm <- LmME(y ~ s(x0)+ x1 + s(x2) + (1|fac), data = gamdat, nofit = TRUE)
+vc <- varcov(mod_gm)
+chkid(names(vc), "fac")
+vc <- varcov(mod_gm, full = TRUE)
+chkid(names(vc), c("fac", "s(x0)", "s(x2)"))
+cf <- coef(mod_gm, with_baseline = TRUE)
+chkid(length(cf), 5L) ## NOTE: 2 baseline + 1 shift + 2 smooth
 
 ## -- Log-likelihood
 mod_lm <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
 stopifnot(is.na(logLik(mod_lm)))
-chkerr(logLik(mod_lm, param = c(-5, -1, 2, 0, 0, 0)), em = "constraints")
+chkerr(logLik(mod_lm, param = list(beta = c(-5, -1, 2), theta = c(0, 0, 0))),
+       em = "constraints")
 mod_lm2 <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 ss2 <- sleepstudy[sample(1:nrow(sleepstudy)), ] ## Just reshuffle
 chkeq(logLik(mod_lm2), logLik(mod_lm2, newdata = ss2))
@@ -63,17 +59,26 @@ vc3 <- vcov(mod_sr, method = "optimHess")
 chkeq(vc1, vc2)
 chkerr(chkeq(vc1, vc3)) ## NOTE: w/ optimHess, it's slightly different
 
+mod_gm <- LmME(y ~ s(x0)+ x1 + s(x2) + (1|fac), data = gamdat)
+chkid(dim(vcov(mod_gm, pargroup = "smooth")), c(4L, 4L))
+
 ## -- variable names
 chkid(variable.names(mod_sr, "grouping"), NULL)
 chkid(variable.names(mod_sr, "interacting"), NULL)
+chkid(variable.names(mod_sr, "smooth"), NULL)
 chkid(variable.names(mod_sr, "response"), "Surv(time, status)")
 mod_sr2 <- SurvregME(Surv(time, status) ~ rx + (1 | litter/rx), data = rats,
                  nofit = TRUE)
 chkid(variable.names(mod_sr2, "grouping"), c("rx", "litter"))
 
+chkid(variable.names(mod_gm, "smooth"), c("x0", "x2"))
+chkid(variable.names(mod_gm), c("y", "x1", "x0", "x2", "fac"))
+## NOTE: linear shift term comes first (x1)
+
 ## -- VarCorr
 chkid(length(VarCorr(mod_sr)), 0L)
 chkid(length(VarCorr(mod_sr2)), 2L)
+chkid(length(VarCorr(mod_gm)), 1L)
 
 ## -- confint
 ci <- confint(mod_sr, pargroup = "ranef", type = "profile", estimate = TRUE)
@@ -94,8 +99,8 @@ chkeq(confint(m03, pargroup = "shift"), confint(m04), tol = 1e-5,
 ## -- random effects
 mod_lm <- update(mod_lm, fixed = NULL)
 stopifnot(all(is.na(ranef(mod_lm)[[1]])))
-pr <- c(coef(mod_lm2, fixed = FALSE, with_baseline = TRUE),
-        varcov(mod_lm2, as.theta = TRUE))
+pr <- list(beta = coef(mod_lm2, fixed = FALSE, with_baseline = TRUE),
+           theta = varcov(mod_lm2, as.theta = TRUE))
 re1 <- ranef(mod_lm, param = pr, condVar = TRUE)
 re2 <- ranef(mod_lm2, condVar = TRUE)
 chkeq(re1, re2)
@@ -105,6 +110,29 @@ nd <- sleepstudy[1:20, ]
 re1 <- ranef(mod_lm2, newdata = nd)
 re2 <- ranef(mod_lm2, condVar = FALSE)
 chkeq(re1$Subject, re2$Subject[1:2, ])
+
+re1 <- ranef(mod_gm, raw = TRUE)
+re2 <- ranef(mod_gm, condVar = TRUE)
+chkid(re2$fac[[1]], re1[1:4])
+chkid(dim(attr(re2$fac, "condVar")), c(4L, 1L))
+
+## fixing smooth terms, or parts
+mod_gm2 <- LmME(accel ~ s(times), data = mcycle)
+re1 <- ranef(mod_gm2, raw = TRUE)
+re2 <- ranef(mod_gm2, raw = TRUE, newdata = mcycle[1:2, ]) ## fix_smooth is on by default
+chkeq(re1, re2)
+pr <- list(beta = coef(mod_gm2, fixed = FALSE, with_baseline = TRUE),
+           theta = varcov(mod_gm2, as.theta = TRUE, full = TRUE))
+pr$gamma <- mod_gm2$param$gamma[1]
+re3 <- ranef(mod_gm2, param = pr, raw = TRUE)
+chkeq(re1, re3)
+
+pr <- list(beta = coef(mod_gm, fixed = FALSE, with_baseline = TRUE),
+           theta = varcov(mod_gm, as.theta = TRUE, full = TRUE))
+pr$gamma <- mod_gm$param$gamma[1]
+re <- ranef(mod_gm, param = pr, condVar = TRUE, fix_smooth = TRUE)
+chkid(is.na(attr(re$fac, "condVar")[[1]]), c(TRUE, rep(FALSE, 3)))
+chkeq(re[[1]], ranef(mod_gm)[[1]], check.attributes = FALSE)
 
 ## -- Residuals
 library("survival")
@@ -119,8 +147,49 @@ res2 <- resid(mod_sr)[1:30]
 ## newdata)
 chkeq(res1, res2)
 
+res1 <- resid(mod_gm, fix_smooth = TRUE, newdata = subset(gamdat, subset = fac == 1))
+res2 <- resid(mod_gm, fix_smooth = FALSE)[gamdat$fac == 1]
+chkeq(res1, res2)
+res1 <- resid(mod_gm, fix_smooth = FALSE, newdata = subset(gamdat, subset = fac == 1))
+chkerr(chkeq(res1, res2))
+
+mod_gm_bc <- BoxCoxME(y ~ s(x0)+ x1 + s(x2) + (1|fac), data = gamdat)
+res1 <- resid(mod_gm_bc, fix_smooth = TRUE)
+res2 <- resid(mod_gm_bc, fix_smooth = FALSE)
+chkeq(res1, res2)
+
+pr <- list(gamma = mod_gm_bc$param$gamma[1:4])
+res1 <- resid(mod_gm_bc, param = pr, newdata = gamdat)
+res2 <- resid(mod_gm_bc)
+chkeq(res1, res2)
+
+## -- FIXME: the test below fail! Why?
+## probably because of the non-linearity of the log-likelihood
+## the derivative of the integrated ll != the derivative of the
+## penalized ll wrt the constant
+## pr <- list(gamma = mod_sr$param$gamma[1:2])
+## res1 <- resid(mod_sr, param = pr, newdata = rats[1:4, ])
+## res2 <- resid(mod_sr)[1:4]
+
+## pr <- list(gamma = mod_sr$param$gamma)
+## res1 <- resid(mod_sr, param = pr)
+## res2 <- resid(mod_sr)
+## all.equal(res1, res2)
+
+## m <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = eortc, log_first = TRUE)
+## pr <- list(gamma = m$param$gamma[1:2])
+## res1 <- resid(m, param = pr, newdata = eortc[c(1, 65), ])
+## res2 <- resid(m)[c(1, 65)]
+## all.equal(res1, res2, tol = 1e-3)
+## --
+
+m <- CoxphME(Surv(time, status) | celltype ~ trt + s(age) + s(karno), data = veteran,
+             log_first = TRUE)
+res1 <- resid(m, fix_smooth = TRUE)
+res2 <- resid(m, fix_smooth = FALSE)
+chkeq(res1, res2, tol = 1e-5)
+
 ## -- print & summary
-data("veteran", package = "survival")
 mod_sr3 <- SurvregME(Surv(time, status) | celltype ~ trt + age + karno, data = veteran,
                      dist = "loglogistic", fixed = c("age" = 0.02))
 stopifnot(mod_sr3$opt$convergence == 0)
@@ -131,10 +200,13 @@ ss <- summary(mod_sr3)
 stopifnot(grepl("Stratified", ss$name, fixed = TRUE))
 chkid(ss$fixed, c("age" = 0.02))
 ss <- summary(mod_lm)
-stopifnot(grepl("Mixed-effects", ss$name, fixed = TRUE))
+stopifnot(grepl("Mixed-Effects", ss$name, fixed = TRUE))
 stopifnot(!ss$fitted)
 ss <- summary(mod_lm2)
 stopifnot(ss$fitted)
+f <- dist ~ speed
+mm <- LmME(f, data = cars)
+chkid(summary(mm)$formula, f)
 
 ## -- subsets and na.actions
 data("soup", package = "ordinal")
@@ -147,7 +219,8 @@ mod_polr1 <- PolrME(SURENESS | SOUPFREQ ~ PROD + (1 | RESP/PROD),
 mod_polr2 <- PolrME(SURENESS | SOUPFREQ ~ PROD + (1 | RESP/PROD),
                     data = soup, nofit = TRUE, na.action = na.fail,
                     subset = AGEGROUP != "18-30")
-par <- mod_polr1$tmb_obj$par
+par <- list(beta = coef(mod_polr1, with_baseline = TRUE),
+            theta = varcov(mod_polr1, as.theta = TRUE))
 chkeq(logLik(mod_polr1, param = par), logLik(mod_polr2, param = par))
 
 data("eortc", package = "coxme")
@@ -157,7 +230,8 @@ mm1 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = dat,
                 log_first = TRUE, nofit = TRUE) ## na.omit is the default
 mm2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center), data = eortc,
                 log_first = TRUE, subset = center > 10, nofit = TRUE)
-par <- mm1$tmb_obj$par
+par <- list(beta = coef(mm1, with_baseline = TRUE),
+            theta = varcov(mm1, as.theta = TRUE))
 chkeq(logLik(mm1, param = par), logLik(mm2, param = par))
 
 ## -- weights & offsets
@@ -202,7 +276,8 @@ dat <- eortc[rep(1:nrow(eortc), we), ]
 mod_cox2 <- CoxphME(Surv(y, uncens) ~ trt + (1 | center/trt), data = dat,
                     log_first = TRUE, order = 10, nofit = TRUE,
                     support = c(1, 2500))
-par <- mod_cox2$tmb_obj$par
+par <- list(beta = coef(mod_cox2, with_baseline = TRUE),
+            theta = varcov(mod_cox2, as.theta = TRUE))
 chkeq(logLik(mod_cox1, param = par), logLik(mod_cox2, param = par))
 
 ## -- offsets
@@ -233,6 +308,63 @@ stopifnot(!identical(mod_colr$tmb_obj$env, fit$tmb_obj$env))
 fit2 <- ColrME(vas ~ time * laser + (1 | id), data = neck_pain, bounds = c(0, 1),
                support = c(0, 1), order = 4)
 chkeq(logLik(fit), logLik(fit2))
+
+data("mcycle", package = "MASS")
+m <- LmME(accel ~ s(times), data = mcycle, nofit = TRUE)
+f1 <- fitmod(m)
+f2 <- LmME(accel ~ s(times), data = mcycle)
+chkeq(f1$param, f2$param, tol = 1e-4) ## NOTE: not exactly equal bec of different starting values
+
+## -- model.frame
+mod_cox3 <- CoxphME(Surv(time, status) | celltype ~ trt + s(age) + karno,
+                    data = veteran, log_first = TRUE, nofit = TRUE)
+chkeq(model.frame(mod_cox3), mod_cox3$data, check.attributes = FALSE)
+chkeq(model.frame(mod_cox3, data = veteran[1:10, ]), mod_cox3$data[1:10, ],
+      check.attributes = FALSE)
+chkeq(model.frame(mod_cox3, data = veteran[1:10, ], subset = karno < 60),
+      subset(mod_cox3$data[1:10, ], subset = karno < 60),
+      check.attributes = FALSE)
+chkeq(model.frame(mod_cox3, data = veteran, subset = karno < 60),
+      model.frame(mod_cox3, data = mod_cox3$data, subset = karno < 60),
+      check.attributes = FALSE)
+chkeq(model.frame(mod_cox3, subset = karno < 60),
+      subset(mod_cox3$data, subset = karno < 60),
+      check.attributes = FALSE)
+chkeq(model.frame(mod_cox1, subset = litter <= 3),
+      subset(mod_cox1$data, subset = litter <= 3), check.attributes = FALSE)
+chkeq(model.frame(mod_cox3, data = veteran, subset = time > 60)[[1]][, 1],
+      veteran$time[veteran$time > 60])
+chkeq(nlevels(model.frame(mod_lm,
+                          subset = as.numeric(as.character(Subject)) > 310,
+                          drop.unused.levels = TRUE)$Subject),
+      nlevels(sleepstudy$Subject) - 3L)
+## w/ offset
+st <- sleepstudy
+st$foo <- runif(nrow(st))
+mod_os <- update(mod_lm, offset = -log(foo), data = st)
+chkeq(mf <- model.frame(mod_os, data = st[1:10, ]), mod_os$data[1:10, ])
+chkid("(offset)" %in% colnames(mf), TRUE)
+chkerr(model.frame(mod_os, data = sleepstudy[1:10, ]),
+       "'foo' not found")
+chkeq(model.frame(mod_os), model.frame(mod_os, data = st))
+chkeq(model.offset(model.frame(mod_os, subset = Reaction < 250)),
+      -log(st$foo[st$Reaction < 250]))
+
+## -- model.matrix
+nd <- model.frame(mod_cox3)[rep(1, 100), ]
+nd[[1]] <- seq(1, 120, length.out = 100)
+mm1 <- model.matrix(mod_cox3, data = nd, simplify = TRUE)
+mm2 <- model.matrix(mod_cox3, data = nd, simplify = TRUE, keep_sign = FALSE)
+chkid(mm1, mm2) ## equal in the case of CoxphME
+mm1 <- model.matrix(mod_cox3, data = veteran, subset = karno > 40)
+mm2 <- model.matrix(mod_cox3, data = model.frame(veteran, subset = karno > 40))
+chkid(mm1, mm2)
+nd <- model.frame(mod_lm)[rep(1, 100), ]
+nd[[1]] <- seq(150, 250, length.out = 100)
+mm1 <- model.matrix(mod_lm, data = nd, simplify = TRUE)
+mm2 <- model.matrix(mod_lm, data = nd, simplify = TRUE, drop_unused_groups = TRUE)
+chkid(dim(mm1$Zt), c(36L, 100L))
+chkid(dim(mm2$Zt), c(2L, 100L))
 
 ## -- Anova
 ## NOTE: this should be at the end because ordinal will mask ranef and VarCorr,

@@ -12,7 +12,7 @@
 \item{as.lm}{If \code{TRUE}, return the residuals as in a normal linear
 mixed effects model.}
 
-\item{...}{Optional arguments (currently ignored).}
+\item{...}{Optional arguments (for consistency with generic)}
 }
 \description{
 Calculates the score residuals of an intercept term fixed at 0.

@@ -6,7 +6,8 @@
 \usage{
 \method{variable.names}{tramME}(
   object,
-  which = c("all", "response", "grouping", "shifting", "interacting"),
+  which = c("all", "response", "grouping", "shifting", "interacting", "smooth",
+    "ranef"),
   ...
 )
 }
@@ -18,7 +19,10 @@
 \item response: response variable,
 \item grouping: grouping factors for random effects,
 \item shifting: shifting variables,
-\item interacting: interacting variables.
+\item interacting: interacting variables,
+\item smooth: variables in smooth terms,
+\item ranef: all random effects variables (covariates with random slopes and grouping
+factors).
 }}
 
 \item{...}{optional parameters}
@@ -27,7 +31,10 @@
 A vector of variable names.
 }
 \description{
-Returns the variable names corresponding the selected group.
+Returns the variable names corresponding to different variable groups in a tramME
+model.
+}
+\details{
 The returned names are the names as they are used by tramME. For example,
 when the response is a \code{Surv} object, \code{variable.names} returns
 the name of that object, and not the names of the variables used to create it.

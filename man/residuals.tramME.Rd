@@ -6,27 +6,37 @@
 \usage{
 \method{residuals}{tramME}(
   object,
-  param = c(coef(object, with_baseline = TRUE, fixed = FALSE), varcov(object, as.theta
-    = TRUE)),
+  param = NULL,
   newdata = NULL,
+  fix_smooth = !is.null(newdata),
   ...
 )
 }
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{param}{An optional vector of parameter values in the structure
-(beta, theta).}
+\item{param}{An optional named list of parameter values (beta and theta).
+See details.  Optionally, gamma elements can also be added, which leads to
+'fixing' those random effects terms at the supplied values.}
 
-\item{newdata}{An optional data.frame.}
+\item{newdata}{An optional \code{data.frame} of observations for which we
+want to calculate the residuals.}
 
-\item{...}{Optional arguments (currently ignored).}
+\item{fix_smooth}{Logical; it is set to \code{TRUE} by default, if
+\code{newdata} is supplied.  The random effects parameters corresponding
+the smooth terms are fixed and not fitted (posterior mode) to
+\code{newdata} instead they are treated just like fixed effects
+parameters. See details.}
+
+\item{...}{Optional arguments (for consistency with generic)}
 }
 \description{
 Calculates the score residuals of an intercept term fixed at 0.
 }
 \examples{
+
 library("survival")
 fit <- SurvregME(Surv(time, status) ~ rx + (1 | litter), data = rats)
 resid(fit)
+
 }

@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{pdfpages}
+%\VignetteIndexEntry{R Journal 2021}
+
+\begin{document}
+
+\includepdf[pages=-, fitpaper=true]{RJ-2021-075_orig.pdf}
+
+\newpage
+
+\subsection*{Changes}
+
+The original paper was written using version 0.1.2.
+The list of changes in the current version (1.0.0):
+
+\begin{itemize}
+  \item[pp. 15:] The \texttt{trafo} method has been removed from the package.
+        To create similar plots, the transformation function can be evaluated manually.
+        An example for this can be found in the vignette \texttt{mixed-effects-additive-models}:
+        %
+<<eval=FALSE>>=
+Y <- model.matrix(ecoli_m1_bc, data = nd, type = "Y")$Ye
+b <- coef(ecoli_m1_bc, with_baseline = TRUE)[1:7]
+vc <- vcov(ecoli_m1_bc, pargroup = "baseline")
+ci <- confint(multcomp::glht(multcomp::parm(b, vc), linfct = Y),
+              calpha = multcomp::univariate_calpha())$confint
+@
+\end{itemize}
+
+\end{document}

@@ -27,11 +27,26 @@
 ##' (specified when the model was set up), the inversion of the CDF cannot be done exactly
 ##' and \code{tramME} returns censored values.
 ##'
-##' When \code{ranef} is equal to "zero", a vector of zeros with the right size is
-##' used.
+##' \code{ranef} can be different objects based on what we want to calculate and
+##' what the other inputs are. If \code{ranef} is a \code{ranef.tramME}, we assume
+##' that it contains the full set of random effects, but not the penalized coefficients
+##' of the smooth terms. In this case \code{fix_smooth} must be \code{TRUE}. If
+##' \code{ranef} is a named vector, we are fixing the supplied random effects (and
+##' penalized coefficients) and predict the rest from \code{newdata} (\code{fix_smooth}
+##' may also be used in this case). In this case, the random effects are identified
+##' with the same naming convention as in \code{object$param$gamma}.
+##'
+##' If \code{ranef} is an unnamed vector, the function expects the
+##' full set of necessary random effects (with or without penalized coefficients, depending
+##' on \code{fix_smooth}). If \code{ranef = NULL} (the default), all random effects and
+##' optionally penalized parameters (although this is not recommended) are predicted from
+##' \code{newdata}. Finally, if \code{ranef} is equal to "zero", a vector of zeros with the
+##' right size is used.
 ##' @param object A \code{tramME} object.
-##' @param ranef Random effects (either in named list format or a numeric vector)
-##'   or the word "zero". See Details.
+##' @param ranef Random effects it can be a \code{ranef.tramME} object, a named list,
+##'   an unnamed list, \code{NULL} or the word "zero". See Details.
+##' @param fix_smooth If \code{FALSE}, the random effects coefficients of the smooth
+##'   terms are refitted to \code{newdata}. It's probably not what you want to do.
 ##' @param type The scale on which the predictions are evaluated:
 ##'   \itemize{
 ##'     \item lp: Linear predictor (Xb + Zg). For more information, see Details.
@@ -65,65 +80,41 @@
 ##'               K = 100)
 ##' @importFrom stats predict
 ##' @export
-predict.tramME <- function(object, newdata = model.frame(object), ranef = NULL,
+## TODO: later at least some of the predictions could run through predict.tramTMB
+## to obtain the standard errors
+predict.tramME <- function(object, newdata = model.frame(object),
+  ranef = NULL, fix_smooth = TRUE,
   type = c("lp", "trafo", "distribution", "survivor", "density",
            "logdensity", "hazard", "loghazard", "cumhazard",
            "odds", "logodds", "quantile"), ...) {
   type <- match.arg(type)
+  rfs <- .ranef_predict_setup(object, newdata, ranef, fix_smooth)
+  Zt  <- rfs$Zt
+  ranef <- rfs$ranef
 
-  ## NOTE: in case ranef is formatted, transfrom it to a vector
-  if (is.list(ranef)) {
-    ranef <- unname(unlist(lapply(ranef, function(x) c(t(x)))))
-  }
-
-  if (is.null(ranef) && !is.null(object$model$ranef)) {
-    rn <- variable.names(object, "response")
-    if (rn %in% names(newdata)) {
-      ranef <- ranef(object, newdata = newdata, raw = TRUE)
-    } else {
-      ## FIXME: could try harder and assume that the ranef vector is the one
-      ## fitted in the model if the levels of the grouping variable are the same
-      stop("The random effects vector must be specified.")
-    }
-  }
-  if (any(is.na(ranef))) {
-    stop(paste("Could not calculate random effects vector.",
-               "Please set up the model properly or supply",
-               "random effects manually."))
-  }
-
-  ## -- set up and check random effects vector
-  if (!is.null(object$model$ranef)) {
-    rsiz <- .re_size(attr(object$param, "re")$blocksize, newdata)
-    if (identical(ranef, "zero"))
-      ranef <- rep(0, sum(rsiz$bsize * rsiz$nlev))
-    ## NOTE: check if the vector of random effects has enough distinct values
-    stopifnot(sum(rsiz$bsize * rsiz$nlev) == length(ranef))
-  }
+  X <- model.matrix(object, data = newdata, type = "X",
+                    keep_sign = FALSE, ignore_response = TRUE)$X
+  if (length(ranef)) Zg <- as.numeric(Matrix::crossprod(Zt, ranef))
+  else Zg <- 0
+  cf <- object$param$beta
+  bty <- attr(cf, "type")
+  cfs <- cf[bty != "bl"]
 
   ## -- linear predictor
-  if (type == "lp") {
-    X <- model.matrix(object, data = newdata, type = "fixef", with_baseline = FALSE)
-    Zt <- model.matrix(object, data = newdata, type = "ranef")
-    if (is.null(Zt)) {
-      Zg <- 0
-    } else {
-      Zg <- as.numeric(Matrix::crossprod(Zt, ranef))
-    }
-    out <- as.numeric(X %*% coef(object, with_baseline = FALSE)) + Zg
-    if (object$model$negative) out <- -out
+  if (identical(type, "lp")) {
+    out <- as.numeric(X %*% cfs) + Zg
     names(out) <- rownames(newdata)
     return(out)
   }
-
   ## -- other prediction types: wrapper around predict.mlt
-  if (!is.null(object$model$ranef)) {
-    ## FIXME: change this to model.matrix( , type = "ranef")
-    re_struct <- re_terms(object$model$ranef, data = newdata,
-                          negative = FALSE) ## NOTE: set in .cctm
-    newdata$re_ <- as.numeric(Matrix::crossprod(re_struct$Zt, ranef))
-    ## ## NOTE: create a dummy mlt model where REs enter as fixed parameter FEs
-    fmlt <- .cctm(object$model$ctm, coef(object, with_baseline = TRUE, fixed = TRUE),
+  if (length(idx <- which(bty[bty != "bl"] == "sm"))) {
+    sXb <- as.numeric(X[, idx, drop = FALSE] %*% cfs[idx])
+  } else sXb <- 0
+
+  if (any((re_ <- sXb + Zg) != 0)) {
+    newdata$re_ <- re_
+    ## NOTE: create a dummy mlt model where REs enter as fixed parameter FEs
+    fmlt <- .cctm(object$model$ctm, cf[bty != "sm"],
                   negative = object$model$negative)
   } else {
     fmlt <- object$model$ctm
@@ -140,13 +131,15 @@ predict.tramME <- function(object, newdata = model.frame(object), ranef = NULL,
 ##' values and a set of covariate and random effects values on a specified scale.
 ##'
 ##' When \code{ranef} is equal to "zero", a vector of zeros with the right size is
-##' substituted.
+##' substituted. For more details, see \code{\link[tramME]{predict.tramME}}.
 ##'
 ##' For more information on how to control the grid on which the functions are evaluated,
 ##' see the documentation of \code{\link[mlt]{predict.mlt}}.
 ##' @param x A \code{tramME} object.
 ##' @param ranef Random effects (either in named list format or a numeric vector)
 ##'   or the word "zero". See Details.
+##' @param fix_smooth If \code{FALSE}, the random effects coefficients of the smooth
+##'   terms are refitted to \code{newdata}. It's probably not what you want to do.
 ##' @param type The scale on which the predictions are evaluated:
 ##'   \itemize{
 ##'     \item trafo: The prediction evaluated on the scale of the
@@ -172,49 +165,107 @@ predict.tramME <- function(object, newdata = model.frame(object), ranef = NULL,
 ##' plot(fit, K = 100, type = "density")
 ##' @importFrom graphics plot
 ##' @export
-plot.tramME <- function(x, newdata = model.frame(x), ranef = NULL,
+plot.tramME <- function(x, newdata = model.frame(x),
+  ranef = NULL, fix_smooth = TRUE,
   type = c("trafo", "distribution", "survivor", "density",
            "logdensity", "hazard", "loghazard", "cumhazard",
            "odds", "logodds", "quantile"), ...) {
   type <- match.arg(type)
 
-  ## NOTE: in case ranef is formatted, transfrom it to a vector
-  if (is.list(ranef)) {
-    ranef <- unname(unlist(lapply(ranef, function(x) c(t(x)))))
-  }
+  rfs <- .ranef_predict_setup(x, newdata, ranef, fix_smooth)
+  Zt  <- rfs$Zt
+  ranef <- rfs$ranef
 
-  if (is.null(ranef) && !is.null(x$model$ranef)) {
-    rn <- variable.names(x, "response")
-    if (rn %in% names(newdata)) {
-      ranef <- ranef(x, newdata = newdata, raw = TRUE)
-    } else {
-      ## FIXME: could try harder and assume that the ranef vector is the one
-      ## fitted in the model if the levels of the grouping variable are the same
-      stop("The random effects vector must be specified.")
-    }
-  }
-  if (any(is.na(ranef))) {
-    stop(paste("Could not calculate random effects vector.",
-               "Please set up the model properly or supply",
-               "random effects manually."))
-  }
+  X <- model.matrix(x, data = newdata, type = "X",
+                    keep_sign = FALSE, ignore_response = TRUE)$X
+  if (length(ranef)) Zg <- as.numeric(Matrix::crossprod(Zt, ranef))
+  else Zg <- 0
+  cf <- x$param$beta
+  bty <- attr(cf, "type")
+  cfs <- cf[bty != "bl"]
 
-  if (!is.null(x$model$ranef)) {
-    rsiz <- .re_size(attr(x$param, "re")$blocksize, newdata)
-    if (identical(ranef, "zero"))
-      ranef <- rep(0, sum(rsiz$bsize * rsiz$nlev))
-    stopifnot(sum(rsiz$bsize * rsiz$nlev) == length(ranef)) ## check if the vector of random effects has enough distinct values
+  if (length(idx <- which(bty[bty != "bl"] == "sm"))) {
+    sXb <- as.numeric(X[, idx, drop = FALSE] %*% cfs[idx])
+  } else sXb <- 0
 
-    ## FIXME: change this to model.matrix( , type = "ranef")
-    re_struct <- re_terms(x$model$ranef, data = newdata,
-                          negative = FALSE) ## NOTE: set in .dummy_ctm
-    newdata$re_ <- as.numeric(Matrix::crossprod(re_struct$Zt, ranef))
-    ## ## NOTE: create a dummy mlt model where REs enter as fixed parameter FEs
-    fmlt <- .cctm(x$model$ctm, coef(x, with_baseline = TRUE, fixed = TRUE),
+  if (any((re_ <- sXb + Zg) != 0)) {
+    newdata$re_ <- re_
+    ## NOTE: create a dummy mlt model where REs enter as fixed parameter FEs
+    fmlt <- .cctm(x$model$ctm, cf[bty != "sm"],
                   negative = x$model$negative)
   } else {
     fmlt <- x$model$ctm
     coef(fmlt) <- coef(x, with_baseline = TRUE, fixed = TRUE)
   }
   invisible(plot(fmlt, newdata = newdata, type = type, ...))
+}
+
+
+## Helper function to handle the different ways ranef can be supplied to
+## \code{predict.tramME} and \code{plot.tramME}.
+## It sets up the random effects vector, either by reading out saved results,
+## or by predicting elements, using \code{ranef.tramME}.
+## @param object A \code{tramME} object.
+## @param newdata A \code{data.frame} with the new data points. May or may not contain
+##   values for the outcome.
+## @param ranef Random effects it can be a \code{ranef.tramME} object, a named list,
+##   an unnamed list, \code{NULL} or the word "zero". See Details.
+## @param fix_smooth If \code{FALSE}, the random effects coefficients of the smooth
+##    terms are refitted to \code{newdata}. It's probably not what you want to do.
+.ranef_predict_setup <- function(object, newdata, ranef, fix_smooth) {
+  Zt <- model.matrix(object, data = newdata, type = "Zt", keep_sign = FALSE,
+                     drop_unused_groups = TRUE, ignore_response = TRUE)$Zt
+  ty <- attr(Zt, "type")
+  pn <- attr(Zt, "parnames")
+  reo <- rep(NA, length(pn))
+  names(reo) <- pn
+  ## 1) As a ranef.tramME object: it contains _all_ random effects, but not the
+  ## penalized parameters of the smooth terms (fix_smooth should be set)
+  ## Convert it to a named vector.
+  if (inherits(ranef, "ranef.tramME")) {
+    ## do name checks
+    ren <- pn[ty == "re"]
+    gn <- unique(sapply(strsplit(ren, "|", fixed = TRUE), `[`, 1))
+    stopifnot(identical(gn, names(ranef)))
+    sn <- unique(sapply(strsplit(ren, ":", fixed = TRUE), `[`, 2))
+    stopifnot(identical(sn, as.vector(sapply(ranef, rownames))))
+    vn <- unique(sapply(strsplit(ren, "|", fixed = TRUE), function(n) {
+      strsplit(n, ":", fixed = TRUE)[[2]][1]
+    }))
+    stopifnot(identical(vn, as.vector(sapply(ranef, colnames))))
+    reo[ren] <- unname(unlist(lapply(ranef, function(x) c(t(x)))))
+  }
+  ## 2) "zero"
+  if (identical(ranef, "zero")) {
+    reo[] <- 0
+  }
+  gty <- attr(object$param$gamma, "type")
+  if (fix_smooth) {
+    reo[pn[ty == "sm"]] <- unname(object$param$gamma[gty == "sm"])
+  }
+  if (is.numeric(ranef)) {
+    if (!length(ren <- names(ranef))) {
+      ## 3) Unnamed vector: Should contain all necessary values (and nothing more)
+      ## There is nothing to predict in this case.
+      stopifnot(length(ranef) == sum(idx <- is.na(reo)))
+      reo[idx] <- ranef
+    } else {
+      ## 4) Named vector: fix the random effects & penalized coefs _by name_.
+      ## Predict the remainder. Ambiguities are not tolerated.
+      stopifnot(all(ren %in% pn))
+      reo[ren] <- ranef
+    }
+  }
+  if (any(is.na(reo))) {
+    gg <- reo[!is.na(reo)]
+    if (!length(gg)) gg <- NULL
+    reo[] <- ranef(object, newdata = newdata, param = list(gamma = reo[!is.na(reo)]),
+                       raw = TRUE, fix_smooth = fix_smooth)
+  }
+  if (any(is.na(reo))) {
+    stop(paste("Could not calculate random effects vector.",
+               "Please set up the model properly or supply",
+               "random effects manually."))
+  }
+  return(list(Zt = Zt, ranef = reo))
 }

@@ -9,7 +9,8 @@
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{with_baseline}{If \code{TRUE}, also include the baseline parameters.}
+\item{with_baseline}{If \code{TRUE}, also include the baseline parameters and the
+fixed effects parameters from the smooth terms.}
 
 \item{fixed}{If \code{TRUE}, also include the fixed parameters.}
 

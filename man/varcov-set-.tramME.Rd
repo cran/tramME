@@ -17,7 +17,7 @@ in their reparameterized form.}
 \item{value}{A list of positive definite covariance matrices.}
 }
 \value{
-A  \code{tramME} object with the new coefficient values.
+A new \code{tramME} object with the new coefficient values.
 }
 \description{
 Sets the list containing the covariance matrices of a tramME model. The matrices have
@@ -31,6 +31,10 @@ modify this list to make sure that the input has the right structure.
 
 The new values can also be supplied in a form that corresponds to the reparametrization
 used by the \code{tramTMB} model (see the option \code{as.theta = TRUE}).
+
+All random effects variance parameters must be supplied. When there are penalized smooth
+terms in the model variance parameters corresponding to these should also be part of the
+input list.
 }
 \examples{
 data("sleepstudy", package = "lme4")

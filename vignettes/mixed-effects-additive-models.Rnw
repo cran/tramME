@@ -1,0 +1,1577 @@
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Examples in statistical ecology}
+%\VignetteDepends{tramME, gamm4, gamlss.dist, survival, mgcv, glmmTMB, xtable, multcomp}
+
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage[margin=0.8in]{geometry}
+\usepackage[margin=0.5in, font=small]{caption}
+\usepackage{amsfonts,amstext,amsmath,amssymb,amsthm}
+\usepackage[utf8]{inputenc}
+\usepackage[comma,authoryear]{natbib}
+\usepackage{xcolor}
+\usepackage[colorlinks=true, urlcolor=black, linkcolor=blue, citecolor=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{doi}
+
+
+\renewcommand{\tt}[1]{\texttt{#1}}
+\newcommand{\todo}[1]{\textbf{\color{red} TODO: #1}}
+\newcommand{\note}[1]{\textbf{\color{orange} NOTE: #1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\texttt{#1}}
+\newcommand{\CRANpkg}[1]{\href{https://CRAN.R-project.org/package=#1}{\pkg{#1}}}%
+
+% Math notation
+\newcommand{\IP}{{\mathbb{P}}}
+\newcommand{\IR}{{\mathbb{R}}}
+% \newcommand{\U}{{\mathbf{U}}}
+\newcommand{\bcU}{{\boldsymbol{\mathcal{U}}}}
+\newcommand{\bfu}{{\mathbf{u}}}
+% \newcommand{\X}{{\mathbf{X}}}
+\newcommand{\X}{{\boldsymbol{X}}}
+% \newcommand{\x}{{\mathbf{x}}}
+\newcommand{\x}{{\boldsymbol{x}}}
+\newcommand{\bcX}{{\boldsymbol{\mathcal{X}}}}
+\newcommand{\Y}{{\boldsymbol{Y}}}
+\newcommand{\bcY}{{\boldsymbol{\mathcal{Y}}}}
+\newcommand{\y}{{\boldsymbol{y}}}
+\newcommand{\bbeta}{{\boldsymbol{\beta}}}
+\newcommand{\bvartheta}{{\boldsymbol{\vartheta}}}
+\newcommand{\bgamma}{{\boldsymbol{\gamma}}}
+\newcommand{\bGamma}{{\boldsymbol{\Gamma}}}
+\newcommand{\bSigma}{{\boldsymbol{\Sigma}}{}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\cN}{{\mathcal{N}}}
+\newcommand{\cL}{{\mathcal{L}}}
+\newcommand{\0}{{\mathbf{0}}}
+\renewcommand{\a}{{\mathbf{a}}}
+\newcommand{\T}{^{\top}}
+\renewcommand{\d}{\mathsf{\,d}}
+
+\usepackage{accents}
+\newcommand{\ubar}[1]{\underaccent{\bar}{#1}}
+
+%%%%%% Column header formatting in xtables
+%% https://stackoverflow.com/a/33237779/10826854
+\usepackage{array}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+
+\setlength{\parskip}{0.5em}
+\renewcommand{\baselinestretch}{1.2}
+
+% \newcommand{\address}[1]{
+%   \addvspace{\baselineskip}\noindent
+%   \textbf{Affiliations:} \\
+%   \emph{#1}}
+% \newcommand{\email}[1]{\href{mailto:#1}{\normalfont\texttt{#1}}}
+
+<<setup, echo=FALSE, message=FALSE, results="hide">>=
+knitr::opts_chunk$set(size = "small", prompt = TRUE, comment = NA,
+                      out.width=".9\\linewidth")
+knitr::knit_hooks$set(
+  document = function(x) {sub('\\usepackage[]{color}', '\\usepackage{xcolor}',
+                              x, fixed = TRUE)}
+)
+oldpar <- par(no.readonly = TRUE) ## NOTE: for setting back at the end
+oldopt <- options()
+options(prompt = "R> ", continue = "+  ")
+options(width = 80, digits = 3)
+
+## Dependencies
+library("tramME")
+library("survival")
+library("mgcv")
+library("glmmTMB")
+library("xtable")
+library("gamm4")
+@
+
+\title{Online Appendix: Mixed-Effects Additive Transformation Models}
+\author{B\'alint Tam\'asi \\ {\small \url{balint.tamasi@uzh.ch}}
+\and Torsten Hothorn \\ {\small \url{Torsten.Hothorn@R-project.org}}
+}
+
+\date{5/4/2022}
+
+\begin{document}
+
+\maketitle
+
+\abstract{
+  This vignette serves as an online appendix for the manuscript
+  ``Mixed-Effects Additive Transformation Models''.
+  %% \citet{Tamasi_2022}. 
+  It presents four example analyses that
+  use mixed-effects additive transformation models to reanalyze
+  ecological phenomena from recently published studies.
+}
+
+
+\section{The rat carrion decomposition experiment}
+
+Our first example presents
+the reanalysis of the carrion decomposition data
+by \citet{Englmeier2022}.
+In the original study,
+the authors analyzed the environmental factors
+that affect the decomposition process
+of small rodent carrion
+using data from an experiment,
+in which they placed rat carcasses
+in different environments
+and recorded the time until complete decomposition.
+As we describe it in the main article,
+the outcome variable
+(time until complete decomposition)
+is \emph{interval censored}
+due to the discrete follow-up.
+The survival curves for specimen
+with and without the presence of insects
+are shown in Figure~\ref{fig:carrion-surv}
+
+
+<<load-carrion, include=FALSE>>=
+carrion <- read.csv("carrion.csv")
+carrion$Time <- with(carrion, Surv(time1, time2, type = "interval2"))
+carrion$Time_rc <- with(carrion,
+  Surv(ifelse(is.finite(time2), time2, time1), event = is.finite(time2)))
+carrion$Insects <- factor(carrion$Insects, labels = c("no", "yes"))
+carrion$Habitat <- factor(carrion$Habitat)
+carrion$Habitat <- relevel(carrion$Habitat, ref = "forest")
+carrion$Landscape <- factor(carrion$Landscape)
+carrion$Landscape <- relevel(carrion$Landscape, ref = "seminatural")
+carrion$PlotID <- factor(carrion$PlotID)
+@
+
+\begin{figure}[!ht]
+  \centering
+
+<<fig-carrion-data, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth">>=
+sv <- survfit(Time ~ Insects, data = carrion)
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+plot(sv, lty = c(1, 2), lwd = 2, xlab = "", ylab = "P(T>t)")
+title(xlab = "Follow-up time (days)", line = 2.3)
+grid()
+legend("topright", c("Insect = no", "Insect = yes"), lty = c(1, 2),
+       lwd = 2, bty = "n")
+@
+
+\caption{Non-parametric survival probability estimates
+  associated with the decomposition times
+  in groups where insect access was and was not allowed in the carrion decomposition
+  experiment.}
+\label{fig:carrion-surv}
+\end{figure}
+
+The main environmental variables we include in our model are
+the indicator for the presence of insects (\texttt{Insects}),
+local (\texttt{Habitat}) and regional (\texttt{Landscape}) land use types,
+The average temperature on each experimental plot
+was measured with thermologgers
+(\texttt{Temperature}),
+and the elevational gradient was used
+as a surrogate for the long-term macroclimate (\texttt{Elevation100}).
+The plot-level unobserved sources of variability were modeled
+by including random intercepts (grouping variable: \texttt{PlotID}).
+We estimate the following
+proportional-hazards mixed-effect additive transformation model
+for the decomposition intervals
+%
+<<carrion-model>>=
+dcmp <- CoxphME(Time ~ Insects + Habitat + Landscape
+                + s(Temperature, k = 20) + s(Elevation100, k = 20)
+                + (1 | PlotID), data = carrion,
+                log_first = TRUE, order = 6)
+summary(dcmp)
+@
+%
+The smooth terms can be evaluated and plotted with
+%
+<<eval=FALSE>>=
+plot(smooth_terms(dcmp))
+@
+%
+As the results in Figure~\ref{fig:carrion-smooth} show,
+the effects of temperature and elevation look fairly linear.
+
+\begin{figure}[!ht]
+\centering
+<<plot-carrion-smooth, echo=FALSE, fig.width=8, fig.height=4.5>>=
+plot(smooth_terms(dcmp))
+@
+\caption{Smooth effects of the continuous variables
+  in the model of the decomposition times.}\label{fig:carrion-smooth}
+\end{figure}
+
+As a general check of the appropriateness of the estimated model,
+we can evaluate the \emph{marginal} distribution function
+or, as it is more commonly done in survival analysis,
+the marginal survivor function of the outcomes
+at the observations in our dataset
+by integrating over the random effects numerically.
+%
+\begin{align*}
+  \widehat S(t_{i}\mid\x_{i})
+  &= \widehat \IP(T_{i} > t_{i}\mid\x_{i})
+  = \int_{-\infty}^{+\infty}\widehat\IP(T_{i} > t_{i}\mid\x_{i},\gamma)\phi(\gamma)\d\gamma.
+\end{align*}
+%
+$\widehat S(t_{i}\mid\x_{i})$ denotes the fitted survivor function,
+which is straightforward to calculate
+from the mixed-effects additive transformation model,
+due to its fully parametric approach to approximate the outcome distribution.
+By evaluating $-\log(\widehat S(t_{i}\mid\x_{i}))$
+at the observations in our dataset,
+we get the Cox-Snell residuals \citep[Chapter~11]{Klein_Moeschberger_2003},
+which are unit exponentially distributed under the correct model.
+
+Interval-censored outcomes pose
+a technical difficulty in assessing the Cox-Snell residuals.
+In this situation we can either evaluate the marginal survivor function at
+the upper and lower bounds of the censoring intervals
+and assess the interval-censored version of the residuals,
+or we can apply the adjustment proposed by \citet{Farrington_2000},
+which replaces these intervals with expected values
+under unit exponential distribution.
+To assess the distribution of the residuals,
+we estimate the cumulative hazard function of the Cox-Snell residuals,
+which should be close to a straight line
+with unit slope through the origin under the correct model.
+Figure~\ref{fig:resid} presents the distributions of the Cox-Snell residuals
+using the two approaches to interval censoring.
+Neither of these plots signals serious departures
+from the unit exponential distribution,
+which confirms the appropriateness of our regression model.
+Because the marginal Cox-Snell residuals are not independent in our case,
+these plots only provide a crude visual check of the model fits.
+
+<<resid, echo=FALSE>>=
+## From Surv object to a matrix with left and right censoring values
+get_bounds <- function(x) {
+  stopifnot(is.Surv(x))
+  lb <- x[, 1]
+  ub <- x[, 2]
+  ty <- x[, 3]
+  ub[ty == 2] <- lb[ty == 2]
+  lb[ty == 2] <- -Inf
+  ub[ty == 0] <- Inf
+  ub[ty == 1] <- lb[ty == 1]
+  cbind(lb, ub)
+}
+
+## Evaluate the marginal survivor function
+marginalize <- function(model, data, type = "survivor",
+  lower = -Inf, upper = Inf) {
+  ## fun(y|x,g) * density(g)
+  joint <- function(re, nd, mod, type) {
+    nd <- nd[rep(1, length(re)), ]
+    nd[[variable.names(mod, "grouping")]] <- seq(nrow(nd)) ## to take vector-valued REs
+    pr <- predict(mod, newdata = nd, ranef = re, type = type) *
+      dnorm(re, 0, sd = sqrt(varcov(mod)[[1]][1, 1]))
+    c(pr)
+  }
+  ## integrate out the random effects row by row
+  res <- parallel::mclapply(split(data, seq(nrow(data))), function(nd) {
+    out <- integrate(joint, lower = lower, upper = upper, nd = nd, mod = model,
+                     type = type)
+    if (out$message == "OK") return(out$value)
+    return(NA)
+  }, mc.cores = 8)
+  unlist(res)
+}
+
+## Cox-Snell residuals
+## type:
+##   ic: Evaluate the cumulative hazard at the left and right censoring values
+##   and return residuals as interval-censored.
+##   adj: Adjusted CS resid (Farrington,2000 <doi:10.1111/j.0006-341X.2000.00473.x>),
+##   replace the intervals with the expected values under unit exponential on these
+##   intervals (under the assumption of correct model fit)
+CSresid <- function(model, data = model.frame(model), type = c("both", "adj", "ic")) {
+  type <- match.arg(type)
+  rv <- variable.names(model, "response")
+  if (!is.Surv(data[[rv]])) data[[rv]] <- Surv(data[[rv]])
+  bns <- get_bounds(data[[rv]])
+  stopifnot(all(is.finite(bns[,1])))
+  data[[rv]] <- bns[, 1]
+  Sl <- marginalize(model, data, type = "survivor")
+  Su <- numeric(length = nrow(bns))
+  ie <- bns[,1] == bns[,2]
+  Su[ie] <- Sl[ie]
+  Su[ir <- is.infinite(bns[,2])] <- 0
+  ii <- !(ie | ir)
+  data[[rv]] <- bns[, 2]
+  Su[ii] <- marginalize(model, data[ii, ], type = "survivor")
+  res_ic <- Surv(-log(Sl), -log(Su), type = "interval2")
+  if (type == "ic") return(res_ic)
+  res <- numeric(length = nrow(bns))
+  res[ie] <- -log(Sl[ie])
+  res[ir] <- 1 - log(Sl[ir])
+  res[ii] <- (Sl[ii] * (1 - log(Sl[ii])) - Su[ii] * (1 - log(Su[ii]))) /
+    (Sl[ii] - Su[ii])
+  if (type == "adj") return(res)
+  data.frame(IC = res_ic, adjusted = res)
+}
+
+if (!file.exists("CS-resid.rda")) {
+  resids <- CSresid(dcmp, type = "both")
+  save(resids, file = "CS-resid.rda")
+} else {
+  load("CS-resid.rda")
+}
+@
+
+\begin{figure}[!ht]
+  \centering
+
+<<resid-plot, echo=FALSE, fig.width=7, fig.height=3.5>>=
+rf_cens <- survfit(IC ~ 1, data = resids) ## Turnbull NPMLE for interval-censored
+rf_adj <- survfit(Surv(adjusted) ~ 1, data = resids) ## KM for adjusted
+
+par(mfrow = c(1, 2), cex = 0.9, mar = c(4, 4, 2, 1))
+plot(rf_cens$time, -log(rf_cens$surv), type = "s", lwd = 1, las = 1,
+     xlab = "Cox-Snell residuals", ylab = "Cumulative hazard")
+abline(0, 1, lwd = 2, lty = 2)
+grid()
+blx <- grconvertX(0.10, from = "nfc", to = "user")
+bly <- grconvertY(0.98, from = "nfc", to = "user")
+text(blx, bly, labels = "A", xpd = TRUE, cex = 1.2)
+
+plot(rf_adj$time, rf_adj$cumhaz, type = "s", lwd = 1, las = 1,
+     xlab = "Cox-Snell residuals", ylab = "Cumulative hazard")
+abline(0, 1, lwd = 2, lty = 2)
+grid()
+blx <- grconvertX(0.10, from = "nfc", to = "user")
+bly <- grconvertY(0.98, from = "nfc", to = "user")
+text(blx, bly, labels = "B", xpd = TRUE, cex = 1.2)
+@
+
+\caption{Cox-Snell residuals of the carrion decomposition model.
+  \emph{Panel A}: Treating the residuals as interval-censored
+  and estimating the cumulative hazard function
+  using the Turnbull non-parametric maximum likelihood estimator.
+  \emph{Panel B}: Using the adjustment proposed by \protect\citet{Farrington_2000}.
+  The dashed lines correspond to the unit exponential distribution.
+}\label{fig:resid}
+\end{figure}
+
+We can relax the assumption of proportional hazards
+by allowing for time-dependent covariate effects.
+A transformation model with time-dependent effects
+for the \texttt{Insects} indicator can be estimated as
+%
+<<carrion-model2>>=
+dcmp2 <- CoxphME(Time | Insects ~ Habitat + Landscape
+                 + s(Temperature, k = 20) + s(Elevation100, k = 20)
+                 + (1 | PlotID), data = carrion,
+                 log_first = TRUE, order = 6)
+@
+%
+In Figure~\ref{fig:non-ph},
+we compare the effect estimates of the presence of insects
+(on the log-hazard scale)
+from the proportional hazards and non-proportional hazards
+(time-varying effects) models.
+According to these results, the proportional hazards assumption
+seems plausible.
+
+\begin{figure}[!ht]
+\centering
+
+<<fig-carrion-tve, echo=FALSE, fig.width=4, fig.height=3.5, warning=FALSE, out.width=".5\\textwidth">>=
+cf <- coef(dcmp2, with_baseline = TRUE)
+vc <- vcov(dcmp2, pargroup = "baseline")
+cf <- cf[grep("Insectsyes", names(cf), fixed = TRUE)]
+idx <- grep("Insectsyes", colnames(vc), fixed = TRUE)
+vc <- vc[idx, idx]
+
+ns <- 200
+nd <- model.frame(dcmp2)[rep(1, ns), ]
+nd[[variable.names(dcmp2, "response")]] <- seq(1, 100, length.out = ns)
+X <- model.matrix(dcmp2, data = nd, type = "Y", simplify = TRUE)$Ye
+idx <- grep("Insectsyes", colnames(X), fixed = TRUE)
+X <- X[, idx]
+ci <- confint(multcomp::glht(multcomp::parm(cf, vc), linfct = X),
+              calpha = multcomp::univariate_calpha(), level = 0.95)$confint
+## use multcomp::adjusted_calpha() for multiplicity adjustments
+
+par(cex = 0.8, mar = c(4, 4, 2, 1), las = 1)
+plot(nd$Time, ci[, 1], type = "l", col = 1, lwd = 2, ylim = c(-1, 3),
+     panel.first = {grid(); abline(h = 0, lwd = 2, col = "lightgrey")},
+     ylab = "Log-hazard ratio", xlab = "")
+title(xlab = "Time (days)", line = 2.3)
+polygon(c(nd$Time, rev(nd$Time)), c(ci[, 2], rev(ci[, 3])), border = NA,
+        col = grey(0.5, 0.2))
+ci2 <- confint(dcmp, parm = "Insectsyes", estimate = TRUE)
+ci2 <- ci2[rep(1, ns), ]
+matlines(nd$Time, ci2, col = 1, lwd = c(1, 1, 2), lty = c(3, 3, 2))
+legend("bottomright", c("Time-varying effect", "Proportional effect"),
+       lty = 1:2, lwd = 2, bty = "n", cex = 0.9)
+@
+
+\caption{The effect of the presence of insects on the decomposition process
+from the proportional-hazards and non-proportional hazards models.}\label{fig:non-ph}
+\end{figure}
+
+\section{\emph{E. coli} concentrations in streams
+  with different grazing periods}\label{sec:ecoli}
+
+\citet{Hulvey_2021} compare the concentration levels
+of \emph{Escherichia coli} bacteria (most probable number, MPN)
+in streams under three different rotational grazing regimes.
+In the additive mixed model specifications they estimated,
+within-year variability was modeled,
+as functions of the day of year (DOY),
+with cubic regression splines
+and between-year and location-level variability were captured by
+random intercepts of pasture-specific year effects and separate stream effects.
+Note that although the cyclic version of the cubic regression splines
+(\texttt{bs = 'cc'} in \pkg{mgcv} and \pkg{tramME}) \citep{pkg:tramME}
+would be more appropriate for modeling the within-year trend,
+the original article used \texttt{bs = 'cr'}
+and hence we also stick with this basis in our reanalysis.
+
+<<ecoli-data, echo=FALSE>>=
+ecoli <- read.csv("Hulvey2021.csv")
+fs <- c("treatment", "stream", "pasture", "cattle", "rotation")
+ecoli[fs] <- lapply(ecoli[fs], factor)
+@
+
+As a first step,
+we replicate the results of all model variants
+that \citet{Hulvey_2021} investigated in the original article
+with the \textsf{R} package \pkg{gamm4} \citep{pkg:gamm4}.
+In a second step, we fit the \emph{same} models using the software
+implementation of additive mixed transformation models in package
+\pkg{tramME}, that is, using a linear transformation function (function
+\code{tramME::LmME}). We do expect identical results in steps one and two,
+although the two implementions rely on two completely distinct code bases.
+Thus, these results are only interesting from a quality assurance point of
+view. In the last step, we relax the normal distributional
+assumption by 
+allowing a nonlinear transformation function (\code{tramME::BoxCoxME} function)
+and evaluate how the model fits change. We are primarily interested in
+potential changes of the model interpretation induced by a shift from a
+normal to a distribution-free model.
+
+As Table~\ref{tbl:ecoli-res} shows,
+we managed to reproduce the \pkg{gamm4} results with \pkg{tramME}.
+Moreover, relaxing the distributional assumption of the
+normal linear model resulted in stronger model fits
+in terms of in-sample log-likelihood values.
+
+<<ecoli-est, echo=TRUE>>=
+## specifications w/o random effects
+mf <- c(log10(ecoli_MPN) ~ treatment + cattle +
+          s(DOY, bs = 'cr', by = treatment),
+        log10(ecoli_MPN) ~ treatment + cattle + s(DOY, bs = 'cr'),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr', by = treatment),
+        log10(ecoli_MPN) ~ cattle + s(DOY, bs = 'cr'),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr'),
+        log10(ecoli_MPN) ~ s(DOY, bs = 'cr'))
+names(mf) <- paste("Model", c(1:5, "Null"))
+ecoli_res <- data.frame(matrix(NA, nrow = length(mf), ncol = 3))
+colnames(ecoli_res) <- c("gamm", "LmME", "BoxCoxME")
+rownames(ecoli_res) <- names(mf)
+for (i in seq_along(mf)) {
+  m_gamm <- gamm4(mf[[i]], data = ecoli,
+                  random = ~ (1 | year:stream:pasture) + (1 | stream),
+                  REML = FALSE)
+  ecoli_res$gamm[i] <- logLik(m_gamm$mer)
+  mf2 <- update(mf[[i]], . ~ . + (1 | year:stream:pasture) + (1 | stream))
+  m_LmME <- LmME(mf2, data = ecoli)
+  if (m_LmME$opt$convergence == 0) ecoli_res$LmME[i] <- logLik(m_LmME)
+  m_BCME <- BoxCoxME(mf2, data = ecoli)
+  if (m_BCME$opt$convergence == 0) ecoli_res$BoxCoxME[i] <- logLik(m_BCME)
+}
+@
+
+\begin{table}[!ht]
+  \centering
+  \caption{Log-likelihood values of the fitted models
+    presented by \protect\citet[\emph{GAMM}]{Hulvey_2021}, replicated as
+    mixed-effects additive transformation models assuming conditional normality
+    (\emph{Additive normal transformation model}) and extended
+    as flexible (non-normal) mixed-effects additive transformation models
+    (\emph{Additive non-normal transformation model}).}
+  \label{tbl:ecoli-res}
+
+<<ecoli-tbl, echo=FALSE, results="asis">>=
+names(ecoli_res) <- c("\\multicolumn{1}{m{2cm}}{\\centering GAMM}",
+ "\\multicolumn{1}{m{4cm}}{\\centering Additive normal transformation model}",
+ "\\multicolumn{1}{m{4cm}}{\\centering Additive non-normal transformation model}")
+print(xtable(ecoli_res, align = c("l", "R{2cm}", rep("R{4cm}", 2))),
+      floating = FALSE, booktabs = TRUE,
+      sanitize.colnames.function = function(x){x})
+@
+
+\end{table}
+
+Let us focus on the most complicated specification, Model~1,
+%
+<<ecoli-show-m1>>=
+update(mf[[1]], . ~ . + (1 | year:stream:pasture) + (1 | stream))
+@
+%
+\noindent
+and compare the effect estimates from the normal model to
+its non-parametric counterpart.
+But first, notice that by changing the transformation from
+$h(y) = \vartheta_{0} + \vartheta_{1}y$ to
+$h(y) = \a(y)\T\bvartheta$,
+we change the scale on which the coefficients
+and the smooth terms are interpreted.
+In the normal additive mixed model,
+the coefficient of a fixed effect captures
+the change in the expectation of the outcome when increasing
+the respective predictor by one unit
+(keeping everything else unchanged).
+In the non-normal transformation model with
+$\Phi$ as the inverse link, the coefficients
+capture similar effects but on a latent scale
+defined by the transformation $h(Y)$.
+
+To cast the effect estimates from the two models to a common scale,
+we can calculate the \emph{probabilistic indices} \citep[PI,][]{Thas_2012}.
+To simplify the notation,
+first, we will now focus on the simple,
+fixed effects-only case with a single predictor:
+%
+\begin{align*}
+  \IP(Y\leq y \mid \X = x) &= \Phi\left(h(y) - \beta x \right)
+\end{align*}
+%
+The PI is the probability that
+one outcome ($Y^{\star}$) is larger than the other ($Y$),
+given the same covariate values ($\X$) except for one,
+which is larger with one unit ($\X^{\star}$).
+In our simplified example, this means
+%
+\begin{align*}
+  \IP\left(Y < Y^{\star} \mid \X = x, \X^{\star} = x+1\right)
+  &= \IP\left(h(Y) < h(Y^{\star}) \mid \X = x, \X^{\star} = x+1\right) \\
+  &= \IP\left(\frac{h(Y) - h(Y^{\star}) + \beta}{\sqrt{2}} < \frac{\beta}{\sqrt{2}}
+    \right) \\
+  &= \Phi\left(\frac{\beta}{\sqrt{2}}\right).
+\end{align*}
+%
+The third line follows from the fact
+that, in a transformation model with $\Phi(\cdot)$ as the inverse link,
+$h(Y)$ and $h(Y^{\star})$ are independent,
+normally distributed random variables
+with unit variance and a mean difference of $\beta$.
+Notice that the PI does not depend on the transformation function.
+When random effects are present in the model,
+the PI is conditional on the cluster.
+
+In the case of transformation models
+with non-linear additive terms
+the probabilistic index is a function of the covariate.
+In the simplest form of an additive transformation model
+with probit link,
+we have
+%
+\begin{align*}
+  \IP(Y\leq y \mid \X = x) &= \Phi\left(h(y) - f(x) \right)
+\end{align*}
+%
+and the PI is
+%
+\begin{align*}
+  PI(x) = \IP\left(Y < Y^{\star} \mid \X = x, \X^{\star} = x+1\right)
+  = \Phi\left(\frac{f(x+1) - f(x)}{\sqrt{2}} \right).
+\end{align*}
+
+By transforming the effect estimates to the probability scale,
+Figure~\ref{fig:ecoli-nonnorm} compares the smooth terms from
+the normal and non-normal versions of Model~1,
+while the first two blocks of Table~\ref{tbl:ecoli-fes}
+contrasts the fixed effects estimates.
+The results are very close to each other,
+which suggests that the original log-normal model is actually appropriate.
+As a built-in visual normality check,
+we can compare the fitted transformation functions
+of the normal and non-normal transformation models.
+The linear function corresponds
+to a conditional normal distribution in Figure~\ref{fig:ecoli-trafo}.
+This result further confirms the appropriateness
+of the normal additive model in this specific example.
+
+<<ecoli-plot-fun, echo=FALSE>>=
+plot2cis <- function(x, y, col = c(1, 2),
+                     fill = c(grey(0.1, 0.25), rgb(1, 0, 0, 0.25)),
+                     xlabs = NULL, ylabs = NULL, mains = NULL,
+                     ...) {
+  stopifnot(length(x) == length(y))
+  for (ii in seq_along(x)) {
+    plot(0, type = "n",
+         xlab = if (is.null(xlabs)) colnames(x[[ii]])[1] else xlabs[ii],
+         ylab = if (is.null(ylabs)) colnames(x[[ii]])[2] else ylabs[ii],
+         main = if (is.null(mains)) NULL else mains[ii],
+         xlim = range(x[[ii]][, 1], y[[ii]][, 1]),
+         ylim = range(x[[ii]][, 2:4], y[[ii]][, 2:4]),
+         panel.first = grid(), ...)
+    lines(x[[ii]][, 1], x[[ii]][, 2], col = col[1])
+    lines(y[[ii]][, 1], y[[ii]][, 2], col = col[2])
+    polygon(c(x[[ii]][, 1], rev(x[[ii]][, 1])),
+            c(x[[ii]][, 3], rev(x[[ii]][, 4])),
+            border = NA, col = fill[1])
+    polygon(c(y[[ii]][, 1], rev(y[[ii]][, 1])),
+            c(y[[ii]][, 3], rev(y[[ii]][, 4])),
+            border = NA, col = fill[2])
+  }
+}
+
+## NOTE: currently only w/ pnorm inverse link
+smooth2ci <- function(sm, PI = FALSE, ilink = "pnorm") {
+  PIfun <- switch(ilink, pnorm = function(x) pnorm(x / sqrt(2)),
+                  stop("No other inverse links are available atm."))
+  lapply(sm, function(x) {
+    out <- matrix(0, nrow = nrow(x), ncol = 4)
+    colnames(out) <- c(colnames(x)[c(1, ncol(x)-1)], "lwr", "upr")
+    out[, 1] <- x[, 1]
+    se <- rev(x)[, 1]
+    yy <- rev(x)[, 2]
+    out[, 2] <- yy
+    out[, 3:4] <- yy + qnorm(0.975) * se %o% c(-1, 1)
+    if (PI) out[, 2:4] <- PIfun(out[, 2:4])
+    out
+  })
+}
+
+## NOTE: this function assumes the smooth term: s(DOY, by = "treatment")
+diff_smooth <- function(mod, DOY = NULL, n = 100) {
+  XZ_sm <- function(XZ) {
+    X <- XZ$X
+    X[, attr(XZ$X, "type") != "sm"] <- 0
+    Z_ <- Matrix::t(XZ$Zt)[, attr(XZ$Zt, "type") == "sm", drop = FALSE]
+    Z <- as(matrix(0, nrow = nrow(Z_), ncol = length(mod$param$gamma)), "dgTMatrix")
+    Z[, attr(mod$param$gamma, "type") == "sm"] <- Z_
+    list(X = X, Z = Z)
+  }
+
+  mf <- model.frame(mod, drop.unused.levels = TRUE)
+  if (is.null(DOY)) DOY <- seq(range(mf$DOY)[1], range(mf$DOY)[2], length.out = n)
+  nd_ <- expand.grid(DOY = DOY,
+    treatment = factor(levels(mf$treatment), levels = levels(mf$treatment)))
+  nd <- mf[rep(1, nrow(nd_)), ]
+  nd[colnames(nd_)] <- nd_
+  XZ <- model.matrix(mod, data = nd, type = c("X", "Zt"), keep_sign = FALSE)
+  XZ1 <- XZ_sm(XZ)
+  nd$DOY <- nd$DOY + 1
+  XZ <- model.matrix(mod, data = nd, type = c("X", "Zt"), keep_sign = FALSE)
+  XZ2 <- XZ_sm(XZ)
+  XZ <- list(X = XZ2$X - XZ1$X, Z = as(XZ2$Z - XZ1$Z, "dgTMatrix"))
+  pr <- predict(mod$tmb_obj, newdata = XZ, scale = "lp")
+  split(data.frame(DOY = nd_$DOY, df = pr$pred, se = pr$se), nd$treatment)
+}
+@
+
+<<ecoli-m1, echo=FALSE>>=
+fm1 <- log10(ecoli_MPN) ~ treatment + cattle +
+  s(DOY, bs = "cr", by = treatment) +
+  (1 | year:stream:pasture) + (1 | stream)
+ecoli_m1 <- LmME(fm1, data = ecoli)
+ecoli_m1_bc <- BoxCoxME(fm1, data = ecoli)
+@
+
+\begin{figure}[!ht]
+  \centering
+
+<<plot-ecoli-m1, echo=FALSE, fig.width=9, fig.height=3>>=
+par(mfrow = c(1, 3), cex = 0.8, mar = c(4, 4, 2, 1), las = 1)
+plot2cis(smooth2ci(diff_smooth(ecoli_m1), PI = TRUE),
+         smooth2ci(diff_smooth(ecoli_m1_bc), PI = TRUE),
+         mains = paste("treatment =", levels(ecoli$treatment)),
+         ylabs = rep("PI", 3))
+legend("topright", c("normal", "non-normal"), col = c(1, 2),
+       lty = 1, bty = "n", cex = 0.9)
+@
+
+\caption{The comparison of the smooth terms from the normal
+  and non-normal (probit link) mixed-effects additive transformation models
+  (specification Model~1).
+}\label{fig:ecoli-nonnorm}
+\end{figure}
+
+\begin{figure}[!ht]
+\centering
+
+<<plot-ecoli-trafo, echo=FALSE, fig.width=5.5, fig.height=4, out.width="0.5\\linewidth">>=
+nd <- model.frame(ecoli_m1_bc)[rep(1, 100), ]
+nd[[1]] <- do.call(seq,
+  c(as.list(range(log10(ecoli$ecoli_MPN))), length.out = 100))
+
+Y <- model.matrix(ecoli_m1_bc, data = nd, type = "Y")$Ye
+b <- coef(ecoli_m1_bc, with_baseline = TRUE)[1:7]
+vc <- vcov(ecoli_m1_bc, pargroup = "baseline")
+ci <- confint(multcomp::glht(multcomp::parm(b, vc), linfct = Y),
+              calpha = multcomp::univariate_calpha())$confint
+
+par(mar = c(4, 4, 1, 1), cex = 0.8, las = 1)
+plot(0, type = "n", xlim = range(nd[[1]]), ylim = range(ci),
+     xlab = variable.names(ecoli_m1_bc, "response"), ylab = "h(y)",
+     panel.first = grid(), xaxs = "i", yaxs = "i")
+lines(nd[[1]], ci[, 1], lwd = 2)
+polygon(c(nd[[1]], rev(nd[[1]])), c(ci[, 2], rev(ci[, 3])), col = grey(0.2, 0.2),
+        border = FALSE)
+b2 <- coef(ecoli_m1, with_baseline = TRUE)
+abline(b2[1:2], lwd = 2, lty = 2)
+legend("topleft", c("Non-normal", "Normal"), lwd = 2, lty = 1:2, bty = "n")
+@
+
+\caption{Baseline transformation functions
+  from the normal and non-normal mixed-effects
+  additive transformation models.}\label{fig:ecoli-trafo}
+\end{figure}
+
+
+The outcome variable (MPN per 100~ml)
+was measured with the Quanti-Tray System,
+which can detect \emph{E. coli} concentrations
+up to a maximum of 2,419.6~MPN without dilution.
+This means that there is an effective upper detection limit
+on the outcome,
+i.e., the \Sexpr{sum(ecoli$ecoli_MPN == 2419.6)} observations with
+the value of 2,419.6 are \emph{right censored}.
+The authors of the original article mention this fact,
+but they do not take into account in the subsequent analyses.
+Because random censoring can be easily handled in \pkg{tramME},
+we will rerun the model taking the upper limit into account.
+%
+<<ecoli-cens>>=
+fm1c <- update(fm1, Surv(log10(ecoli_MPN), event = ecoli_MPN < 2419.6) ~ .)
+ecoli_m1_cens <- BoxCoxME(fm1c, data = ecoli)
+summary(ecoli_m1_cens)
+@
+%
+The fitted non-linear terms are compared to the original
+(normal linear) estimates in Figure~\ref{fig:ecoli-cens}
+and the fixed effects are presented in the third block of Table~\ref{tbl:ecoli-fes}.
+
+\begin{table}[!ht]
+  \centering
+  \caption{
+    Estimates of the parametric fixed-effects
+    terms on the \emph{probability scale}
+    (PI:~probabilistic index) from the normal, non-normal
+    and non-normal (with censoring taken into account) models,
+    respectively.
+  }\label{tbl:ecoli-fes}
+<<ecoli-fe-tbl, results="asis", echo=FALSE>>=
+cis <- lapply(list(ecoli_m1, ecoli_m1_bc, ecoli_m1_cens), function(x) {
+  ci <- confint(x, pargroup = "shift", estimate = TRUE)
+  ci <- pnorm(ci[, c(3, 1, 2)] / sqrt(2))
+  ci <- formatC(ci, format = "f", digits = 2)
+  cbind(ci[, 1],
+        apply(ci[, 2:3], 1, function(x) paste(x, collapse = "---")))
+})
+
+tbl <- do.call("cbind", cis)
+rownames(tbl) <- c("treatment = medium", "treatment = short", "cattle = present")
+add <- list()
+add$pos <- list(0)
+add$command <- paste(c("& \\multicolumn{2}{c}{Normal} &",
+                       "\\multicolumn{2}{c}{Non-normal} &",
+                       "\\multicolumn{2}{c}{Non-normal, censored} \\\\\n",
+                       "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}",
+                       "\\cmidrule(lr){6-7}",
+                       rep("& PI & 95\\% CI ", 3),
+                       "\\\\\n"), collapse = " ")
+print(xtable(tbl, align = "lrrrrrr"), include.colnames = FALSE,
+      floating = FALSE, add.to.row = add,
+      sanitize.text.function = function(x) x, booktabs = TRUE)
+@
+
+\end{table}
+
+
+\begin{figure}[!ht]
+  \centering
+
+<<plot-ecoli-cens, echo=FALSE, fig.width=9, fig.height=3>>=
+par(mfrow = c(1, 3), cex = 0.8, mar = c(4, 4, 2, 1), las = 1)
+plot2cis(smooth2ci(diff_smooth(ecoli_m1), PI = TRUE),
+         smooth2ci(diff_smooth(ecoli_m1_cens), PI = TRUE),
+         mains = paste("treatment =", levels(ecoli$treatment)),
+         ylabs = rep("PI", 3))
+legend("topright", c("normal", "non-normal, censored"), col = c(1, 2),
+       lty = 1, bty = "n", cex = 0.9)
+@
+
+\caption{
+  The comparison of the smooth terms
+  from the original model (normal linear)
+  and the non-normal (probit link) extension
+  where censoring is also taken into account.
+}\label{fig:ecoli-cens}
+\end{figure}
+
+Because the transformation model approximates
+the conditional distribution of the outcome,
+in theory,
+we do not even have to take the base 10 logarithm
+of the \emph{E. coli} most probable numbers (MPN)
+on the left-hand side of the model formula.
+\pkg{tramME} should be able to approximate the
+\emph{most likely transformation}.
+%
+<<ecoli-notr>>=
+f_nontr <- update(fm1, Surv(ecoli_MPN, event = ecoli_MPN < 2419.6) ~ .)
+ecoli_nontr <- BoxCoxME(f_nontr, data = ecoli, log_first = TRUE)
+summary(ecoli_nontr)
+@
+%
+Notice that we set \texttt{log\_first = TRUE} in the function call,
+to take the natural logarithm of the outcome
+before setting up the Bernstein bases.
+This usually helps the approximation in the case of positive right-skewed outcomes.
+With this, we basically estimate the same model as the original,
+but with the natural logarithm instead of base-ten.
+Because of this difference,
+the log-likelihood values are also different,
+but the fixed effects and variance components parameter estimates,
+as well as the smooth terms are essentially the same as
+in the case of the model \texttt{ecoli\_m1\_cens}.
+
+In summary,
+after bringing the estimates to the same scale,
+the results of the additive mixed effects model
+did not change much in this specific example
+by switching to the transformation model approach.
+The originally applied base 10 logarithm falls very close
+to the fitted ``most likely transformation'',
+i.e., taking the logarithm of the outcome was sufficient
+to achieve (close) conditional normality.
+This could be verified through comparing
+the baseline transformation functions of the normal and non-normal models,
+which can also serve as a visual check on conditional normality.
+Moreover, the number of censored outcomes
+was relatively small in the sample,
+so taking the censoring properly into account
+did not result in large differences, either.
+However, as the example demonstrated,
+transformation models are flexible enough
+to accommodate these properties
+of the response of interest
+(non-normality and censoring) automatically,
+without the need to apply ad hoc transformations
+or to implement new estimation procedures.
+In this sense, \code{tramME::BoxCoxME} provides a simple way of checking the
+impact of the more restrictive assumptions hard-wired in \code{gamm4::gamm4}
+on model interpretation and of handling censoring properly in the estimation procedure.
+
+
+\section{Sea urchin removal experiment}
+
+\citet{Andrew_1993} analyzed the percentage cover
+of filamentous algae
+under four sea urchin removal treatments (Control/33\%/66\%/Removal).
+The algae colonization was measured
+on five quadrants located on several larger patches,
+so there is a clear grouped structure in the data.
+\citet{Douma_2019} reanalyzed the data as a demonstration for the usage
+of mixed-effects models for zero-inflated beta regression models.
+Here we fit mixed-effects transformation models to the data,
+and compare the results to zero-inflated mixed-model estimates
+obtained from \texttt{glmmTMB} \citep{Brooks_2017,pkg:glmmTMB}.
+Figure~\ref{fig:algae-data} presents the empirical cumulative distribution functions
+of the outcome under the four treatments.
+Note the large number of zeros, especially in the control group.
+
+<<algae-data, echo=FALSE>>=
+andrew <- read.csv("andrew.csv",
+                   colClasses = c(QUAD = "factor", PATCH = "factor"))
+andrew$TREAT <- factor(andrew$TREAT, labels = c("control", "removal", "0.33", "0.66"))
+andrew$TREAT <- factor(andrew$TREAT, levels = c("control", "0.33", "0.66", "removal"))
+andrew$pALGAE <- andrew$ALGAE / 100
+## summary(andrew)
+ecdfs <- lapply(split(andrew, andrew$TREAT), function(x) ecdf(x$pALGAE))
+@
+
+\begin{figure}[!ht]
+  \centering
+<<plot-algae-treatment, echo=FALSE, fig.width=5.5, fig.height=4.5, out.width=".6\\textwidth">>=
+x <- seq(0, 1, length.out = 100)
+plot(x, ecdfs[[1]](x), type = "s", xlab = "Algae cover proportion", ylab = "ECDF",
+     lty = 1, lwd = 2, xlim = c(0, 1), ylim = c(0, 1), las = 1, panel.first = grid())
+for (ii in 2:4) {
+  lines(x, ecdfs[[ii]](x), type = "s", lty = ii, lwd = 2)
+}
+legend("bottomright", levels(andrew$TREAT), lty = 1:4, lwd = 2, bty = "n", cex = 0.9)
+@
+\caption{Empirical CDFs of the algae cover proportions under the four treatments.}\label{fig:algae-data}
+\end{figure}
+
+First, we fit a zero-inflated beta regression model
+with random intercepts for the patches.
+The probability of observing zero values
+is allowed to vary with the treatment.
+%
+<<algae-glmm>>=
+urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
+                      data = andrew, family = beta_family())
+summary(urchin_zib)
+@
+
+As an alternative to the traditional beta regression approach,
+we estimate a mixed-effects continuous outcome logistic regression.
+%
+<<algae-tram>>=
+urchin_tram <- ColrME(
+  Surv(pALGAE, pALGAE > 0, type = "left") ~ TREAT + (1 | PATCH),
+  bounds = c(-0.1, 1), support = c(-0.1, 1), data = andrew,
+  order = 6)
+summary(urchin_tram)
+@
+%
+To allow for a jump in the conditional CDF of the outcome,
+we expand its bound and treat the zero observations as left-censored.
+This way, we can place a point mass on zero,
+i.e., introduce a jump at 0
+(see Figure~\ref{fig:cdf-jump}).
+
+\begin{figure}[!ht]
+  \centering
+
+<<pointmass-plot, echo=FALSE, fig.width=7, fig.height=3.5, out.width=".8\\textwidth">>=
+par(mar = c(4, 4, 1, 1))
+layout(mat = matrix(1:3, nrow = 1), widths = c(45, 10, 45))
+nd <- model.frame(urchin_tram)[rep(21, 100), ]
+nd[[1]] <- seq(-0.1, 1, length.out = 100)
+ccdf_e <- predict(urchin_tram, newdata = nd, type = "distribution", ranef = "zero")
+plot(nd[[1]], ccdf_e, type = "l", ylim = c(0, 1), xlim = c(-0.1, 1),
+     panel.first = grid(), xlab = "y", ylab = "h(y)")
+idx <- which(nd[[1]] < 0)
+lines(nd[[1]][idx], ccdf_e[idx], col = 2, lwd = 3)
+par(mar = c(1, 1, 1, 1))
+plot(0:1, 0:1, type = "n", yaxt = "n", xaxt = "n", xlab = "", ylab = "", bty = "n")
+arrows(x0 = 0, x1 = 1, y0 = 0.5, length = 0.1, lwd = 3)
+nd[[1]] <- seq(0, 1, length.out = 100)
+ccdf <- predict(urchin_tram, newdata = nd, type = "distribution", ranef = "zero")
+par(mar = c(4, 4, 1, 1))
+plot(nd[[1]], ccdf, type = "l", ylim = c(0, 1), xlim = c(-0.1, 1), lwd = 2,
+     panel.first = grid(), xlab = "y", ylab = expression(F[Y] * "(y)"))
+points(0, 0, pch = 21, cex = 1, lwd = 2)
+points(0, ccdf[1], pch = 20, cex = 1, lwd = 2)
+segments(x0 = -0.1, x1 = -0.01, y0 = 0, lwd = 2)
+@
+
+\caption{Visual demonstration of how a discrete jump
+  is introduced in the CDF by extending the support and
+  treating the edge cases as censored.}\label{fig:cdf-jump}
+\end{figure}
+
+Because the zero-inflated beta model is a mixture of two models,
+the interpretation of its results is cumbersome.
+It is not clear which parameters,
+or combinations of parameters,
+one needs to inspect to contrast
+the effects of the various treatments.
+Moreover, extra steps are needed to calculate the marginal effects
+of the covariates.
+In contrast,
+the mixed-effects transformation model
+only contains a single set of fixed effects parameters
+and their interpretation is straightforward:
+For example,
+the odds of observing higher proportions of algae cover
+under the 33\% removal treatment is about
+$\exp(-\widehat{\beta}_{0.33}) = $
+\Sexpr{formatC(exp(-coef(urchin_tram)[1]), format = 'f', digits = 2)}
+times higher compared to the control group.
+
+To assess the fits of the two models we can marginalize
+the conditional distributions by integrating over the random effects numerically,
+and compare against the ECDFs.
+As Figure~\ref{fig:algae-mcdf1} shows, both model overestimate the dispersion
+in the control group.
+
+<<algae-mCDF1, echo=FALSE>>=
+## Numerical integration to get an estimate of the marginal distribution
+marginalize.zib.glmmTMB <- function(model, data,
+                                     type = c("distribution", "density"),
+                                     lower = -Inf, upper = Inf) {
+  type <- match.arg(type)
+  ## for a single data point
+  joint <- function(re, nd, mod, type) {
+    mu <- plogis(predict(mod, newdata = nd, type = "link", re.form = NA) + re)
+    mu <- ifelse(mu == 0, .Machine$double.eps, mu)
+    mu <- ifelse(mu == 1, 1 - .Machine$double.eps, mu)
+    sig <- predict(mod, newdata = nd, type = "disp")
+    nu <- predict(mod, newdata = nd, type = "zprob")
+    out <- sapply(mu, function(m) {
+      switch(type,
+             distribution = gamlss.dist::pBEZI(nd[[1]], mu = m, sigma = sig, nu = nu),
+             density = gamlss.dist::dBEZI(nd[[1]], mu = m, sigma = sig, nu = nu),
+             stop("Unknown function!"))
+    })
+    out * dnorm(re, mean = 0, sd = sqrt(VarCorr(mod)$cond[[1]][1]))
+  }
+  ## integrate out the random effects row by row
+  res <- parallel::mclapply(split(data, seq(nrow(data))), function(nd) {
+    out <- integrate(joint, lower = lower, upper = upper, nd = nd, mod = model,
+                     type = type)
+    if (out$message == "OK") return(out$value)
+    return(NA)
+  }, mc.cores = 8)
+  unlist(res)
+}
+
+marginalize.tramME <- function(model, data, type = "survivor", add = 0,
+  lower = -Inf, upper = Inf) {
+  ## fun(y|x,g) * density(g)
+  joint <- function(re, nd, mod, type) {
+    nd <- nd[rep(1, length(re)), ]
+    rv <- variable.names(mod, "response")
+    nd[[rv]] <- nd[[rv]] + add
+    nd[[variable.names(mod, "grouping")]] <- seq(nrow(nd)) ## to take vector-valued REs
+    pr <- predict(mod, newdata = nd, ranef = re, type = type) *
+      dnorm(re, 0, sd = sqrt(varcov(mod)[[1]][1, 1]))
+    c(pr)
+  }
+  ## integrate out the random effects row by row
+  res <- parallel::mclapply(split(data, seq(nrow(data))), function(nd) {
+    out <- integrate(joint, lower = lower, upper = upper, nd = nd, mod = model,
+                     type = type)
+    if (out$message == "OK") return(out$value)
+    return(NA)
+  }, mc.cores = 8)
+  unlist(res)
+}
+
+
+nd <- expand.grid(pALGAE = seq(0, 1, length.out = 100),
+                  TREAT = factor(levels(andrew$TREAT),
+                                 levels = c("control", "0.33", "0.66", "removal")),
+                  PATCH = andrew$PATCH[1],
+                  KEEP.OUT.ATTRS = FALSE)
+colnames(nd)[1] <- variable.names(urchin_tram, "response")
+
+if (!file.exists("algae_mcdf.rda")) {
+## save results in a single df
+  urchin_res <- nd
+  colnames(urchin_res)[1] <- "pALGAE"
+  urchin_res$tramME_shift <- marginalize.tramME(urchin_tram,
+                                                data = nd, type = "distribution")
+  urchin_res$zib <- marginalize.zib.glmmTMB(urchin_zib, data = nd,
+                                            type = "distribution")
+} else{
+  load("algae_mcdf.rda")
+}
+@
+
+\begin{figure}[!ht]
+\centering
+
+<<plot-algae-mCDF1, echo=FALSE, fig.width=9, fig.height=3.5>>=
+multiplot <- function(dfs, yn, xn = colnames(dfs[[1]])[1], ecdfs = NULL,
+                      cols = 1:(length(yn)+!is.null(ecdfs)),
+                      ltys = rep(1, length(yn)+!is.null(ecdfs)),
+                      lwds = rep(1, length(yn)+!is.null(ecdfs)),
+                      mains = NULL, ...) {
+  if (!is.null(ecdfs)) stopifnot(length(dfs) == length(ecdfs))
+  for (i in seq_along(dfs)) {
+    col <- if (is.null(ecdfs)) cols else cols[-length(cols)]
+    lty <- if (is.null(ecdfs)) ltys else ltys[-length(ltys)]
+    lwd <- if (is.null(ecdfs)) ltys else lwds[-length(lwds)]
+    main <- if (is.null(mains)) names(dfs)[i] else mains[i]
+    matplot(dfs[[i]][[xn]], dfs[[i]][yn], type = "l",
+            col = col, lty = lty, lwd = lwd, panel.first = grid(), ...,
+            main = main)
+    if (!is.null(ecdfs)) {
+      lines(dfs[[i]][[xn]], ecdfs[[i]](dfs[[i]][[xn]]), type = "s",
+            lty = rev(ltys)[1], col = rev(cols)[1], lwd = rev(lwds)[1],
+            ...)
+    }
+  }
+}
+
+cols <- c("#E16A86", "#00AD9A")
+layout(mat = matrix(c(1:4, rep(5, 4)), nrow = 2, byrow = TRUE),
+       heights = c(7, 1))
+par(mar = c(4, 4, 3, 1), las = 1)
+multiplot(split(urchin_res, urchin_res$TREAT),
+          yn = c("tramME_shift", "zib"),
+          ecdfs = ecdfs,
+          mains = paste("treatment =", levels(urchin_res$TREAT)),
+          cols = c(cols, 1), lwds = c(rep(2, 2), 1),
+          xlab = "pALGAE", ylab = "prob",
+          xlim = c(0, 1))
+par(mar = c(0, 0, 0, 0))
+plot.new()
+legend("center",
+       c("Linear transformation model", "Zero-inflated beta", "ECDF"),
+       col = c(cols, 1), lty = 1, bty = "n", lwd = c(rep(2, 2), 1), horiz = TRUE)
+@
+
+\caption{Fitted marginal distributions of algae cover proportion from
+  the zero-inflated beta regression and the mixed-effects
+  transformation model, respectively.
+  The step functions show the empirical cumulative distribution
+  functions in the four treatment groups.}\label{fig:algae-mcdf1}
+\end{figure}
+
+Systematic differences in the outcome variability
+in the treatment groups occur in many situations \citep{Douma_2019}.
+By modeling the dispersion separately, we can incorporate such differences
+in the beta regression model.
+%
+<<algae-glmm2>>=
+urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
+                           ziformula = ~ TREAT, dispformula = ~ TREAT,
+                           data = andrew, family = beta_family())
+summary(urchin_zib_disp)
+@
+
+In the mixed-effects linear transformation model,
+we stratify to the treatment group to allow for separate
+transformation functions.
+%
+<<algae-tram2>>=
+urchin_tram_strat <- ColrME(
+  Surv(pALGAE, pALGAE > 0, type = "left") | 0 + TREAT ~ 1 + (1 | PATCH),
+  bounds = c(-0.1, 1), support = c(-0.1, 1), data = andrew,
+  order = 6, control = optim_control(iter.max = 1e3, eval.max = 1e3,
+                                     rel.tol = 1e-9))
+summary(urchin_tram_strat)
+@
+
+<<algae-mCDF2, echo=FALSE>>=
+if (!("tramME_strat" %in% colnames(urchin_res))) {
+  urchin_res$tramME_strat <- marginalize.tramME(urchin_tram_strat,
+    data = nd, type = "distribution")
+  urchin_res$zib_disp <- marginalize.zib.glmmTMB(urchin_zib_disp,
+    data = nd, type = "distribution")
+  save(urchin_res, file = "algae_mcdf.rda")
+}
+@
+
+As Figure~\ref{fig:algae-mcdf2} illustrates,
+the two models fit the data much better.
+However, the cost of this flexibility is
+that we cannot reduce the group comparisons
+to inference on a small set of parameters anymore.
+
+\begin{figure}[!ht]
+\centering
+
+<<plot-algae-mCDF2, echo=FALSE, fig.width=9, fig.height=3.5>>=
+cols <- c("#E16A86", "#00AD9A")
+layout(mat = matrix(c(1:4, rep(5, 4)), nrow = 2, byrow = TRUE),
+       heights = c(7, 1))
+par(mar = c(4, 4, 3, 1), las = 1)
+multiplot(split(urchin_res, urchin_res$TREAT),
+          yn = c("tramME_strat", "zib_disp"),
+          ecdfs = ecdfs,
+          mains = paste("treatment =", levels(urchin_res$TREAT)),
+          cols = c(cols, 1), lwds = c(rep(2, 2), 1),
+          xlab = "pALGAE", ylab = "prob",
+          xlim = c(0, 1))
+par(mar = c(0, 0, 0, 0))
+plot.new()
+legend("center",
+       c("Stratified linear transformation model",
+         "Zero-inflated beta with dispersion model",
+         "ECDF"),
+       col = c(cols, 1), lty = 1, bty = "n", lwd = c(rep(2, 2), 1), horiz = TRUE)
+@
+
+\caption{Fitted marginal distributions of algae cover proportion from
+  the zero-inflated beta regression with dispersion model
+  and the stratified mixed-effects transformation model, respectively.
+  The step functions show the empirical cumulative distribution
+  functions in the four treatment groups.}\label{fig:algae-mcdf2}
+\end{figure}
+
+Figures~\ref{fig:algae-mcdf1} and~\ref{fig:algae-mcdf2}
+demonstrate the flexibility of the distribution-free
+approach of transformation models compared
+to the parametric alternative.
+This is also reflected in the log-likelihood values (Table~\ref{tbl:ll-algae}).
+
+\begin{table}[!ht]
+\centering
+\caption{Log-likelihood values of the four model specifications
+  for the sea urchin removal experiment.
+}\label{tbl:ll-algae}
+
+<<algae-loglik, results="asis", echo=FALSE>>=
+lls <- data.frame(c(
+  logLik(urchin_zib), logLik(urchin_tram),
+  logLik(urchin_zib_disp), logLik(urchin_tram_strat)))
+rownames(lls) <- c("Zero-inflated beta w/o dispersion model",
+                   "Linear transformation model",
+                   "Zero-inflated beta w/ dispersion model",
+                   "Stratified linear transformation model")
+colnames(lls) <- "$\\log\\mathcal{L}$"
+print(xtable(lls, align = "lr"), sanitize.text.function = function(x) x,
+      booktabs = TRUE, floating = FALSE)
+@
+
+\end{table}
+
+In summary, although the shift-scale beta regression model is not a special
+case of a transformation model and one thus cannot expect identical results
+with a specific parameterisation of \code{tramME::ColrME}, the simpler
+transformation model (with one instead of two linear predictors) produced a 
+better model fit (when comparing the in-sample log-likelihoods).
+
+\section{Mosquito control trial}
+
+<<mosquito-data, echo=FALSE>>=
+AGO <- read.csv("Juarez2021.csv")
+factors <- c("Community", "HouseID", "Year", "Income", "Placement")
+AGO[factors] <- lapply(AGO[factors], factor)
+AGO$AEAfemale <- as.integer(AGO$AEAfemale)
+@
+
+\citet{Juarez_2021} presented the results of a cluster randomized crossover trial
+that assessed the efficacy of Autocidal Gravid Ovitrap (AGO)
+as a tool for against the mosquito species \emph{Aedes aegypti}.
+The outcome of interest was the number of female mosquitoes
+collected on glue boards that were placed either inside or outside
+of the selected houses in various neighborhoods.
+Within-year patterns in mosquito counts
+as well as the coverage of the treatment
+in different areas were modeled with non-linear smooths,
+while unobserved household and community level effects
+were captured by nested random effects.
+The original article presented the results
+of a conditional Poisson and a negative binomial model.
+We reproduce these results with \pkg{gamm4},
+and also estimate a mixed-effects additive transformation model
+for count data with ``expit'' inverse link function.
+Detailed exposition of count transformation models
+is given by \citet{Siegfried_Hothorn_2020}.
+For fitting such a model,
+we will use the following custom-made
+\texttt{'CotramME'} model class implementing the likelihood for
+count data via interval censoring \citep{Siegfried_Hothorn_2020},
+which is currently not part of the \pkg{tramME} package.
+%
+<<cotram-model, echo=TRUE, eval=FALSE>>=
+## additive count transformation model
+CotramME <- function(formula, data,
+                     method = c("logit", "cloglog", "loglog", "probit"),
+                     log_first = TRUE, plus_one = log_first, prob = 0.9,
+                     ...) {
+  method <- match.arg(method)
+  rv <- all.vars(formula)[1]
+  stopifnot(is.integer(data[[rv]]), all(data[[rv]] >= 0))
+  data[[rv]] <- data[[rv]] + as.integer(plus_one)
+  sup <- c(-0.5 + log_first, quantile(data[[rv]], prob = prob))
+  bou <- c(-0.9 + log_first, Inf)
+  data[[rv]] <- as.Surv(R(data[[rv]], bounds = bou))
+  fc <- match.call()
+  fc[[1L]] <- switch(method, logit = quote(ColrME), cloglog = quote(CoxphME),
+                     loglog = quote(LehmannME), probit = quote(BoxCoxME))
+  fc$method <- NULL
+  fc$plus_one <- NULL
+  fc$prob <- NULL
+  fc$log_first <- log_first
+  fc$bounds <- bou
+  fc$support <- sup
+  fc$data <- data
+  out <- eval(fc, parent.frame())
+  out$call$data <- match.call()$data
+  class(out) <- c("CotramME", class(out))
+  out
+}
+mosquito_tram <- CotramME(AEAfemale ~ Year + Income*Placement
+  + s(Week) + s(CovRate200) + (1|HouseID)
+  + (1|Community), offset = -log(daystrapping), data = AGO,
+  method = "logit", order = 5, log_first = TRUE, prob = 0.9)
+@
+
+<<mosquito-est, echo=FALSE>>=
+if (file.exists("mosquito_models.rda")) {
+  load("mosquito_models.rda")
+} else {
+  ## GAMMs
+  mosquito_pois <- gamm4(AEAfemale ~ offset(log(daystrapping)) + Year + Income*Placement
+                         + s(Week) + s(CovRate200), random =~ (1|HouseID)
+                         + (1|Community), data = AGO, family=poisson)
+
+  mosquito_nb <- gamm4(AEAfemale ~ offset(log(daystrapping)) + Year + Income*Placement
+                       + s(Week) + s(CovRate200), random =~ (1|HouseID)
+                       + (1|Community), data = AGO, family = negative.binomial(1))
+
+  ## additive count transformation model
+  CotramME <- function(formula, data,
+                       method = c("logit", "cloglog", "loglog", "probit"),
+                       log_first = TRUE, plus_one = log_first, prob = 0.9,
+                       ...) {
+    method <- match.arg(method)
+    rv <- all.vars(formula)[1]
+    stopifnot(is.integer(data[[rv]]), all(data[[rv]] >= 0))
+    data[[rv]] <- data[[rv]] + as.integer(plus_one)
+    sup <- c(-0.5 + log_first, quantile(data[[rv]], prob = prob))
+    bou <- c(-0.9 + log_first, Inf)
+    data[[rv]] <- as.Surv(R(data[[rv]], bounds = bou))
+    fc <- match.call()
+    fc[[1L]] <- switch(method, logit = quote(ColrME), cloglog = quote(CoxphME),
+                       loglog = quote(LehmannME), probit = quote(BoxCoxME))
+    fc$method <- NULL
+    fc$plus_one <- NULL
+    fc$prob <- NULL
+    fc$log_first <- log_first
+    fc$bounds <- bou
+    fc$support <- sup
+    fc$data <- data
+    out <- eval(fc, parent.frame())
+    out$call$data <- match.call()$data
+    class(out) <- c("CotramME", class(out))
+    out
+  }
+
+  mosquito_tram <- CotramME(AEAfemale ~ Year + Income*Placement
+                            + s(Week) + s(CovRate200) + (1|HouseID)
+                            + (1|Community), offset = -log(daystrapping), data = AGO,
+                            method = "logit", order = 5, log_first = TRUE, prob = 0.9)
+  stopifnot(mosquito_tram$opt$convergence == 0)
+}
+@
+
+Table~\ref{tbl:mosquito-ll} compares
+the log-likelihood values of the three model versions.
+In terms of in-sample model fit,
+as measured by the log-likelihood value,
+both the negative binomial and the transformation model
+perform much better than the Poisson GAMM.
+The results suggest slight improvement in the model fit when we relax the
+conditional distribution assumption of the negative binomial GAMM
+and follow the distribution-free transformation model approach.
+
+\begin{table}[!ht]
+  \centering
+  \caption{Log-likelihood values of the fitted Poisson and negative binomial GAMMs
+    reproduced from \protect\citet{Juarez_2021} along with the log-likelihood
+    of an additive transformation model for count data.}
+  \label{tbl:mosquito-ll}
+
+<<mosquito-ll-tbl, echo=FALSE, results="asis">>=
+if (!file.exists("mosquito_models.rda")) {
+  ll_mosquito <- c("Poisson GAMM" = logLik(mosquito_pois$mer),
+                   "Negative binomial GAMM" = logLik(mosquito_nb$mer),
+                   "Additive count transformation model" = logLik(mosquito_tram))
+  ll_mosquito <- data.frame(ll_mosquito)
+  names(ll_mosquito) <- "Log-likelihood"
+}
+print(xtable(ll_mosquito, align = "lr"), floating = FALSE, booktabs = TRUE)
+@
+
+\end{table}
+
+We will now concentrate on comparing the estimates
+from the negative binomial and the count transformation models.
+Note that the scales on which the parameters are interpreted
+are different in the two models:
+While in the negative binomial model,
+the parametric and smooth terms affect
+the log of the conditional mean of the outcome,
+in the transformation model with ``logit'' link
+(i.e., ``expit'' inverse link),
+they are interpreted on the log-odds scale.
+Unlike in the example application of Section~\ref{sec:ecoli},
+we cannot easily transform the negative binomial parameters
+to the probability scale.
+Although the magnitudes of the effect estimates
+of the two models are not directly comparable,
+their directions, significance
+and the general shapes of the smooths can be contrasted.
+
+<<mosquito_summaries, echo=FALSE>>=
+if (!file.exists("mosquito_models.rda")) {
+  sums_mosquito <- list(
+    nb = summary(mosquito_nb$gam),
+    tram = summary(mosquito_tram)
+  )
+}
+@
+
+Figure~\ref{fig:mosquito-smooth} compares the smooth estimates
+of the GAMM from \pkg{gamm4}
+and the transformation model from \pkg{tramME}.
+Although the within-year time patterns (\texttt{s(Week)})
+from the two models are almost identical
+(on different scales),
+the difference of the smooth estimates of the coverage rate
+(\texttt{s(CovRate200)}) is marked.
+The general shapes of the smooths are similar,
+but the negative binomial GAMM penalizes it more,
+which is also reflected in the EDFs:
+\Sexpr{round(sums_mosquito$nb$edf[2], 2)}
+and \Sexpr{round(sums_mosquito$tram$smooth[2, 1], 2)}
+for the negative binomial and count transformation models,
+respectively.
+
+\begin{figure}[!ht]
+  \centering
+
+<<plot-mosquito-smooth, echo=FALSE, fig.width=9, fig.height=7>>=
+if (!file.exists("mosquito_models.rda")) {
+  nd <- AGO[rep(1, 100), ]
+  nd$Week <- seq(min(AGO$Week), max(AGO$Week), length.out = 100)
+  nd$CovRate200 <- seq(min(AGO$CovRate200), max(AGO$CovRate200), length.out = 100)
+  pr <- predict(mosquito_nb$gam, type = "terms",
+                terms = c("s(Week)", "s(CovRate200)"),
+                newdata = nd, se.fit = TRUE)
+
+  sm_mosquito_nb <- lapply(colnames(pr[[1]]), function(n) {
+    ci <- pr$fit[, n] + qnorm(0.975) * pr$se.fit[, n] %o% c(-1, 1)
+    out <- data.frame(cbind(pr$fit[, n], ci))
+    colnames(out) <- c("fit", "lwr", "upr")
+    out
+  })
+  names(sm_mosquito_nb) <- colnames(pr[[1]])
+  sm_mosquito_nb[[1]]$x <- nd$Week
+  sm_mosquito_nb[[2]]$x <- nd$CovRate200
+
+  sm_mosquito_tram <- smooth_terms(mosquito_tram)
+}
+
+plotsm <- function(sm, xlab, ylab) {
+  plot(sm$x, sm$fit, type = "l", xlim = range(sm$x),
+       ylim = range(sm[, c("lwr", "upr")]),
+       xlab = xlab, ylab = ylab, panel.first = grid())
+  polygon(c(sm$x, rev(sm$x)), c(sm$lwr, rev(sm$upr)),
+          border = NA, col = grey(0.5, 0.25))
+}
+
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 1), cex = 0.8, las = 1)
+plotsm(sm_mosquito_nb[[1]], "Week", "s(Week)")
+plotsm(sm_mosquito_nb[[2]], "CovRate200", "s(CovRate200)")
+mtext("Negative binomial model", side = 3, line = -2, outer = TRUE)
+for (i in seq_along(sm_mosquito_tram)) {
+  sm_mosquito_tram[[i]][, 2] <- -sm_mosquito_tram[[i]][, 2]
+  plot(sm_mosquito_tram[i], panel.first = grid())
+}
+mtext("Count transfromation model", side = 3, line = -23, outer = TRUE)
+@
+
+\caption{Smooth terms from the negative binomial and transformation models
+  of the \emph{A. aegypti} counts.
+  The dashed lines and the grey areas denote
+  the 95\% confidence intervals}\label{fig:mosquito-smooth}
+\end{figure}
+
+Because the parametric and smooth terms
+of the two models are defined on different scales,
+the magnitudes of the effect estimates are not directly comparable.
+As Table~\ref{tbl:mosquito-fe} shows,
+the directions of the effects match
+and neither model finds evidence that the main effect
+of middle income is different from zero.
+
+\begin{table}
+  \centering
+  \caption{
+    Point estimates and 95\% confidence intervals of the parametric
+    fixed effects terms from the negative binomial
+    and count transformation models
+    of the mosquito control data by \protect\citet{Juarez_2021}.
+    Note that the scale of the parameters are different
+    and the effect sizes are not directly comparable.
+  }\label{tbl:mosquito-fe}
+
+<<mosquito-fe-tbl, echo=FALSE, results="asis">>=
+if (!file.exists("mosquito_models.rda")) {
+  formatCI <- function(x, digits = 2) {
+    fx <- formatC(x, format = "f", digits = digits)
+    fx <- matrix(paste0("$",
+                        ifelse(c(x) > 0, paste0("\\phantom{-}", fx), fx),
+                        "$"), ncol = 2)
+    apply(fx, 1, paste, collapse = " ---")
+  }
+
+  b_nb <- sums_mosquito$nb$p.table[-1, 1]
+  se_nb <- sums_mosquito$nb$p.table[-1, 2]
+  ci_nb <- b_nb + qnorm(0.975) * se_nb %o% c(-1, 1)
+  ci_nb <- formatCI(ci_nb)
+  b_tr <- -sums_mosquito$tram$coef[, 1]
+  se_tr <- sums_mosquito$tram$coef[, 2]
+  ci_tr <- b_tr + qnorm(0.975) * se_tr %o% c(-1, 1)
+  ci_tr <- formatCI(ci_tr)
+  ci_mosquito <- data.frame(paste0("$", formatC(b_nb, format = "f", digits = 2), "$"),
+                            ci_nb,
+                            paste0("$", formatC(b_tr, format = "f", digits = 2), "$"),
+                            ci_tr)
+  rownames(ci_mosquito) <- c("Year = 2018", "Income = middle", "Placement = out",
+                             "Income = middle \\& Placement = out")
+
+  save(sm_mosquito_nb, sm_mosquito_tram, ll_mosquito, ci_mosquito, sums_mosquito,
+       file = "mosquito_models.rda")
+}
+add <- list()
+add$pos <- list(0)
+add$command <- paste(c("& \\multicolumn{2}{c}{Negative binomial} &",
+                       "\\multicolumn{2}{c}{Count transformation} \\\\\n",
+                       "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}",
+                       rep("& $\\widehat\\beta$ & 95\\% CI ", 2),
+                       "\\\\\n"), collapse = " ")
+print(xtable(ci_mosquito, align = c("@{}l", rep("r", 3), "r@{}")),
+      include.colnames = FALSE, floating = FALSE, add.to.row = add,
+      sanitize.text.function = function(x) x, booktabs = TRUE)
+@
+
+\end{table}
+
+Again, the models compared for this example are not nested and it is
+therefore hard to compare them directly. The
+transformation model leads to a similar model interpretation as the model
+based on the negative-binomial distribution. Model uncertainty was larger in
+the transformation model, at least for the nonlinear effect of \code{CovRate200}, 
+and thus one might wonder if the stricter
+distributional assumption lead to overconfident model interpretation.
+
+
+\clearpage
+
+<<packages, echo = FALSE, results='hide', warning=FALSE, purl = FALSE, cache = FALSE>>=
+if (file.exists("packages.bib")) file.remove("packages.bib")
+pkgversion <- function(pkg) {
+    pkgbib(pkg)
+    packageDescription(pkg)$Version
+}
+pkgbib <- function(pkg) {
+    x <- citation(package = pkg, auto = TRUE)[[1]]
+    b <- toBibtex(x)
+    b[1] <- paste("@Manual{pkg:", pkg, ",", sep = "")
+    if (is.na(b["url"])) {
+        b[length(b)] <- paste("   URL = {http://CRAN.R-project.org/package=",
+                              pkg, "}", sep = "")
+        b <- c(b, "}")
+    }
+    cat(b, sep = "\n", file = "packages.bib", append = TRUE)
+}
+pkg <- function(pkg) {
+    vrs <- try(pkgversion(pkg))
+    if (inherits(vrs, "try-error")) return(NA)
+    paste("\\\\pkg{", pkg, "} \\\\citep[version~",
+          vrs, ",][]{pkg:", pkg, "}", sep = "")
+}
+
+pkgs <- c("gamm4", "tramME", "glmmTMB")
+out <- sapply(pkgs, pkg)
+
+x <- readLines("packages.bib")
+for (p in pkgs)
+    x <- gsub(paste("\\{", p, ":", sep = ""), paste("\\{\\\\pkg{", p, "}:", sep = ""), x)
+cat(x, sep = "\n", file = "packages.bib", append = FALSE)
+@
+
+
+\bibliographystyle{plainnat}
+\bibliography{ref,packages}
+
+\clearpage
+
+<<info>>=
+sessionInfo()
+@
+
+
+
+\end{document}

@@ -3,13 +3,13 @@
 \name{ranef.tramME}
 \alias{ranef.tramME}
 \alias{ranef}
-\title{Extract the conditional modes and conditional variances of random effects}
+\title{Point estimates and conditional variances of random effects.}
 \usage{
 \method{ranef}{tramME}(
   object,
-  param = c(coef(object, with_baseline = TRUE, fixed = FALSE), varcov(object, as.theta
-    = TRUE)),
+  param = NULL,
   newdata = NULL,
+  fix_smooth = !is.null(newdata),
   condVar = FALSE,
   raw = FALSE,
   ...
@@ -18,29 +18,63 @@
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{param}{An optional vector of parameter values in the structure
-(beta, theta).}
+\item{param}{An optional named list of parameter values (beta and theta).
+See details.  Optionally, gamma elements can also be added, which leads to
+'fixing' those random effects terms at the supplied values.}
 
 \item{newdata}{An optional \code{data.frame} of new observations for which the
 new random effects values are predicted.}
 
-\item{condVar}{If \code{TRUE}, include the conditional variances as attributes.}
+\item{fix_smooth}{Logical; it is set to \code{TRUE} by default, if
+\code{newdata} is supplied.  The random effects parameters corresponding
+the smooth terms are fixed and not fitted (posterior mode) to
+\code{newdata} instead they are treated just like fixed effects
+parameters. See details.}
+
+\item{condVar}{If \code{TRUE}, include the conditional variances as attributes.
+Only works with \code{raw = FALSE}.}
 
 \item{raw}{Return the unformatted RE estimates as fitted by the model.}
 
 \item{...}{Optional arguments (for consistency with generic)}
 }
 \value{
-Depending on the value of raw, either a numeric vector or a
+Depending on the value of \code{raw}, either a numeric vector or a
   \code{ranef.tramME} object which contains the conditional mode and variance
   estimates by grouping factors.
 }
 \description{
-Extract the conditional modes and conditional variances of random effects
+Extract the conditional modes and conditional variances of random effects in
+a formatted or unformatted way.
 }
+\details{
+\code{raw = TRUE} returns the whole vector of random effects (i.e. with
+  parameters of smooth shift terms), while \code{raw = FALSE} only returns
+  the formatted list of actual random effects (i.e. for grouped
+  observations) values. For the conceptual differences between the two types
+  of random effects, see Hodges (2014, Chapter 13).
+
+The conditional variances of the fixed random effects are set to \code{NA}.
+}
+\section{Warning}{
+
+
+The function has several optional arguments that allow great flexibilty
+  beyond its most basic usage. The user should be careful with setting
+  these, because some combinations might not return sensical results.  Only
+  limited sanity checks are performed.
+}
+
 \examples{
+
 data("sleepstudy", package = "lme4")
 fit <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy, order = 5)
 ranef(fit, raw = TRUE)
 ranef(fit)
+
+}
+\references{
+Hodges, James S. (2014). Richly Parameterized Linear Models: Additive, Time
+  Series, and Spatial Models Using Random Effects. Chapman & Hall/CRC Texts
+  in Statistical Science Series.
 }

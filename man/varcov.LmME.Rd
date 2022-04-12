@@ -4,7 +4,7 @@
 \alias{varcov.LmME}
 \title{Extract the variance-covariance matrix of the random effects of an LmME model}
 \usage{
-\method{varcov}{LmME}(object, as.lm = FALSE, as.theta = FALSE, ...)
+\method{varcov}{LmME}(object, as.lm = FALSE, as.theta = FALSE, full = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{LmME} object.}
@@ -14,6 +14,10 @@ parametrization.}
 
 \item{as.theta}{Logical value, if \code{TRUE}, the values are returned
 in their reparameterized form.}
+
+\item{full}{Logical value; if \code{TRUE}, return all random effects elements,
+if \code{FALSE}, do not return the random effects parameters of the smooth
+terms.}
 
 \item{...}{Optional arguments (unused).}
 }

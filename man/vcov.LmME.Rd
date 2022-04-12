@@ -8,8 +8,7 @@
   object,
   as.lm = FALSE,
   parm = NULL,
-  pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
-  pmatch = FALSE,
+  pargroup = c("all", "fixef", "ranef"),
   ...
 )
 }
@@ -19,30 +18,30 @@
 \item{as.lm}{If \code{TRUE}, return the covariance matrix of the same
 parametrization as used by \code{\link[lme4]{lmer}}.}
 
-\item{parm}{The indeces or names of the parameters of interest. See in details.}
+\item{parm}{Names of the parameters to extract.}
 
-\item{pargroup}{fixef: fixed-effects, shift: shift parameters, all: fixed
-effects and variance component parameters, baseline: parameters of the
-baseline transformation function, ranef: variance components parameters.}
+\item{pargroup}{The name of the parameter group to extract. With \code{as.lm = FALSE},
+the available options are described in \code{confint.tramME}. When \code{as.lm = TRUE},
+the following options are available:
+\itemize{
+  \item all: Fixed effects and variance components parameters.
+  \item fixef: Fixed effects parameters (including FE parameters of the smooth terms).
+  \item ranef: Variance components parameters (including the smoothing parameters of
+    the random effects).
+}}
 
-\item{pmatch}{Logical. If \code{TRUE}, partial name matching is allowed.}
-
-\item{...}{Optional arguments passed to \code{vcov.tramTMB}}
+\item{...}{Optional parameters passed to \code{confint.tramME}}
 }
 \value{
 A numeric covariance matrix.
 }
 \description{
-\code{pargroup = "baseline"} with the option \code{as.survreg = TRUE} is
-not available for \code{LmME} objects.
+Get the variance-covariance matrix of the parameters of an LmME model
 }
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 vcov(fit) ## transformation model parametrization
 vcov(fit, as.lm = TRUE) ## LMM parametrization
-## cov of coefficient AND other terms with 'Days' in names
-vcov(fit, as.lm = TRUE, parm = "Days", pmatch = TRUE)
-vcov(fit, as.lm = TRUE, parm = "^Days", pmatch = TRUE) ## var of coefficient only
 vcov(fit, as.lm = TRUE, pargroup = "fixef") ## cov of fixed effects
 }

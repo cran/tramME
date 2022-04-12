@@ -8,6 +8,7 @@
   object,
   newdata = model.frame(object),
   ranef = NULL,
+  fix_smooth = TRUE,
   type = c("lp", "trafo", "distribution", "survivor", "density", "logdensity",
     "hazard", "loghazard", "cumhazard", "odds", "logodds", "quantile"),
   ...
@@ -18,8 +19,11 @@
 
 \item{newdata}{an optional data frame of observations}
 
-\item{ranef}{Random effects (either in named list format or a numeric vector)
-or the word "zero". See Details.}
+\item{ranef}{Random effects it can be a \code{ranef.tramME} object, a named list,
+an unnamed list, \code{NULL} or the word "zero". See Details.}
+
+\item{fix_smooth}{If \code{FALSE}, the random effects coefficients of the smooth
+terms are refitted to \code{newdata}. It's probably not what you want to do.}
 
 \item{type}{The scale on which the predictions are evaluated:
 \itemize{
@@ -76,8 +80,21 @@ quantiles fall outside of the support of the response distribution
 (specified when the model was set up), the inversion of the CDF cannot be done exactly
 and \code{tramME} returns censored values.
 
-When \code{ranef} is equal to "zero", a vector of zeros with the right size is
-used.
+\code{ranef} can be different objects based on what we want to calculate and
+what the other inputs are. If \code{ranef} is a \code{ranef.tramME}, we assume
+that it contains the full set of random effects, but not the penalized coefficients
+of the smooth terms. In this case \code{fix_smooth} must be \code{TRUE}. If
+\code{ranef} is a named vector, we are fixing the supplied random effects (and
+penalized coefficients) and predict the rest from \code{newdata} (\code{fix_smooth}
+may also be used in this case). In this case, the random effects are identified
+with the same naming convention as in \code{object$param$gamma}.
+
+If \code{ranef} is an unnamed vector, the function expects the
+full set of necessary random effects (with or without penalized coefficients, depending
+on \code{fix_smooth}). If \code{ranef = NULL} (the default), all random effects and
+optionally penalized parameters (although this is not recommended) are predicted from
+\code{newdata}. Finally, if \code{ranef} is equal to "zero", a vector of zeros with the
+right size is used.
 }
 \examples{
 data("sleepstudy", package = "lme4")

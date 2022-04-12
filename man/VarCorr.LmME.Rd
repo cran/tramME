@@ -25,6 +25,11 @@ A list of vectors with variances and correlation matrices corresponding to the
 The returned parameters are the transformed versions of the original parameters that
 correspond to the normal linear mixed model parametrization.
 }
+\details{
+The function only returns the correlation matrices that belong to actual random effects
+(defined for groups in the data) and ignores the random effects parameters of the smooth
+shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
+}
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)

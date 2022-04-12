@@ -1,3 +1,17 @@
+# tramME 1.0.0 (2022-04-12)
+
+* Smooth shift terms as defined by `mgcv`. Currently only `s()` smooths are
+  allowed.
+* Cleaned up the source code and the documentation.
+* The official reference is [Tamasi and Hothorn (2021)](https://doi.org/10.32614/RJ-2021-075), 
+  vignette was also updated.
+* New vignette with examples of mixed-effects transformation models with
+  smooth shift terms.
+* Some methods have been moved to development branch for proper testing and
+  refactoring (`Aareg`, `lpterms`, `simulate`, `parboot`, `trafo`). These
+  features may eventually find their way back to the package, probably in a
+  slightly changed form.
+
 # tramME 0.1.3 (2022-03-08)
 
 * Fixed `duplicate.tramTMB` method to work with TMB 1.8.0.
@@ -14,28 +28,41 @@
 
 * Updated internal functions for estimation transformation models with TMB:
     * Fixed effects only models can be estimated
-    * Exported functions (`coef`, `logLik`) communicate with the TMB model more smoothly
-    * Updated internal structure to help future development (not exported currently)
+    * Exported functions (`coef`, `logLik`) communicate with the TMB model more
+      smoothly
+    * Updated internal structure to help future development (not exported
+      currently)
 * Fixing coefficients with the argument `fixed = c(name = value)` 
 * New model classes in `SurvregME` using the parameter fixing option
-* `AaregME` extends the (parametric) Aalen regression model of `tram` with mixed-effects.
+* `AaregME` extends the (parametric) Aalen regression model of `tram` with
+  mixed-effects.
 * Out-of-sample log-likelihoods using the `newdata` argument of `logLik`
-* Score residuals with the `resid` method. When frequently recalculated (e.g. in boosting), setting `resid = TRUE` in model definition increases efficiency.
+* Score residuals with the `resid` method. When frequently recalculated (e.g. in
+  boosting), setting `resid = TRUE` in model definition increases efficiency.
 * Updating models via the `update` method
-* Setting observation weights and offsets efficiently (activated  with `do_update = TRUE`). Currently, only possible through directly manipulating the `tmb_obj` of the model. 
+* Setting observation weights and offsets efficiently (activated  with
+  `do_update = TRUE`). Currently, only possible through directly manipulating
+  the `tmb_obj` of the model. 
 * Parametric bootstrap with the `parboot` method
-* New optimization options (e.g. internal scaling of fixed effects design matrix to improve convergence, more sensible initial values) and improved control over the optimization process with `optim_control()`
-* Various methods (including `analytical` in the case of fixed effects only models) to calculate the Hessian; trying harder to invert the Hessian in numerically unstable cases. 
+* New optimization options (e.g. internal scaling of fixed effects design matrix
+  to improve convergence, more sensible initial values) and improved control
+  over the optimization process with `optim_control()`
+* Various methods (including `analytical` in the case of fixed effects only
+  models) to calculate the Hessian; trying harder to invert the Hessian in
+  numerically unstable cases. 
 * Calculate the linear predictor with `type = "lp"` in `predict`
-* Several additional methods to help the user working with `tramME` objects: `model.frame`, `model.matrix`, `fitmod`, `duplicate`.
+* Several additional methods to help the user working with `tramME` objects:
+  `model.frame`, `model.matrix`, `fitmod`, `duplicate`.
 * Improved unit testing
 * Improved documentation
 * Demo for IPD meta-analysis 
 
 # tramME 0.0.4 (2021-02-04)
 
-* fixed bug in setting error distributions of 'dummy' ctms for predict and simulate methods 
-* updated Figure 6 in vignette, because the bug above affected predict in the case of CorlME
+* fixed bug in setting error distributions of 'dummy' ctms for predict and
+  simulate methods 
+* updated Figure 6 in vignette, because the bug above affected predict in the
+  case of CorlME
 * fixed bug in unit test for simulate that caused error with mlt 1.2-1 
 * fixed simulate output structure with `what = "joint"` option 
 

@@ -19,6 +19,11 @@ A list of vectors with variances and correlation matrices corresponding to the
 \description{
 This function calculates the variances and correlations from \code{varcov.tramME}.
 }
+\details{
+The function only returns the correlation matrices that belong to actual random effects
+(defined for groups in the data) and ignores the random effects parameters of the smooth
+shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
+}
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy)

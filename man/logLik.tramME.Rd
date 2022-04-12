@@ -2,24 +2,43 @@
 % Please edit documentation in R/methods.R
 \name{logLik.tramME}
 \alias{logLik.tramME}
-\title{Get the log-likelihood of the model}
+\title{Get the log-likelihood of the tramME model}
 \usage{
 \method{logLik}{tramME}(
   object,
-  param = c(coef(object, with_baseline = TRUE, fixed = FALSE), varcov(object, as.theta
-    = TRUE)),
+  param = NULL,
   newdata = NULL,
+  type = c("integrated", "fix_smooth", "penalized"),
   ...
 )
 }
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{param}{An optional vector of parameter values in the structure
-(beta, theta).}
+\item{param}{An optional named list of parameter values (beta and theta).
+See details.  Optionally, gamma elements can also be added, which leads to
+'fixing' those random effects terms at the supplied values.}
 
 \item{newdata}{An optional data.frame to calculate the out-of-sample
 log-likelihood.}
+
+\item{type}{The type of the likelihood to be calculated:
+\itemize{
+  \item integrated (default when \code{newdata = NULL}): The marginal
+        log-likelihood, calculated by integrating out the random effects.
+  \item fix_smooth (default when \code{newdata} is supplied): Treating the
+        penalized parameters of the smooth terms as fixed at their
+        posterior mode predictions and only integrating out the 'true'
+        random effects. (Consistent with the functionality of
+        \code{\link[tramME]{ranef.tramME}} and
+        \code{\link[tramME]{residuals.tramME}} when
+        \code{fix_smooth = TRUE}.)
+  \item penalized: Treat all parameters as fixed, return the penalized
+        log-likelihood (conditional log-likelihood + penalty for smooth
+        terms and random effects). This is equivalent to fixing all random
+        effect values.
+}
+See details.}
 
 \item{...}{Optional argument (for consistency with generic).}
 }
@@ -27,10 +46,67 @@ log-likelihood.}
 A numeric value of the log-likelihood.
 }
 \description{
-Get the log-likelihood of the model
+Evaluates the log-likelihood function. New parameter values and data can
+optionally be supplied. In the latter case, the function returns the
+out-of-sample log-likelihood.
 }
+\details{
+By default, \code{param} is set to the estimated (or previously set)
+  parameters. If the parameter vectors in the model are incomplete (contain
+  \code{NA} elemets), the returned log-likelihood will also be \code{NA},
+  unless the user provides new values.
+
+Setting \code{type = "fix_smooth"} fixes the random effects terms that
+  correspond to penalized smooths at their estimated values, so that they
+  are not refitted when \code{newdata} is supplied. This is consistent with
+  treating these parameter regularized fixed terms, i.e. as 'new-style'
+  random effects described by Hodges (2014, Chapter 13).
+
+The \code{"fix_smooth"} and \code{"penalized"} options for \code{type} are
+  just for convenience.  The same functionality can be achieved by setting
+  \code{param$gamma} to the desired values.  \code{"penalized"} respects the
+  values of \code{param$gamma} if both are supplied, while
+  \code{"fix_smooth"} overwrites them with the fitted values if there are
+  ambiguities.
+}
+\section{Type of the log-likelihood}{
+
+
+By default, \code{logLik} calculates the _integrated_ (or marginal)
+  log-likelihood by integrating over the random effects. By fixing the
+  random effects, the value of the log-likelihood changes, because TMB won't
+  integrate over these random effects.  This will result in the _penalized_
+  log-likelihood (conditional log-likelihood + penalty for smooth terms and
+  random effects, see example).
+
+By setting \code{type = "penalized"}, the function will 'fix' all random
+  effects and penalized parameters of the smooth terms at their predicted
+  levels, and calcualte the penalized log-likelihood. In this sense, setting
+  \code{type = "fix_smooth"} will result in a hybrid log-likelihood value,
+  where the 'true' random effects (c.f.  Hodges 2014, Ch. 13) are integrated
+  out, while it includes the penalty values for the penalized parameters of
+  the smooths terms.
+
+In general, it is not clear which type of log-likelihood we should calculate
+  when we want to evaluate models based on their out-of-sample
+  log-likelihood values.  The context and the model setup are key in these
+  cases. Please make sure you know what you want to calculate to avoid
+  misunderstandings.
+}
+
 \examples{
+
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 logLik(fit)
+
+data("mcycle", package = "MASS")
+fit <- LmME(accel ~ s(times), data = mcycle)
+logLik(fit) < logLik(fit, type = "penalized")
+
+}
+\references{
+Hodges, James S. (2014). Richly Parameterized Linear Models: Additive, Time
+  Series, and Spatial Models Using Random Effects. Chapman & Hall/CRC Texts
+  in Statistical Science Series.
 }

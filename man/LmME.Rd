@@ -2,7 +2,7 @@
 % Please edit documentation in R/LmME.R
 \name{LmME}
 \alias{LmME}
-\title{ME version of tram::Lm}
+\title{Mixed-effects version of \code{\link[tram]{Lm}}}
 \usage{
 LmME(
   formula,
@@ -80,5 +80,5 @@ from a (fixed effects only) mlt model}
 A LmME object.
 }
 \description{
-ME version of tram::Lm
+Mixed-effects version of \code{\link[tram]{Lm}}
 }

@@ -1,4 +1,4 @@
-##' ME version of tram::Lm
+##' Mixed-effects version of \code{\link[tram]{Lm}}
 ##' @inheritParams tram::Lm
 ##' @param silent Logical. Make \pkg{TMB} functionality silent.
 ##' @param resid Logical. If \code{TRUE}, the score residuals are also calculated.
@@ -12,7 +12,6 @@
 ##' @param nofit logical, if TRUE, creates the model object, but does not run the optimization
 ##' @param control list with controls for optimization
 ##' @return A LmME object.
-##' @importFrom stats na.omit model.offset model.weights
 ##' @importFrom tram Lm
 ##' @export
 LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
@@ -22,81 +21,10 @@ LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                  control = optim_control(),
                  ...) {
   cl <- match.call()
-
-  ## -- create intial model structure
-  fc <- cl
-  fc[[1L]] <- quote(tramME_model)
-  fc$tram  <-  "Lm"
-  mod <- eval(fc, parent.frame())
-
-  ## -- sanitize initial parameter settings
-  if (is.null(mod$ranef) || nofit || !is.null(initpar)) {
-    estinit <- FALSE
-  }
-
-  ## -- create model frame
-  if (missing(data) || !inherits(data, "tramME_data")) {
-    fc <- cl
-    m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
-               names(fc), 0L)
-    fc <- fc[c(1L, m)]
-    fc$formula <- .combine_formulas(mod$formula)
-    fc[[1L]] <- quote(tram::tram_data)
-    out <- eval(fc, parent.frame())
-    dat <- out$mf
-    class(dat) <- c("tramME_data", class(dat))
-  } else {
-    dat <- data
-  }
-
-  cf <- coef(mod$ctm)
-
-  ## -- create terms required by tramTMB
-  mmlt <- mlt::mlt(mod$ctm, data = dat, offset = model.offset(dat),
-              weights = model.weights(dat), ## TODO: offset and weights might not be needed
-              fixed = fixed, dofit = estinit)
-  fe <- fe_terms(mmlt)
-  re <- re_terms(mod$ranef, dat, mod$negative)
-  inp <- tramTMB_inputs(mod, fe, re, dat, param = initpar)
-
-  cf[names(fixed)] <- fixed
-
-  mp <- list()
-  if (!is.null(fixed)) {
-    idx <- which(names(cf) %in% names(fixed))
-    bb <- rep(NA, length(cf))
-    bb[-idx] <- seq_along(bb[-idx])
-    mp <- list(beta = as.factor(bb))
-  }
-
-  ## -- create the tramTMB object
-  obj <- tramTMB(inp$data, inp$parameters, inp$constraint, inp$negative,
-                 map = mp, resid = resid, do_update = do_update, silent = silent)
-
-  ## -- model fitting
-  if (!nofit) {
-
-    if (is.null(initpar) && !estinit) {
-      par <- .optim_start(obj, resp = dat[[1]])
-    } else par <- NULL
-
-    opt <- optim_tramTMB(obj, par = par,
-                         method = control$method, control = control$control,
-                         trace = control$trace, ntry = control$ntry,
-                         scale = control$scale)
-    parm <- .get_par(obj)
-  } else {
-    opt <- NULL
-    parm <- list(beta = cf, theta = rep(NA, length(.get_par(obj)$theta)))
-  }
-
-  param <- .gen_param(parm, fe = list(names = names(cf)),
-                      re = list(names = re$names, blocksize = re$blocksize,
-                                levels = re$levels, termsize = re$termsize),
-                      varnames = names(dat))
-  structure(list(call = cl, model = mod, data = dat, tmb_obj = obj, opt = opt,
-                 param = param),
-            class = c("LmME", "tramME"))
+  cl$call <- cl
+  cl[[1L]] <- quote(tramME)
+  cl$tram <- "Lm"
+  eval(cl, parent.frame())
 }
 
 
@@ -113,6 +41,7 @@ LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
 ##' coef(fit, as.lm = TRUE)
 ##' @importFrom stats coef
 ##' @export
+## FIXME: remove FE params for smooth terms?
 coef.LmME <- function(object, as.lm = FALSE, fixed = TRUE, ...) {
   class(object) <- class(object)[-1L]
   if (!as.lm)
@@ -149,7 +78,6 @@ sigma.LmME <- function(object, ...) {
   par <- coef(object, with_baseline = TRUE, fixed = TRUE)
   rn <- variable.names(object, "response")
   scidx <- grep(rn, names(par), fixed = TRUE)
-  class(object) <- class(object)[-1L]
   sig <- 1 / par[scidx]
   return(unname(sig))
 }
@@ -157,87 +85,58 @@ sigma.LmME <- function(object, ...) {
 
 ##' Get the variance-covariance matrix of the parameters of an LmME model
 ##'
-##' \code{pargroup = "baseline"} with the option \code{as.survreg = TRUE} is
-##' not available for \code{LmME} objects.
 ##' @param object A fitted \code{LmME} object.
 ##' @param as.lm If \code{TRUE}, return the covariance matrix of the same
 ##'   parametrization as used by \code{\link[lme4]{lmer}}.
-##' @inheritParams vcov.tramME
+##' @inheritParams confint.LmME
 ##' @return A numeric covariance matrix.
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 ##' vcov(fit) ## transformation model parametrization
 ##' vcov(fit, as.lm = TRUE) ## LMM parametrization
-##' ## cov of coefficient AND other terms with 'Days' in names
-##' vcov(fit, as.lm = TRUE, parm = "Days", pmatch = TRUE)
-##' vcov(fit, as.lm = TRUE, parm = "^Days", pmatch = TRUE) ## var of coefficient only
 ##' vcov(fit, as.lm = TRUE, pargroup = "fixef") ## cov of fixed effects
 ##' @importFrom stats vcov
 ##' @export
+## FIXME: standradize sdreport call throught the package
 vcov.LmME <- function(object, as.lm = FALSE, parm = NULL,
-                      pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
-                      pmatch = FALSE, ...) {
-  pargroup <- match.arg(pargroup)
+                      pargroup = c("all", "fixef", "ranef"), ...) {
+  pargroup <- pargroup[1L]
   class(object) <- class(object)[-1L]
   if (!as.lm) {
-    return(vcov(object, parm, pargroup, pmatch, ...))
+    return(vcov(object, parm, pargroup, ...))
   }
-  if (!is.null(object$model$ctm$bases$interacting))
-    stop("Covariance matrix for scaled parameters with strata.")
-  stopifnot(pargroup != "baseline")
-  vc <- vcov(object, pargroup = "all", ...)
-
-  b <- .get_cf(object)[.idx(object, fixed = FALSE, pargroup = "fixef")]
-  bs <- .get_cf(object)[.idx(object, fixed = FALSE, pargroup = "shift")]
-  th <- .get_vc(object, as.theta = TRUE)
-
-  pr <- c(b, th)
-  vn <- variable.names(object, "response")
-  sidx <- grep(vn, names(pr), fixed = TRUE)
-  iidx <- grep("^\\(Intercept\\)$", names(pr))
-
-  bls <- attr(object$param, "re")$blocksize
-  np <- length(.idx(object, fixed = FALSE, pargroup = "ranef"))
-
-  ic <- pr[iidx]
-  sig <- 1 / pr[sidx]
-
-  ## Construct the Jacobian block-by-block
-  bl1 <- Matrix::Matrix(0, nrow = length(b), ncol = length(pr))
-  bl1[iidx, iidx] <- -sig
-  bl1[iidx, sidx] <- ic * sig^2
-  bl1[-iidx ,sidx] <- -bs * sig^2
-  bl1[-c(iidx, length(b)), -c(iidx, sidx)] <-
-    Matrix::Matrix(diag(sig, nrow = length(bs), ncol = length(pr)-2))
-  bl1[length(b), sidx] <- -sig^2
-  if (np > 0) {
-    bl2 <- Matrix::Matrix(0, nrow = np, ncol = length(b))
-    bl2[, sidx] <- sapply(bls, function(x){
-      v <- rep(0, x * (x+1) / 2)
-      v[1:x] <- -sig
-      v
-    })
-    bl3 <- Matrix::Matrix(diag(np))
-    ja <- rbind(bl1, cbind(bl2, bl3))
-  } else {
-    ja <- bl1
+  data <- object$tmb_obj$env$data
+  data$as_lm <- as.numeric(as.lm)
+  newobj <- update(object$tmb_obj, data = data,
+                   parameters = .get_par(object$tmb_obj, full = TRUE))
+  sdr <- TMB::sdreport(newobj, getReportCovariance = TRUE)
+  ## FIXME: robustify cov matrix calculations
+  vc <- sdr$cov
+  pr <- names(sdr$value)
+  pr <- switch(pargroup, all = pr %in% c("b", "sigma", "th"),
+               fixef = pr == "b", ranef = pr == "th",
+               stop("Unknown parameter group for parametrization with as.lm = TRUE."))
+  nm <- c("(Intercept)",
+          names(coef(object, with_baseline = TRUE, fixed = FALSE))[-(1:2)],
+          "(Sigma)",
+          names(varcov(object, as.theta = TRUE, full = TRUE, fixed = FALSE)))
+  if (length(parm)) {
+    pr <- pr & (nm %in% parm)
   }
-
-  ## Delta method
-  out <- ja %*% vc %*% Matrix::t(ja)
-  idx <- .idx(object, pargroup = pargroup, which = parm, pmatch = pmatch, altpar = "lm")
-  out <- as.matrix(out[idx, idx])
-  colnames(out) <- names(idx)
-  rownames(out) <- names(idx)
-  return(out)
+  vc <- vc[pr, pr, drop = FALSE]
+  colnames(vc) <- rownames(vc) <- nm[pr]
+  return(vc)
 }
-
 
 ##' Variances and correlation matrices of random effects of an LmME object
 ##'
 ##' The returned parameters are the transformed versions of the original parameters that
 ##' correspond to the normal linear mixed model parametrization.
+##'
+##' The function only returns the correlation matrices that belong to actual random effects
+##' (defined for groups in the data) and ignores the random effects parameters of the smooth
+##' shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
 ##' @param x An \code{LmME} object.
 ##' @param sigma Standard deviation of the error term in the LMM parametrization (should
 ##'   not be set manually, only for consistency with the generic method)
@@ -279,6 +178,9 @@ VarCorr.LmME <- function(x, sigma = 1, as.lm = FALSE, ...) {
 ##'   parametrization.
 ##' @param as.theta Logical value, if \code{TRUE}, the values are returned
 ##'   in their reparameterized form.
+##' @param full Logical value; if \code{TRUE}, return all random effects elements,
+##'   if \code{FALSE}, do not return the random effects parameters of the smooth
+##'   terms.
 ##' @param ... Optional arguments (unused).
 ##' @return A list of the covariance matrices or a vector of theta values.
 ##' @examples
@@ -287,17 +189,20 @@ VarCorr.LmME <- function(x, sigma = 1, as.lm = FALSE, ...) {
 ##' varcov(fit, as.lm = TRUE)
 ##' varcov(fit, as.theta = TRUE, as.lm = TRUE)
 ##' @export
-varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, ...) {
+varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, full = FALSE, ...) {
   if (!as.lm) {
     class(object) <- class(object)[-1L]
-    return(varcov(object, as.theta = as.theta, ...))
+    return(varcov(object, as.theta = as.theta, full = full, ...))
   }
   sig <- sigma(object)
-  vc <- varcov.tramME(object, as.theta = FALSE, ...)
+  vc <- varcov.tramME(object, as.theta = FALSE, full = full, ...)
   vc <- lapply(vc, function(x) x * sig^2)
   if (as.theta) {
-    th <- varcov(object, as.theta = TRUE) ## NOTE: for the names
-    th[] <- .vc2th(vc, attr(object$param, "re")$blocksize)
+    th <- varcov(object, as.theta = TRUE, full = full) ## NOTE: for the names
+    bls <- attr(object$param, "re")$blocksize
+    if (full)
+      bls <- c(bls, rep(1, length(attr(object$param, "sm")$re_dims)))
+    th[] <- .vc2th(vc, bls)
     return(th)
   }
   return(vc)
@@ -310,8 +215,18 @@ varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, ...) {
 ##' optionally consistent with the linear mixed-model specification.
 ##' When \code{as.lm = TRUE}, only Wald CIs are available.
 ##' @param object An \code{LmME} object.
+##' @param parm Names of the parameters to extract.
 ##' @param as.lm Logical. If \code{TRUE}, return results consistent with the normal linear
 ##'   mixed model parametrization.
+##' @param pargroup The name of the parameter group to extract. With \code{as.lm = FALSE},
+##'   the available options are described in \code{confint.tramME}. When \code{as.lm = TRUE},
+##'   the following options are available:
+##'   \itemize{
+##'     \item all: Fixed effects and variance components parameters.
+##'     \item fixef: Fixed effects parameters (including FE parameters of the smooth terms).
+##'     \item ranef: Variance components parameters (including the smoothing parameters of
+##'       the random effects).
+##'   }
 ##' @param ... Optional parameters passed to \code{confint.tramME}
 ##' @inheritParams confint.tramME
 ##' @return A matrix with lower and upper bounds.
@@ -326,51 +241,52 @@ varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, ...) {
 ##' @export
 confint.LmME <- function(object, parm = NULL, level = 0.95,
                          as.lm = FALSE,
-                         pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+                         pargroup = c("all", "fixef", "ranef"),
                          type = c("Wald", "wald", "profile"),
-                         estimate = FALSE,
-                         pmatch = FALSE, ...) {
+                         estimate = FALSE, ...) {
   type <- tolower(match.arg(type))
-  pargroup <- match.arg(pargroup)
+  pargroup <- pargroup[1L]
   if (!as.lm) {
+    class(object) <- class(object)[-1L]
     fc <- match.call()
-    fc[[1L]] <- quote(confint.tramME)
+    fc$object <- object
+    fc[[1L]] <- quote(confint)
     return(eval(fc))
   }
 
-  b <- coef(object, fixed = FALSE, with_baseline = TRUE, as.lm = TRUE)
-  th <- varcov(object, as.theta = TRUE, as.lm = TRUE)
-  pr <- c(b, th)
+  b <- coef(object, fixed = FALSE, as.lm = TRUE)
+  sig <- sigma(object)
+  th <- varcov(object, fixed = FALSE, as.theta = TRUE, full = TRUE)
+  pr <- c(b, sig, th)
 
-  idx <- .idx(object, pargroup = pargroup, which = parm, pmatch = pmatch, altpar = "lm")
-  par <- pr[idx]
+  vc <- vcov(object, as.lm = TRUE)
+  se <- sqrt(diag(vc))
+  nm <- colnames(vc)
 
-  if (any(is.na(pr)) || length(par) == 0) {
-    nc <- if (estimate) 3 else 2
-    ci <- matrix(NA, nrow = length(par), ncol = nc)
-    rownames(ci) <- names(par)
-    colnames(ci) <- if (nc == 3) c("lwr", "upr", "est") else c("lwr", "upr")
-    return(ci)
+  g <- switch(pargroup, all = rep(TRUE, length(nm)), fixef = nm %in% names(b),
+              ranef = nm %in% names(th), stop("Unknown parameter group."))
+  if (length(parm)) {
+    g <- g & (nm %in% parm)
   }
 
   if (type == "wald") {
-    ses <- sqrt(diag(vcov(object, as.lm = TRUE)))[idx]
     a <- (1 - level) / 2
     a <- c(a, 1 - a)
     fac <- qnorm(a)
-    ci <- par + ses %o% fac
+    ci <- pr + se %o% fac
   } else {
     stop("Only Wald confidence intervals are available with as.lm = TRUE")
   }
-  colnames(ci) <- c("lwr", "upr")
-  rownames(ci) <- names(idx)
-  if (estimate) {
-    ci <- cbind(ci, par)
-    colnames(ci) <- c("lwr", "upr", "est")
-  }
-  return(ci)
-}
 
+  if (estimate) {
+    ci <- cbind(ci, pr)
+  }
+  rownames(ci) <- nm
+  colnames(ci) <- if (estimate) c("lwr", "upr", "est") else c("lwr", "upr")
+  ci <- ci[g, , drop = FALSE]
+  return(ci)
+
+}
 
 ##' Extract the conditional modes of random effects of an LmME model
 ##'
@@ -391,6 +307,7 @@ confint.LmME <- function(object, parm = NULL, level = 0.95,
 ##' @importFrom stats sigma
 ##' @export
 ## FIXME: with condVar?
+## FIXME: change this when ranef.tramME changes
 ranef.LmME <- function(object, as.lm = FALSE, ...) {
   if (!as.lm || isTRUE(list(...)$raw)) {
     class(object) <- class(object)[-1L]

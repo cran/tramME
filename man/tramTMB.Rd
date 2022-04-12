@@ -12,6 +12,8 @@ tramTMB(
   map = list(),
   resid = FALSE,
   do_update = FALSE,
+  check_const = TRUE,
+  no_int = FALSE,
   ...
 )
 }
@@ -32,6 +34,11 @@ from the resulting object}
 \item{do_update}{logical, indicating whether the model should be set up with
 updateable offsets and weights}
 
+\item{check_const}{Logical; if \code{TRUE} check the parameter constraints before
+evaluating the returned functions.}
+
+\item{no_int}{Logical; if \code{FALSE} skip the numerical integration step.}
+
 \item{...}{optional parameters passed to \code{TMB::MakeADFun}}
 }
 \value{
@@ -39,4 +46,7 @@ A tramTMB object.
 }
 \description{
 Create a tramTMB object
+}
+\note{
+The post-estimation parameters are supplied as a part of \code{data}
 }

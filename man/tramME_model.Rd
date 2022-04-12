@@ -9,14 +9,16 @@ tramME_model(
   data = NULL,
   tram = NULL,
   ctm = NULL,
+  smooth = NULL,
   negative = NULL,
   ...
 )
 }
 \arguments{
 \item{formula}{formula that either describes the whole model or
-the random effects specification. If the model contains random effects,
-\code{formula} has to contain their definition in \code{lme4}-style notation.}
+the random effects specification. If the model contains random effects or
+smooth terms \code{formula} has to contain their definition in
+\pkg{lme4}-style and \pkg{mgcv}-style notation, respectively.}
 
 \item{data}{an optional data frame, list or environment (or object
           coercible by \code{as.data.frame} to a data frame) containing the
@@ -30,6 +32,9 @@ is also supplied.}
 
 \item{ctm}{A \code{ctm} model}
 
+\item{smooth}{Optional pre-defined smooth specification of the class \code{tramME_smooth}.
+If present, the smooth terms in the formula are ignored.}
+
 \item{negative}{an optional parameter that defines whether the random effects have
 a positive or a negative sign in the model when the fixed effecst part is defined
 through a ctm}
@@ -42,8 +47,8 @@ A tramME_model object that defines the mixed effects transfromation model.
 \description{
 There are two ways of defining tramME models:
 \enumerate{
-  \item A ctm model and a formula defining the random effects.
-  \item A formula combining the notation of \pkg{tram} and \pkg{lme4},
+  \item A ctm model and a formula defining the random effects and smooth terms.
+  \item A formula combining the notation of \pkg{tram}, \pkg{lme4} and \pkg{mgcv},
     a tram function name, and a dataset to set up the bases.
 }
 }

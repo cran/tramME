@@ -1,0 +1,351 @@
+"treatment","stream","pasture","year","ecoli_MPN","DOY","cattle","rotation","sample_date"
+"medium","BIG","1000 dollar ridge",2016,21.7,131,"Absent","Deferred-Rotation",2016-05-10
+"medium","BIG","1000 dollar ridge",2016,80.45,159,"Absent","Deferred-Rotation",2016-06-07
+"medium","BIG","1000 dollar ridge",2016,1083.05,194,"Present","Deferred-Rotation",2016-07-12
+"medium","BIG","1000 dollar ridge",2016,502.8,225,"Present","Deferred-Rotation",2016-08-12
+"medium","BIG","1000 dollar ridge",2016,58.8,250,"Absent","Deferred-Rotation",2016-09-06
+"medium","BIG","1000 dollar ridge",2016,70.3,277,"Absent","Deferred-Rotation",2016-10-03
+"medium","MOC","newcanyon",2016,7.5,131,"Absent","Deferred-Rotation",2016-05-10
+"medium","MOC","newcanyon",2016,2,145,"Present","Deferred-Rotation",2016-05-24
+"medium","MOC","newcanyon",2016,275.5,159,"Present","Deferred-Rotation",2016-06-07
+"medium","MOC","newcanyon",2016,547.5,179,"Present","Deferred-Rotation",2016-06-27
+"medium","MOC","newcanyon",2016,56.5,194,"Absent","Deferred-Rotation",2016-07-12
+"medium","MOC","newcanyon",2016,62.4,208,"Present","Deferred-Rotation",2016-07-26
+"medium","MOC","newcanyon",2016,29.2,225,"Absent","Deferred-Rotation",2016-08-12
+"medium","MOC","newcanyon",2016,14.8,235,"Absent","Deferred-Rotation",2016-08-22
+"medium","MOC","newcanyon",2016,29.5,250,"Present","Deferred-Rotation",2016-09-06
+"medium","MOC","newcanyon",2016,5.2,263,"Absent","Deferred-Rotation",2016-09-19
+"medium","MOC","newcanyon",2016,3.1,277,"Absent","Deferred-Rotation",2016-10-03
+"medium","MOC","newcanyon",2016,5.2,292,"Absent","Deferred-Rotation",2016-10-18
+"medium","NOC","newcanyon",2016,3.1,131,"Absent","Deferred-Rotation",2016-05-10
+"medium","NOC","newcanyon",2016,83.6,145,"Present","Deferred-Rotation",2016-05-24
+"medium","NOC","newcanyon",2016,1413.6,159,"Present","Deferred-Rotation",2016-06-07
+"medium","NOC","newcanyon",2016,2419.6,179,"Present","Deferred-Rotation",2016-06-27
+"medium","NOC","newcanyon",2016,201.4,194,"Absent","Deferred-Rotation",2016-07-12
+"medium","NOC","newcanyon",2016,131.7,208,"Present","Deferred-Rotation",2016-07-26
+"medium","NOC","newcanyon",2016,55.6,225,"Absent","Deferred-Rotation",2016-08-12
+"medium","NOC","newcanyon",2016,77.75,235,"Absent","Deferred-Rotation",2016-08-22
+"medium","NOC","newcanyon",2016,48.7,250,"Present","Deferred-Rotation",2016-09-06
+"medium","NOC","newcanyon",2016,13.5,263,"Absent","Deferred-Rotation",2016-09-19
+"medium","NOC","newcanyon",2016,25.9,277,"Absent","Deferred-Rotation",2016-10-03
+"medium","NOC","newcanyon",2016,6.3,292,"Absent","Deferred-Rotation",2016-10-18
+"long","NSC","sage",2016,1,131,"Present","Continuous-Turnout",2016-05-10
+"long","NSC","sage",2016,40.4,145,"Present","Continuous-Turnout",2016-05-24
+"long","NSC","sage",2016,629.4,159,"Present","Continuous-Turnout",2016-06-07
+"long","NSC","sage",2016,1046.2,179,"Present","Continuous-Turnout",2016-06-27
+"long","NSC","sage",2016,2419.6,194,"Present","Continuous-Turnout",2016-07-12
+"long","NSC","sage",2016,57.3,277,"Absent","Continuous-Turnout",2016-10-03
+"long","NSC","sage",2016,48.1,292,"Absent","Continuous-Turnout",2016-10-18
+"medium","RAN","1000 dollar ridge",2016,18.3,131,"Absent","Deferred-Rotation",2016-05-10
+"medium","RAN","1000 dollar ridge",2016,31.8,159,"Absent","Deferred-Rotation",2016-06-07
+"medium","RAN","1000 dollar ridge",2016,272.3,194,"Present","Deferred-Rotation",2016-07-12
+"medium","RAN","1000 dollar ridge",2016,387.3,225,"Present","Deferred-Rotation",2016-08-12
+"medium","RAN","1000 dollar ridge",2016,88.4,250,"Absent","Deferred-Rotation",2016-09-06
+"medium","RAN","1000 dollar ridge",2016,63.1,277,"Absent","Deferred-Rotation",2016-10-03
+"short","SAL","north spring canyon",2016,4.1,146,"Absent","Time-Controlled Rotation",2016-05-25
+"short","SAL","north spring canyon",2016,137.6,159,"Absent","Time-Controlled Rotation",2016-06-07
+"short","SAL","north spring canyon",2016,98.7,179,"Absent","Time-Controlled Rotation",2016-06-27
+"short","SAL","north spring canyon",2016,58.3,193,"Absent","Time-Controlled Rotation",2016-07-11
+"short","SAL","north spring canyon",2016,140.1,208,"Absent","Time-Controlled Rotation",2016-07-26
+"short","SAL","north spring canyon",2016,2419.6,235,"Present","Time-Controlled Rotation",2016-08-22
+"short","SAL","north spring canyon",2016,118.7,249,"Present","Time-Controlled Rotation",2016-09-05
+"short","SAL","north spring canyon",2016,9.7,263,"Absent","Time-Controlled Rotation",2016-09-19
+"short","SAL","north spring canyon",2016,44.1,278,"Present","Time-Controlled Rotation",2016-10-04
+"short","SAL","north spring canyon",2016,90.8,292,"Present","Time-Controlled Rotation",2016-10-18
+"long","SC","sage",2016,2,131,"Present","Continuous-Turnout",2016-05-10
+"long","SC","sage",2016,56.5,145,"Present","Continuous-Turnout",2016-05-24
+"long","SC","sage",2016,1413.6,159,"Present","Continuous-Turnout",2016-06-07
+"long","SC","sage",2016,770.1,179,"Present","Continuous-Turnout",2016-06-27
+"long","SC","sage",2016,304.6,194,"Present","Continuous-Turnout",2016-07-12
+"long","SC","sage",2016,488.4,208,"Present","Continuous-Turnout",2016-07-26
+"long","SC","sage",2016,727,225,"Present","Continuous-Turnout",2016-08-12
+"long","SC","sage",2016,686.7,235,"Present","Continuous-Turnout",2016-08-22
+"long","SC","sage",2016,461.1,250,"Present","Continuous-Turnout",2016-09-06
+"long","SC","sage",2016,14.5,263,"Absent","Continuous-Turnout",2016-09-19
+"long","SC","sage",2016,261.3,277,"Absent","Continuous-Turnout",2016-10-03
+"long","SC","sage",2016,770.1,292,"Absent","Continuous-Turnout",2016-10-18
+"short","SH","shearing",2016,142,146,"Absent","Time-Controlled Rotation",2016-05-25
+"short","SH","shearing",2016,75.4,159,"Absent","Time-Controlled Rotation",2016-06-07
+"short","SH","shearing",2016,10,179,"Absent","Time-Controlled Rotation",2016-06-27
+"short","SH","shearing",2016,8.6,193,"Absent","Time-Controlled Rotation",2016-07-11
+"short","SH","shearing",2016,2,208,"Absent","Time-Controlled Rotation",2016-07-26
+"short","SH","shearing",2016,6.3,235,"Absent","Time-Controlled Rotation",2016-08-22
+"short","SH","shearing",2016,6.3,249,"Present","Time-Controlled Rotation",2016-09-05
+"short","SH","shearing",2016,2,263,"Absent","Time-Controlled Rotation",2016-09-19
+"short","SH","shearing",2016,16,278,"Absent","Time-Controlled Rotation",2016-10-04
+"short","SH","shearing",2016,88,292,"Present","Time-Controlled Rotation",2016-10-18
+"medium","SOC","newcanyon",2016,10.9,131,"Absent","Deferred-Rotation",2016-05-10
+"medium","SOC","newcanyon",2016,5.1,145,"Present","Deferred-Rotation",2016-05-24
+"medium","SOC","newcanyon",2016,365.4,159,"Present","Deferred-Rotation",2016-06-07
+"medium","SOC","newcanyon",2016,1046.2,179,"Present","Deferred-Rotation",2016-06-27
+"medium","SOC","newcanyon",2016,185,194,"Absent","Deferred-Rotation",2016-07-12
+"medium","SOC","newcanyon",2016,1167.7,208,"Present","Deferred-Rotation",2016-07-26
+"medium","SOC","newcanyon",2016,103.9,225,"Absent","Deferred-Rotation",2016-08-12
+"medium","SOC","newcanyon",2016,178.2,235,"Absent","Deferred-Rotation",2016-08-22
+"medium","SOC","newcanyon",2016,980.4,250,"Present","Deferred-Rotation",2016-09-06
+"medium","SOC","newcanyon",2016,123.6,263,"Absent","Deferred-Rotation",2016-09-19
+"medium","SOC","newcanyon",2016,52.9,277,"Absent","Deferred-Rotation",2016-10-03
+"medium","SOC","newcanyon",2016,8.5,292,"Absent","Deferred-Rotation",2016-10-18
+"medium","BIG","1000 dollar ridge",2017,10.25,129,"Absent","Deferred-Rotation",2017-05-09
+"medium","BIG","1000 dollar ridge",2017,1,143,"Absent","Deferred-Rotation",2017-05-23
+"medium","BIG","1000 dollar ridge",2017,2.5,157,"Absent","Deferred-Rotation",2017-06-06
+"medium","BIG","1000 dollar ridge",2017,1,170,"Absent","Deferred-Rotation",2017-06-19
+"medium","BIG","1000 dollar ridge",2017,32.8,186,"Present","Deferred-Rotation",2017-07-05
+"medium","BIG","1000 dollar ridge",2017,167.55,198,"Present","Deferred-Rotation",2017-07-17
+"medium","BIG","1000 dollar ridge",2017,213.3,214,"Present","Deferred-Rotation",2017-08-02
+"medium","BIG","1000 dollar ridge",2017,476.2,227,"Present","Deferred-Rotation",2017-08-15
+"medium","BIG","1000 dollar ridge",2017,893.6,249,"Present","Deferred-Rotation",2017-09-06
+"medium","BIG","1000 dollar ridge",2017,41.5,268,"Absent","Deferred-Rotation",2017-09-25
+"medium","BIG","1000 dollar ridge",2017,35.25,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","BIG","1000 dollar ridge",2017,8,307,"Absent","Deferred-Rotation",2017-11-03
+"medium","Duck","duck",2017,6.3,130,"Present","Deferred-Rotation",2017-05-10
+"medium","Duck","duck",2017,1986.3,144,"Present","Deferred-Rotation",2017-05-24
+"medium","Duck","duck",2017,1553.1,156,"Present","Deferred-Rotation",2017-06-05
+"medium","Duck","duck",2017,686.7,170,"Present","Deferred-Rotation",2017-06-19
+"medium","Duck","duck",2017,224.7,186,"Absent","Deferred-Rotation",2017-07-05
+"medium","Duck","duck",2017,193.5,199,"Present","Deferred-Rotation",2017-07-18
+"medium","Duck","duck",2017,17.5,214,"Absent","Deferred-Rotation",2017-08-02
+"medium","Duck","duck",2017,6.3,226,"Present","Deferred-Rotation",2017-08-14
+"medium","Duck","duck",2017,71.7,247,"Present","Deferred-Rotation",2017-09-04
+"medium","Duck","duck",2017,21.3,266,"Absent","Deferred-Rotation",2017-09-23
+"medium","Duck","duck",2017,81.3,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","Duck","duck",2017,18.5,307,"Absent","Deferred-Rotation",2017-11-03
+"long","Lake","laketown",2017,13.2,131,"Absent","Continuous-Turnout",2017-05-11
+"long","Lake","laketown",2017,32.7,144,"Absent","Continuous-Turnout",2017-05-24
+"long","Lake","laketown",2017,18.7,156,"Present","Continuous-Turnout",2017-06-05
+"long","Lake","laketown",2017,387.3,170,"Present","Continuous-Turnout",2017-06-19
+"long","Lake","laketown",2017,980.4,186,"Present","Continuous-Turnout",2017-07-05
+"long","Lake","laketown",2017,461.1,199,"Present","Continuous-Turnout",2017-07-18
+"long","Lake","laketown",2017,461.1,213,"Present","Continuous-Turnout",2017-08-01
+"long","Lake","laketown",2017,325.5,226,"Present","Continuous-Turnout",2017-08-14
+"long","Lake","laketown",2017,980.4,247,"Present","Continuous-Turnout",2017-09-04
+"long","Lake","laketown",2017,86,266,"Absent","Continuous-Turnout",2017-09-23
+"long","Lake","laketown",2017,133.3,283,"Absent","Continuous-Turnout",2017-10-10
+"long","Lake","laketown",2017,18.9,307,"Absent","Continuous-Turnout",2017-11-03
+"medium","MOC","newcanyon",2017,7.5,129,"Absent","Deferred-Rotation",2017-05-09
+"medium","MOC","newcanyon",2017,10.9,143,"Present","Deferred-Rotation",2017-05-23
+"medium","MOC","newcanyon",2017,50.4,157,"Present","Deferred-Rotation",2017-06-06
+"medium","MOC","newcanyon",2017,178.5,170,"Present","Deferred-Rotation",2017-06-19
+"medium","MOC","newcanyon",2017,201.4,186,"Absent","Deferred-Rotation",2017-07-05
+"medium","MOC","newcanyon",2017,101.2,198,"Absent","Deferred-Rotation",2017-07-17
+"medium","MOC","newcanyon",2017,17.3,214,"Absent","Deferred-Rotation",2017-08-02
+"medium","MOC","newcanyon",2017,17.5,227,"Absent","Deferred-Rotation",2017-08-15
+"medium","MOC","newcanyon",2017,613.1,249,"Absent","Deferred-Rotation",2017-09-06
+"medium","MOC","newcanyon",2017,48.7,268,"Present","Deferred-Rotation",2017-09-25
+"medium","MOC","newcanyon",2017,14.6,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","MOC","newcanyon",2017,4.1,307,"Absent","Deferred-Rotation",2017-11-03
+"medium","NOC","newcanyon",2017,3.1,129,"Absent","Deferred-Rotation",2017-05-09
+"medium","NOC","newcanyon",2017,547.5,143,"Present","Deferred-Rotation",2017-05-23
+"medium","NOC","newcanyon",2017,387.3,157,"Present","Deferred-Rotation",2017-06-06
+"medium","NOC","newcanyon",2017,435.2,170,"Present","Deferred-Rotation",2017-06-19
+"medium","NOC","newcanyon",2017,1119.9,186,"Absent","Deferred-Rotation",2017-07-05
+"medium","NOC","newcanyon",2017,866.4,198,"Absent","Deferred-Rotation",2017-07-17
+"medium","NOC","newcanyon",2017,1553.1,214,"Absent","Deferred-Rotation",2017-08-02
+"medium","NOC","newcanyon",2017,172.5,227,"Absent","Deferred-Rotation",2017-08-15
+"medium","NOC","newcanyon",2017,1986.3,249,"Absent","Deferred-Rotation",2017-09-06
+"medium","NOC","newcanyon",2017,461.1,268,"Present","Deferred-Rotation",2017-09-25
+"medium","NOC","newcanyon",2017,14.5,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","NOC","newcanyon",2017,5.2,307,"Absent","Deferred-Rotation",2017-11-03
+"long","NSC","sage",2017,2,129,"Absent","Continuous-Turnout",2017-05-09
+"long","NSC","sage",2017,67.7,144,"Present","Continuous-Turnout",2017-05-24
+"long","NSC","sage",2017,275.5,157,"Present","Continuous-Turnout",2017-06-06
+"long","NSC","sage",2017,816.4,170,"Present","Continuous-Turnout",2017-06-19
+"long","NSC","sage",2017,325.5,186,"Present","Continuous-Turnout",2017-07-05
+"long","NSC","sage",2017,1413.6,198,"Present","Continuous-Turnout",2017-07-17
+"long","NSC","sage",2017,547.5,214,"Present","Continuous-Turnout",2017-08-02
+"long","NSC","sage",2017,866.4,227,"Present","Continuous-Turnout",2017-08-15
+"long","NSC","sage",2017,2419.6,249,"Present","Continuous-Turnout",2017-09-06
+"long","NSC","sage",2017,238.2,268,"Absent","Continuous-Turnout",2017-09-25
+"long","NSC","sage",2017,770.1,283,"Absent","Continuous-Turnout",2017-10-10
+"long","NSC","sage",2017,129.1,307,"Absent","Continuous-Turnout",2017-11-03
+"medium","RAN","1000 dollar ridge",2017,1,129,"Absent","Deferred-Rotation",2017-05-09
+"medium","RAN","1000 dollar ridge",2017,14.6,143,"Absent","Deferred-Rotation",2017-05-23
+"medium","RAN","1000 dollar ridge",2017,47.1,157,"Absent","Deferred-Rotation",2017-06-06
+"medium","RAN","1000 dollar ridge",2017,4.1,170,"Absent","Deferred-Rotation",2017-06-19
+"medium","RAN","1000 dollar ridge",2017,1299.7,186,"Present","Deferred-Rotation",2017-07-05
+"medium","RAN","1000 dollar ridge",2017,1413.6,198,"Present","Deferred-Rotation",2017-07-17
+"medium","RAN","1000 dollar ridge",2017,325.5,214,"Present","Deferred-Rotation",2017-08-02
+"medium","RAN","1000 dollar ridge",2017,261.3,227,"Present","Deferred-Rotation",2017-08-15
+"medium","RAN","1000 dollar ridge",2017,1203.3,249,"Present","Deferred-Rotation",2017-09-06
+"medium","RAN","1000 dollar ridge",2017,30.5,268,"Absent","Deferred-Rotation",2017-09-25
+"medium","RAN","1000 dollar ridge",2017,28.8,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","RAN","1000 dollar ridge",2017,7.5,307,"Absent","Deferred-Rotation",2017-11-03
+"short","SAL","north spring canyon",2017,1,132,"Absent","Time-Controlled Rotation",2017-05-12
+"short","SAL","north spring canyon",2017,5.2,143,"Absent","Time-Controlled Rotation",2017-05-23
+"short","SAL","north spring canyon",2017,9.8,156,"Absent","Time-Controlled Rotation",2017-06-05
+"short","SAL","north spring canyon",2017,157.6,170,"Absent","Time-Controlled Rotation",2017-06-19
+"short","SAL","north spring canyon",2017,69.7,186,"Absent","Time-Controlled Rotation",2017-07-05
+"short","SAL","north spring canyon",2017,214.3,199,"Absent","Time-Controlled Rotation",2017-07-18
+"short","SAL","north spring canyon",2017,20.3,213,"Absent","Time-Controlled Rotation",2017-08-01
+"short","SAL","north spring canyon",2017,18.3,226,"Absent","Time-Controlled Rotation",2017-08-14
+"short","SAL","north spring canyon",2017,275.5,248,"Absent","Time-Controlled Rotation",2017-09-05
+"short","SAL","north spring canyon",2017,29.2,266,"Absent","Time-Controlled Rotation",2017-09-23
+"short","SAL","north spring canyon",2017,186,283,"Present","Time-Controlled Rotation",2017-10-10
+"short","SAL","north spring canyon",2017,13.2,307,"Present","Time-Controlled Rotation",2017-11-03
+"long","SC","sage",2017,12.1,129,"Absent","Continuous-Turnout",2017-05-09
+"long","SC","sage",2017,131.4,144,"Present","Continuous-Turnout",2017-05-24
+"long","SC","sage",2017,816.4,157,"Present","Continuous-Turnout",2017-06-06
+"long","SC","sage",2017,62,170,"Present","Continuous-Turnout",2017-06-19
+"long","SC","sage",2017,184.2,186,"Present","Continuous-Turnout",2017-07-05
+"long","SC","sage",2017,86,198,"Present","Continuous-Turnout",2017-07-17
+"long","SC","sage",2017,686.7,214,"Present","Continuous-Turnout",2017-08-02
+"long","SC","sage",2017,325.5,227,"Present","Continuous-Turnout",2017-08-15
+"long","SC","sage",2017,2419.6,249,"Present","Continuous-Turnout",2017-09-06
+"long","SC","sage",2017,154.1,268,"Absent","Continuous-Turnout",2017-09-25
+"long","SC","sage",2017,83.9,283,"Absent","Continuous-Turnout",2017-10-10
+"long","SC","sage",2017,116,307,"Absent","Continuous-Turnout",2017-11-03
+"short","SH","shearing",2017,9.8,143,"Absent","Time-Controlled Rotation",2017-05-23
+"short","SH","shearing",2017,13.5,156,"Absent","Time-Controlled Rotation",2017-06-05
+"short","SH","shearing",2017,648.8,170,"Present","Time-Controlled Rotation",2017-06-19
+"short","SH","shearing",2017,2419.6,186,"Present","Time-Controlled Rotation",2017-07-05
+"short","SH","shearing",2017,2419.6,199,"Absent","Time-Controlled Rotation",2017-07-18
+"short","SH","shearing",2017,816.4,213,"Absent","Time-Controlled Rotation",2017-08-01
+"short","SH","shearing",2017,410.6,226,"Absent","Time-Controlled Rotation",2017-08-14
+"short","SH","shearing",2017,187.2,248,"Absent","Time-Controlled Rotation",2017-09-05
+"short","SH","shearing",2017,75.4,266,"Absent","Time-Controlled Rotation",2017-09-23
+"short","SH","shearing",2017,21.6,283,"Absent","Time-Controlled Rotation",2017-10-10
+"short","SH","shearing",2017,43.5,307,"Absent","Time-Controlled Rotation",2017-11-03
+"medium","Sixmile","duck",2017,1,130,"Present","Deferred-Rotation",2017-05-10
+"medium","Sixmile","duck",2017,1732.9,144,"Present","Deferred-Rotation",2017-05-24
+"medium","Sixmile","duck",2017,2419.6,156,"Present","Deferred-Rotation",2017-06-05
+"medium","Sixmile","duck",2017,1732.9,170,"Present","Deferred-Rotation",2017-06-19
+"medium","Sixmile","duck",2017,2419.6,186,"Absent","Deferred-Rotation",2017-07-05
+"medium","Sixmile","duck",2017,1413.6,199,"Present","Deferred-Rotation",2017-07-18
+"medium","Sixmile","duck",2017,1203.3,214,"Absent","Deferred-Rotation",2017-08-02
+"medium","Sixmile","duck",2017,238.2,226,"Present","Deferred-Rotation",2017-08-14
+"medium","Sixmile","duck",2017,410.6,247,"Present","Deferred-Rotation",2017-09-04
+"medium","Sixmile","duck",2017,214.3,266,"Absent","Deferred-Rotation",2017-09-23
+"medium","Sixmile","duck",2017,579.4,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","Sixmile","duck",2017,90.6,307,"Absent","Deferred-Rotation",2017-11-03
+"medium","SOC","newcanyon",2017,10.9,129,"Absent","Deferred-Rotation",2017-05-09
+"medium","SOC","newcanyon",2017,2,143,"Present","Deferred-Rotation",2017-05-23
+"medium","SOC","newcanyon",2017,5.1,157,"Present","Deferred-Rotation",2017-06-06
+"medium","SOC","newcanyon",2017,488.4,170,"Present","Deferred-Rotation",2017-06-19
+"medium","SOC","newcanyon",2017,365.4,186,"Absent","Deferred-Rotation",2017-07-05
+"medium","SOC","newcanyon",2017,184.2,198,"Absent","Deferred-Rotation",2017-07-17
+"medium","SOC","newcanyon",2017,866.4,214,"Absent","Deferred-Rotation",2017-08-02
+"medium","SOC","newcanyon",2017,179.3,227,"Absent","Deferred-Rotation",2017-08-15
+"medium","SOC","newcanyon",2017,241.5,249,"Present","Deferred-Rotation",2017-09-06
+"medium","SOC","newcanyon",2017,41.4,268,"Present","Deferred-Rotation",2017-09-25
+"medium","SOC","newcanyon",2017,35.9,283,"Absent","Deferred-Rotation",2017-10-10
+"medium","SOC","newcanyon",2017,8.6,307,"Absent","Deferred-Rotation",2017-11-03
+"medium","BIG","1000 dollar ridge",2018,1,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","BIG","1000 dollar ridge",2018,5.2,142,"Absent","Deferred-Rotation",2018-05-22
+"medium","BIG","1000 dollar ridge",2018,44.1,158,"Absent","Deferred-Rotation",2018-06-07
+"medium","BIG","1000 dollar ridge",2018,14.4,178,"Absent","Deferred-Rotation",2018-06-27
+"medium","BIG","1000 dollar ridge",2018,75.9,194,"Present","Deferred-Rotation",2018-07-13
+"medium","BIG","1000 dollar ridge",2018,56.1,205,"Present","Deferred-Rotation",2018-07-24
+"medium","BIG","1000 dollar ridge",2018,2419.6,226,"Present","Deferred-Rotation",2018-08-14
+"medium","BIG","1000 dollar ridge",2018,2419.6,244,"Present","Deferred-Rotation",2018-09-01
+"medium","BIG","1000 dollar ridge",2018,38.4,263,"Absent","Deferred-Rotation",2018-09-20
+"medium","BIG","1000 dollar ridge",2018,28.5,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","BIG","1000 dollar ridge",2018,60.2,298,"Absent","Deferred-Rotation",2018-10-25
+"medium","Duck","duck",2018,1,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","Duck","duck",2018,11,142,"Absent","Deferred-Rotation",2018-05-22
+"medium","Duck","duck",2018,31.1,158,"Absent","Deferred-Rotation",2018-06-07
+"medium","Duck","duck",2018,1986.3,178,"Present","Deferred-Rotation",2018-06-27
+"medium","Duck","duck",2018,365.4,194,"Absent","Deferred-Rotation",2018-07-13
+"medium","Duck","duck",2018,139.6,207,"Absent","Deferred-Rotation",2018-07-26
+"medium","Duck","duck",2018,83.3,226,"Absent","Deferred-Rotation",2018-08-14
+"medium","Duck","duck",2018,23.8,244,"Absent","Deferred-Rotation",2018-09-01
+"medium","Duck","duck",2018,47.1,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","Duck","duck",2018,36.4,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","Duck","duck",2018,2,300,"Absent","Deferred-Rotation",2018-10-27
+"long","Lake","laketown",2018,24.3,124,"Absent","Continuous-Turnout",2018-05-04
+"long","Lake","laketown",2018,2,142,"Absent","Continuous-Turnout",2018-05-22
+"long","Lake","laketown",2018,49.5,158,"Present","Continuous-Turnout",2018-06-07
+"long","Lake","laketown",2018,228.2,181,"Present","Continuous-Turnout",2018-06-30
+"long","Lake","laketown",2018,579.4,194,"Present","Continuous-Turnout",2018-07-13
+"long","Lake","laketown",2018,2419.6,207,"Present","Continuous-Turnout",2018-07-26
+"long","Lake","laketown",2018,770.1,226,"Present","Continuous-Turnout",2018-08-14
+"long","Lake","laketown",2018,727,244,"Present","Continuous-Turnout",2018-09-01
+"long","Lake","laketown",2018,186,263,"Absent","Continuous-Turnout",2018-09-20
+"long","Lake","laketown",2018,1299.7,273,"Absent","Continuous-Turnout",2018-09-30
+"long","Lake","laketown",2018,770.1,300,"Absent","Continuous-Turnout",2018-10-27
+"medium","MOC","newcanyon",2018,47.1,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","MOC","newcanyon",2018,81.6,142,"Present","Deferred-Rotation",2018-05-22
+"medium","MOC","newcanyon",2018,98.3,158,"Present","Deferred-Rotation",2018-06-07
+"medium","MOC","newcanyon",2018,275.5,178,"Present","Deferred-Rotation",2018-06-27
+"medium","MOC","newcanyon",2018,80.39,194,"Present","Deferred-Rotation",2018-07-13
+"medium","MOC","newcanyon",2018,70,205,"Absent","Deferred-Rotation",2018-07-24
+"medium","MOC","newcanyon",2018,14.4,226,"Absent","Deferred-Rotation",2018-08-14
+"medium","MOC","newcanyon",2018,4.1,244,"Absent","Deferred-Rotation",2018-09-01
+"medium","MOC","newcanyon",2018,4.1,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","MOC","newcanyon",2018,14.6,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","MOC","newcanyon",2018,6.3,300,"Absent","Deferred-Rotation",2018-10-27
+"medium","NOC","newcanyon",2018,2,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","NOC","newcanyon",2018,686.7,142,"Present","Deferred-Rotation",2018-05-22
+"medium","NOC","newcanyon",2018,2419.6,158,"Present","Deferred-Rotation",2018-06-07
+"medium","NOC","newcanyon",2018,1553.1,178,"Present","Deferred-Rotation",2018-06-27
+"medium","NOC","newcanyon",2018,689.3,194,"Present","Deferred-Rotation",2018-07-13
+"medium","NOC","newcanyon",2018,304.4,205,"Absent","Deferred-Rotation",2018-07-24
+"medium","NOC","newcanyon",2018,74.9,226,"Absent","Deferred-Rotation",2018-08-14
+"medium","NOC","newcanyon",2018,13.5,244,"Absent","Deferred-Rotation",2018-09-01
+"medium","NOC","newcanyon",2018,27.9,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","NOC","newcanyon",2018,10.7,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","NOC","newcanyon",2018,11,300,"Absent","Deferred-Rotation",2018-10-27
+"long","NSC","sage",2018,1,124,"Absent","Continuous-Turnout",2018-05-04
+"long","NSC","sage",2018,1046.2,142,"Present","Continuous-Turnout",2018-05-22
+"long","NSC","sage",2018,1732.9,158,"Present","Continuous-Turnout",2018-06-07
+"long","NSC","sage",2018,2419.6,179,"Present","Continuous-Turnout",2018-06-28
+"long","NSC","sage",2018,2419.6,194,"Present","Continuous-Turnout",2018-07-13
+"long","NSC","sage",2018,2419.6,205,"Present","Continuous-Turnout",2018-07-24
+"long","NSC","sage",2018,2419.6,226,"Present","Continuous-Turnout",2018-08-14
+"long","NSC","sage",2018,2419.6,244,"Present","Continuous-Turnout",2018-09-01
+"long","NSC","sage",2018,1203.3,262,"Present","Continuous-Turnout",2018-09-19
+"long","NSC","sage",2018,816.4,272,"Absent","Continuous-Turnout",2018-09-29
+"long","NSC","sage",2018,151.5,300,"Absent","Continuous-Turnout",2018-10-27
+"medium","RAN","1000 dollar ridge",2018,1,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","RAN","1000 dollar ridge",2018,40.8,142,"Absent","Deferred-Rotation",2018-05-22
+"medium","RAN","1000 dollar ridge",2018,8.5,158,"Absent","Deferred-Rotation",2018-06-07
+"medium","RAN","1000 dollar ridge",2018,8.4,178,"Absent","Deferred-Rotation",2018-06-27
+"medium","RAN","1000 dollar ridge",2018,686.7,194,"Present","Deferred-Rotation",2018-07-13
+"medium","RAN","1000 dollar ridge",2018,1413.6,205,"Present","Deferred-Rotation",2018-07-24
+"medium","RAN","1000 dollar ridge",2018,2419.6,226,"Present","Deferred-Rotation",2018-08-14
+"medium","RAN","1000 dollar ridge",2018,275.5,244,"Present","Deferred-Rotation",2018-09-01
+"medium","RAN","1000 dollar ridge",2018,47.1,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","RAN","1000 dollar ridge",2018,31.5,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","RAN","1000 dollar ridge",2018,17.5,298,"Absent","Deferred-Rotation",2018-10-25
+"long","SC","sage",2018,3.1,124,"Absent","Continuous-Turnout",2018-05-04
+"long","SC","sage",2018,686.7,142,"Present","Continuous-Turnout",2018-05-22
+"long","SC","sage",2018,2419.6,158,"Present","Continuous-Turnout",2018-06-07
+"long","SC","sage",2018,1203.3,179,"Present","Continuous-Turnout",2018-06-28
+"long","SC","sage",2018,1413.6,194,"Present","Continuous-Turnout",2018-07-13
+"long","SC","sage",2018,2419.6,205,"Present","Continuous-Turnout",2018-07-24
+"long","SC","sage",2018,1986.3,226,"Present","Continuous-Turnout",2018-08-14
+"long","SC","sage",2018,2419.6,244,"Present","Continuous-Turnout",2018-09-01
+"long","SC","sage",2018,1986.3,262,"Present","Continuous-Turnout",2018-09-19
+"long","SC","sage",2018,1203.3,272,"Absent","Continuous-Turnout",2018-09-29
+"long","SC","sage",2018,178,300,"Absent","Continuous-Turnout",2018-10-27
+"short","SH","shearing",2018,111.2,142,"Present","Time-Controlled Rotation",2018-05-22
+"short","SH","shearing",2018,2419.6,158,"Present","Time-Controlled Rotation",2018-06-07
+"short","SH","shearing",2018,648.8,179,"Absent","Time-Controlled Rotation",2018-06-28
+"short","SH","shearing",2018,727,194,"Absent","Time-Controlled Rotation",2018-07-13
+"short","SH","shearing",2018,185,205,"Absent","Time-Controlled Rotation",2018-07-24
+"short","SH","shearing",2018,81.6,226,"Absent","Time-Controlled Rotation",2018-08-14
+"short","SH","shearing",2018,39.3,244,"Absent","Time-Controlled Rotation",2018-09-01
+"short","SH","shearing",2018,21.1,263,"Absent","Time-Controlled Rotation",2018-09-20
+"short","SH","shearing",2018,30.5,272,"Absent","Time-Controlled Rotation",2018-09-29
+"short","SH","shearing",2018,4.1,300,"Absent","Time-Controlled Rotation",2018-10-27
+"medium","Sixmile","duck",2018,4.1,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","Sixmile","duck",2018,16.1,142,"Absent","Deferred-Rotation",2018-05-22
+"medium","Sixmile","duck",2018,9.7,158,"Absent","Deferred-Rotation",2018-06-07
+"medium","Sixmile","duck",2018,2419.6,178,"Present","Deferred-Rotation",2018-06-27
+"medium","Sixmile","duck",2018,1732.9,194,"Absent","Deferred-Rotation",2018-07-13
+"medium","Sixmile","duck",2018,579.4,207,"Absent","Deferred-Rotation",2018-07-26
+"medium","Sixmile","duck",2018,42.6,226,"Absent","Deferred-Rotation",2018-08-14
+"medium","Sixmile","duck",2018,73.3,244,"Absent","Deferred-Rotation",2018-09-01
+"medium","Sixmile","duck",2018,113.7,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","Sixmile","duck",2018,39.9,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","Sixmile","duck",2018,60.5,300,"Absent","Deferred-Rotation",2018-10-27
+"medium","SOC","newcanyon",2018,17.5,124,"Absent","Deferred-Rotation",2018-05-04
+"medium","SOC","newcanyon",2018,2,142,"Present","Deferred-Rotation",2018-05-22
+"medium","SOC","newcanyon",2018,1553.1,158,"Present","Deferred-Rotation",2018-06-07
+"medium","SOC","newcanyon",2018,1732.9,178,"Present","Deferred-Rotation",2018-06-27
+"medium","SOC","newcanyon",2018,117.8,194,"Present","Deferred-Rotation",2018-07-13
+"medium","SOC","newcanyon",2018,920.8,205,"Absent","Deferred-Rotation",2018-07-24
+"medium","SOC","newcanyon",2018,2419.6,226,"Absent","Deferred-Rotation",2018-08-14
+"medium","SOC","newcanyon",2018,195.6,244,"Absent","Deferred-Rotation",2018-09-01
+"medium","SOC","newcanyon",2018,25.3,262,"Absent","Deferred-Rotation",2018-09-19
+"medium","SOC","newcanyon",2018,20.9,272,"Absent","Deferred-Rotation",2018-09-29
+"medium","SOC","newcanyon",2018,52.1,300,"Absent","Deferred-Rotation",2018-10-27

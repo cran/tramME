@@ -9,32 +9,35 @@
   parm = NULL,
   level = 0.95,
   as.lm = FALSE,
-  pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+  pargroup = c("all", "fixef", "ranef"),
   type = c("Wald", "wald", "profile"),
   estimate = FALSE,
-  pmatch = FALSE,
   ...
 )
 }
 \arguments{
 \item{object}{An \code{LmME} object.}
 
-\item{parm}{The indeces or names of the parameters of interest. See in details.}
+\item{parm}{Names of the parameters to extract.}
 
 \item{level}{Confidence level.}
 
 \item{as.lm}{Logical. If \code{TRUE}, return results consistent with the normal linear
 mixed model parametrization.}
 
-\item{pargroup}{fixef: fixed-effects, shift: shift parameters, all: fixed
-effects and variance component parameters, baseline: parameters of the
-baseline transformation function, ranef: variance components parameters.}
+\item{pargroup}{The name of the parameter group to extract. With \code{as.lm = FALSE},
+the available options are described in \code{confint.tramME}. When \code{as.lm = TRUE},
+the following options are available:
+\itemize{
+  \item all: Fixed effects and variance components parameters.
+  \item fixef: Fixed effects parameters (including FE parameters of the smooth terms).
+  \item ranef: Variance components parameters (including the smoothing parameters of
+    the random effects).
+}}
 
 \item{type}{Type of the CI: either Wald or profile.}
 
 \item{estimate}{Logical, add the point estimates in a thrid column.}
-
-\item{pmatch}{Logical. If \code{TRUE}, partial name matching is allowed.}
 
 \item{...}{Optional parameters passed to \code{confint.tramME}}
 }

@@ -1,9 +1,10 @@
 ##' Set coefficients of a tramME model.
 ##'
-##' Sets the whole vector of coefficients of a tramME model. The parameters of
-##' the baseline transformation function should respect the restrictions of
-##' the parameter space. This is checked before setting the new parameter values
-##' provided that the parameters for the variance components has already been set.
+##' Sets the whole vector of fixed-effects coefficients of a tramME model.
+##' The parameters of the baseline transformation function should respect the
+##' restrictions of the parameter space. This is checked before setting the new
+##' parameter values provided that the parameters for the variance components has
+##' already been set.
 ##' If the model contains fixed coefficient parameters, the input should also respect
 ##' that.
 ##' When called on a fitted tram object, the function sets it to unfitted and removes
@@ -19,7 +20,19 @@
 ##' @export
 "coef<-.tramME" <- function(object, value) {
   object <- duplicate(object) ## NOTE: force copy
-  object$param <- .set_cf(object, value)
+  pr <- .get_par(object$tmb_obj, fixed = FALSE)
+  nb0 <- length(pr$beta0)
+  nb <- length(pr$beta)
+  stopifnot(length(value) == (nb0 + nb))
+  if (all(!is.na(value)) && all(!is.na(object$param$theta))) { ## NOTE: check constraints and update tmb
+    if (!.check_par(object$tmb_obj, c(value, object$param$theta))) {
+      stop(paste("The assigned parameter values do not satisfy the constraints",
+                 "implied by the model.\n\t",
+                 "Please check BOTH coef and varcov."))
+    }
+  }
+  pr <- .get_par(object$tmb_obj, c(value, object$param$theta)) ## NOTE: to handle fixed values
+  object$param$beta[] <- c(pr$beta0, pr$beta)
   if (!is.null(object$opt)) {
     warning(paste("The model object has already been fitted.",
                   "Removing optimization results."))
@@ -52,12 +65,16 @@
 ##'
 ##' The new values can also be supplied in a form that corresponds to the reparametrization
 ##' used by the \code{tramTMB} model (see the option \code{as.theta = TRUE}).
+##'
+##' All random effects variance parameters must be supplied. When there are penalized smooth
+##' terms in the model variance parameters corresponding to these should also be part of the
+##' input list.
 ##' @param object A \code{tramME} object.
 ##' @param value A list of positive definite covariance matrices.
 ##' @param as.theta Logical value, if \code{TRUE}, indicating that the new values are supplied
 ##'   in their reparameterized form.
 ##' @param ... Optional arguments (ignored).
-##' @return A  \code{tramME} object with the new coefficient values.
+##' @return A new \code{tramME} object with the new coefficient values.
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' mod <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE)
@@ -65,9 +82,42 @@
 ##' vc[[1]] <- matrix(c(1, 0, 0, 2), ncol = 2)
 ##' varcov(mod) <- vc
 ##' @export
+## TODO: It does not support fixed parameter values for theta/varcov atm
 "varcov<-.tramME" <- function(object, as.theta = FALSE, ..., value) {
   object <- duplicate(object) ## NOTE: force copy
-  object$param <- .set_vc(object, val = value, as.theta = as.theta)
+  ## object$param <- .set_vc(object, val = value, as.theta = as.theta)
+  att <- attributes(object$param)
+  bls <- c(att$re$blocksize, rep(1, length(att$sm$re_dims)))
+  if (!as.theta) {
+    stopifnot(identical(lapply(value, dim), lapply(object$param$varcov, dim)))
+    stopifnot(all(sapply(value, is.pd)))
+    th_ <- .vc2th(value, bls)
+  } else {
+    stopifnot(length(value) == length(.get_par(object$tmb_obj, fixed = FALSE)$theta))
+    th_ <- value
+  }
+  if (all(!is.na(object$param$beta)) && all(!is.null(th_))) { ## NOTE: check constraints and update tmb
+    if (!is.null(object$tmb_obj$env$map$beta))
+      b_ <- object$param$beta[!is.na(object$tmb_obj$env$map$beta)]
+    else b_ <- object$param$beta
+    if (!.check_par(object$tmb_obj, c(b_, th_))) {
+      stop(paste("The assigned parameter values do not satisfy the constraints",
+                 "implied by the model.\n\t",
+                 "Please check BOTH coef and varcov."))
+    }
+  }
+  vc_ <- object$param$varcov
+  if (as.theta) {
+    val_ <- .th2vc(value, bls)
+  } else {
+    val_ <- value
+  }
+  ## FIXME: .upd_param could be used here
+  object$param$theta[] <- th_
+  att <- attributes(object$param$varcov)
+  object$param$varcov <- mapply(function(old, new) {old[] <- new[]; old}, ## NOTE: to keep the names
+                                vc_, val_, SIMPLIFY = FALSE)
+  attributes(object$param$varcov) <- att
   if (!is.null(object$opt)) {
     warning(paste("The model object has already been fitted.",
                   "Removing optimization results."))
@@ -94,6 +144,9 @@ varcov <- function(object, ...)
 ##' @param object A \code{tramME} object.
 ##' @param as.theta Logical value, if \code{TRUE}, the values are returned
 ##'   in their reparameterized form.
+##' @param full Logical value; if \code{TRUE}, return all random effects elements,
+##'   if \code{FALSE}, do not return the random effects parameters of the smooth
+##'   terms.
 ##' @param ... Optional arguments (unused).
 ##' @return A list of the covariance matrices or a vector of theta values.
 ##' @examples
@@ -102,14 +155,32 @@ varcov <- function(object, ...)
 ##' varcov(fit)
 ##' varcov(fit, as.theta = TRUE)
 ##' @export
-varcov.tramME <- function(object, as.theta = FALSE, ...) {
-  .get_vc(object, as.theta = as.theta)
+## FIXME: fixed parameters?
+varcov.tramME <- function(object, as.theta = FALSE, full = FALSE, ...) {
+  ## ty <- attr(object$param$theta, "type")
+  if (!as.theta) {
+    bls <- c(attr(object$param, "re")$blocksize,
+             rep(1, length(attr(object$param, "sm")$re_dims)))
+    ## ty <- ty[cumsum(bls * (bls + 1) / 2)]
+    ty <- attr(object$param$varcov, "type")
+    out <- object$param$varcov
+  } else {
+    ty <- attr(object$param$theta, "type")
+    out <- object$param$theta
+  }
+  if (full) {
+    g <- rep(TRUE, length(ty))
+  } else {
+    g <- ty == "re"
+  }
+  return(out[g])
 }
 
 
 ##' Extract the coefficients of the fixed effects terms.
 ##' @param object A \code{tramME} object.
-##' @param with_baseline If \code{TRUE}, also include the baseline parameters.
+##' @param with_baseline If \code{TRUE}, also include the baseline parameters and the
+##'   fixed effects parameters from the smooth terms.
 ##' @param fixed If \code{TRUE}, also include the fixed parameters.
 ##' @param ... Optional parameters (ignored).
 ##' @return Numeric vector of parameter values.
@@ -121,40 +192,135 @@ varcov.tramME <- function(object, as.theta = FALSE, ...) {
 ##' coef(mod, with_baseline = TRUE, fixed = FALSE)
 ##' @importFrom stats coef
 ##' @export
+## FIXME: should probably rename with_baseline to full but keep with_baseline for backward compatibility
 coef.tramME <- function(object, with_baseline = FALSE, fixed = TRUE, ...) {
-  cf <- .get_cf(object)
-  if (with_baseline)
-    pargroup <- "fixef"
-  else pargroup <- "shift"
-  cf[.idx(object, fixed = fixed, pargroup = pargroup)]
+  cf <- object$param$beta
+  g <- rep(TRUE, length(cf))
+  if (!with_baseline)
+    g <- g & (attr(cf, "type") == "sh")
+  if (!fixed)
+    g <- g & !attr(cf, "fixed")
+  cf[g]
 }
 
 
-##' Get the log-likelihood of the model
+##' Get the log-likelihood of the tramME model
+##'
+##' Evaluates the log-likelihood function. New parameter values and data can
+##' optionally be supplied. In the latter case, the function returns the
+##' out-of-sample log-likelihood.
+##'
+##' @details
+##'
+##' By default, \code{param} is set to the estimated (or previously set)
+##'   parameters. If the parameter vectors in the model are incomplete (contain
+##'   \code{NA} elemets), the returned log-likelihood will also be \code{NA},
+##'   unless the user provides new values.
+##'
+##' Setting \code{type = "fix_smooth"} fixes the random effects terms that
+##'   correspond to penalized smooths at their estimated values, so that they
+##'   are not refitted when \code{newdata} is supplied. This is consistent with
+##'   treating these parameter regularized fixed terms, i.e. as 'new-style'
+##'   random effects described by Hodges (2014, Chapter 13).
+##'
+##' The \code{"fix_smooth"} and \code{"penalized"} options for \code{type} are
+##'   just for convenience.  The same functionality can be achieved by setting
+##'   \code{param$gamma} to the desired values.  \code{"penalized"} respects the
+##'   values of \code{param$gamma} if both are supplied, while
+##'   \code{"fix_smooth"} overwrites them with the fitted values if there are
+##'   ambiguities.
+##'
+##' @section Type of the log-likelihood:
+##'
+##' By default, \code{logLik} calculates the _integrated_ (or marginal)
+##'   log-likelihood by integrating over the random effects. By fixing the
+##'   random effects, the value of the log-likelihood changes, because TMB won't
+##'   integrate over these random effects.  This will result in the _penalized_
+##'   log-likelihood (conditional log-likelihood + penalty for smooth terms and
+##'   random effects, see example).
+##'
+##' By setting \code{type = "penalized"}, the function will 'fix' all random
+##'   effects and penalized parameters of the smooth terms at their predicted
+##'   levels, and calcualte the penalized log-likelihood. In this sense, setting
+##'   \code{type = "fix_smooth"} will result in a hybrid log-likelihood value,
+##'   where the 'true' random effects (c.f.  Hodges 2014, Ch. 13) are integrated
+##'   out, while it includes the penalty values for the penalized parameters of
+##'   the smooths terms.
+##'
+##' In general, it is not clear which type of log-likelihood we should calculate
+##'   when we want to evaluate models based on their out-of-sample
+##'   log-likelihood values.  The context and the model setup are key in these
+##'   cases. Please make sure you know what you want to calculate to avoid
+##'   misunderstandings.
+##'
+##' @references
+##'
+##' Hodges, James S. (2014). Richly Parameterized Linear Models: Additive, Time
+##'   Series, and Spatial Models Using Random Effects. Chapman & Hall/CRC Texts
+##'   in Statistical Science Series.
+##'
 ##' @param object A \code{tramME} object.
-##' @param param An optional vector of parameter values in the structure
-##'   (beta, theta).
+##' @param param An optional named list of parameter values (beta and theta).
+##'   See details.  Optionally, gamma elements can also be added, which leads to
+##'   'fixing' those random effects terms at the supplied values.
 ##' @param newdata An optional data.frame to calculate the out-of-sample
 ##'   log-likelihood.
+##' @param type The type of the likelihood to be calculated:
+##'   \itemize{
+##'     \item integrated (default when \code{newdata = NULL}): The marginal
+##'           log-likelihood, calculated by integrating out the random effects.
+##'     \item fix_smooth (default when \code{newdata} is supplied): Treating the
+##'           penalized parameters of the smooth terms as fixed at their
+##'           posterior mode predictions and only integrating out the 'true'
+##'           random effects. (Consistent with the functionality of
+##'           \code{\link[tramME]{ranef.tramME}} and
+##'           \code{\link[tramME]{residuals.tramME}} when
+##'           \code{fix_smooth = TRUE}.)
+##'     \item penalized: Treat all parameters as fixed, return the penalized
+##'           log-likelihood (conditional log-likelihood + penalty for smooth
+##'           terms and random effects). This is equivalent to fixing all random
+##'           effect values.
+##'   }
+##'   See details.
 ##' @param ... Optional argument (for consistency with generic).
 ##' @return A numeric value of the log-likelihood.
+##'
 ##' @examples
+##'
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
 ##' logLik(fit)
+##'
+##' data("mcycle", package = "MASS")
+##' fit <- LmME(accel ~ s(times), data = mcycle)
+##' logLik(fit) < logLik(fit, type = "penalized")
+##'
 ##' @importFrom stats logLik update
 ##' @export
-## FIXME: weights & offset arguments. Maybe taking do_update of the object into account.
-logLik.tramME <- function(object,
-                          param = c(coef(object, with_baseline = TRUE, fixed = FALSE),
-                                  varcov(object, as.theta = TRUE)),
-                          newdata = NULL, ...) {
-  np <- length(coef(object, with_baseline = TRUE, fixed = FALSE)) +
-    length(varcov(object, as.theta = TRUE))
-  stopifnot(length(param) == np)
-  if (!is.null(newdata)) {
-    object <- update(object, ctm = object$model$ctm, data = newdata, nofit = TRUE)
+## TODO: weights & offset arguments. Maybe taking do_update of the object into account.
+## TODO: option to calculate the 'unpenalized' logLik
+## TODO: what should we use for OOS loglik (w/ REs + smooths) integrated? penalized?
+## unpenalized? partially integrated/penalized?
+logLik.tramME <- function(object, param = NULL, newdata = NULL,
+                          type = c("integrated", "fix_smooth", "penalized"),
+                          ...) {
+  type <- match.arg(type, several.ok = TRUE)
+  if (!is.null(newdata) && length(type) > 1) type <- "fix_smooth"
+  else type <- type[1L]
+  rf <- switch(type, fix_smooth = "smooth", penalized = "all", 0)
+  param <- .default_param(object, param, rf)
+
+  if (!is.null(newdata) || !is.null(param$gamma)) {
+    if (!is.null(param$gamma))
+      object$call$fixed[names(param$gamma)] <- param$gamma
+    ex <- quote(update(object, ctm = object$model$ctm,
+                       smooth = .tramME_smooth(object),
+                       nofit = TRUE))
+    if (!is.null(newdata))
+      ex$data <- quote(newdata)
+    object <- eval(ex)
   }
+  param <- c(param$beta, param$theta)
   if (any(is.na(param))) {
     ll <- NA
   } else {
@@ -189,6 +355,7 @@ logLik.tramME <- function(object,
 ##' anova(mod1, mod2)
 ##' @importFrom stats anova pchisq
 ##' @export
+## TODO: more than two models
 anova.tramME <- function(object, object2, ...) {
   stopifnot(inherits(object2, "tramME"))
   ll_  <- lapply(list(object, object2), logLik)
@@ -240,9 +407,16 @@ print.anova.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L),
 ##' partial matching of parameter names is allowed.
 ##' @param object A fitted tramME object.
 ##' @param parm The indeces or names of the parameters of interest. See in details.
-##' @param pargroup fixef: fixed-effects, shift: shift parameters, all: fixed
-##'   effects and variance component parameters, baseline: parameters of the
-##'   baseline transformation function, ranef: variance components parameters.
+##' @param pargroup The name of the parameter group to return:
+##'   \itemize{
+##'     \item all: All parameters.
+##'     \item fixef: Fixed effects parameters.
+##'     \item shift: Shift parameters.
+##'     \item baseline: Parameters of the baseline transformation function.
+##'     \item ranef: Variance components parameters.
+##'     \item smooth: Paramaters that belong to the smooth shift terms
+##'       (both FE and smoothing parameters).
+##'   }
 ##' @param pmatch Logical. If \code{TRUE}, partial name matching is allowed.
 ##' @param ... Optional arguments passed to \code{vcov.tramTMB}
 ##' @return A numeric covariance matrix.
@@ -255,13 +429,13 @@ print.anova.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L),
 ##' vcov(fit, parm = "Reaction") ## same as previous
 ##' @importFrom stats vcov
 ##' @export
+## FIXME: vcov of penalized parameters of smooth terms (random effects)
 vcov.tramME <- function(object, parm = NULL,
-                       pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
-                       pmatch = FALSE, ...) {
+                        pargroup = c("all", "fixef", "shift", "baseline", "ranef", "smooth"),
+                        pmatch = FALSE, ...) {
   pargroup <- match.arg(pargroup)
-
-  b <- .get_cf(object)[.idx(object, fixed = FALSE, pargroup = "fixef")]
-  th <- .get_vc(object, as.theta = TRUE)
+  b <- coef(object, with_baseline = TRUE, fixed = FALSE)
+  th <- varcov(object, as.theta = TRUE, full = TRUE)
   pr <- c(b, th)
   if (any(is.na(pr))) {
     out <- matrix(NA, nrow = length(pr), ncol = length(pr))
@@ -270,7 +444,7 @@ vcov.tramME <- function(object, parm = NULL,
       out <- vcov(object$tmb_obj, par = pr, ...) ## if method is specified try that
     } else {
       if (is.null(object$tmb_obj$env$random) && !object$tmb_obj$env$resid) {
-        method <- "analytical" ## when anylitical makes sense do that
+        method <- "analytical" ## when analytical makes sense do that
       } else method <- "optimHess" ## default
       out <- try(vcov(object$tmb_obj, par = pr, method = method, ...), silent = TRUE)
       if (inherits(out, "try-error")) {
@@ -279,17 +453,57 @@ vcov.tramME <- function(object, parm = NULL,
       }
     }
   }
-  idx <- .idx(object, pargroup = pargroup, which = parm, pmatch = pmatch)
-  out <- as.matrix(out[idx, idx])
-  colnames(out) <- names(idx)
-  rownames(out) <- names(idx)
+  g <- .choose_parm(object, parm = parm, pargroup = pargroup, pmatch = pmatch,
+                    fixed = FALSE)
+  out <- out[g, g, drop = FALSE]
+  colnames(out) <- rownames(out) <- names(g[g])
   return(out)
 }
 
+## FIXME: move to util
+.choose_parm <- function(object, parm, pargroup, pmatch, fixed = FALSE) {
+  b  <- coef(object, with_baseline = TRUE, fixed = TRUE)
+  th <- varcov(object, as.theta = TRUE, full = TRUE)
+  nm <- c(names(b), names(th))
+  fx <- c(attr(object$param$beta, "fixed"), attr(object$param$theta, "fixed"))
+  ty <- c(attr(object$param$beta, "type"), attr(object$param$theta, "type"))
+  if (!fixed) {
+    ty <- ty[!fx]
+    nm <- nm[!fx]
+  }
+  g  <- switch(pargroup, all = rep(TRUE, length(ty)), fixef = ty %in% c("bl", "sh"),
+               shift = ty == "sh", baseline = ty == "bl", ranef = ty == "re",
+               smooth = ty == "sm")
+  if (is.character(parm)) {
+    if (pmatch) {
+      g2 <- lapply(parm, grepl, nm)
+      if (length(g2) > 1) {
+        g2 <- do.call("|", g2)
+      } else {
+        g2 <- g2[[1]]
+      }
+      g <- g & g2
+    } else {
+      g <- g & (nm %in% parm)
+    }
+  }
+  if (is.numeric(parm)) {
+    g2 <- seq_along(g)
+    g2[g] <- seq_along(g2[g])
+    g2[!g] <- 0
+    g <- g2 %in% parm
+  }
+  names(g) <- nm
+  g
+}
 
 ##' Variances and correlation matrices of random effects
 ##'
 ##' This function calculates the variances and correlations from \code{varcov.tramME}.
+##'
+##' The function only returns the correlation matrices that belong to actual random effects
+##' (defined for groups in the data) and ignores the random effects parameters of the smooth
+##' shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
 ##' @param x A \code{tramME} object
 ##' @param ... optional arguments (for consistency with the generic method)
 ##' @return A list of vectors with variances and correlation matrices corresponding to the
@@ -303,7 +517,7 @@ vcov.tramME <- function(object, parm = NULL,
 ##' @export VarCorr
 ##' @export
 VarCorr.tramME <- function(x, ...) {
-  vc <- varcov(x)
+  vc <- varcov(x, full = FALSE)
   if (!is.list(vc)) {
     out <- list()
   } else {
@@ -367,17 +581,24 @@ print.VarCorr.tramME <- function(x, sd = TRUE,
 
 ##' Return variable names.
 ##'
-##' Returns the variable names corresponding the selected group.
+##' Returns the variable names corresponding to different variable groups in a tramME
+##' model.
+##'
+##' @details
 ##' The returned names are the names as they are used by tramME. For example,
 ##' when the response is a \code{Surv} object, \code{variable.names} returns
 ##' the name of that object, and not the names of the variables used to create it.
+##'
 ##' @param object a tramME object (fitted or unfitted)
 ##' @param which \enumerate{
 ##'   \item all: all variables,
 ##'   \item response: response variable,
 ##'   \item grouping: grouping factors for random effects,
 ##'   \item shifting: shifting variables,
-##'   \item interacting: interacting variables.
+##'   \item interacting: interacting variables,
+##'   \item smooth: variables in smooth terms,
+##'   \item ranef: all random effects variables (covariates with random slopes and grouping
+##'   factors).
 ##'   }
 ##' @param ... optional parameters
 ##' @return A vector of variable names.
@@ -388,16 +609,31 @@ print.VarCorr.tramME <- function(x, sd = TRUE,
 ##' variable.names(mod, "response")
 ##' @importFrom stats variable.names
 ##' @export
-## NOTE: Should REs w/o corresponding FE be addedd to shifting?
+## FIXME: Should REs w/o corresponding FE be addedd to shifting?
 variable.names.tramME <- function(object,
-    which = c("all", "response", "grouping", "shifting", "interacting"), ...) {
+  which = c("all", "response", "grouping", "shifting", "interacting", "smooth",
+            "ranef"),
+  ...) {
+  uuapply <- function(x, fun)  unique(unlist(lapply(x, fun)))
+  chv2av <- function(x) uuapply(x, function(y) all.vars(str2lang(y)))
   which <- match.arg(which)
   unname(switch(which,
     grouping = {
-      unique(unlist(sapply(object$model$ranef, function(x) all.vars(x[[3]]))))
+      uuapply(object$model$ranef, function(x) all.vars(x[[3]]))
     },
-    all = c(variable.names(object$model$ctm, which = "all", ...),
-            variable.names(object, which = "grouping", ...)),
+    ranef = {
+      uuapply(object$model$ranef, function(x) all.vars(x))
+    },
+    smooth = {
+      uuapply(object$model$smooth, function(x) {
+        v <- x$term
+        if (x$by != "NA") v <- c(v, x$by)
+        chv2av(v)
+      })
+    },
+    all = unique(c(variable.names(object$model$ctm, which = "all", ...),
+                   variable.names(object, which = "smooth", ...),
+                   variable.names(object, which = "ranef", ...))),
     variable.names(object$model$ctm, which = which, ...)))
 }
 
@@ -425,9 +661,10 @@ variable.names.tramME <- function(object,
 ##' exp(confint(fit, 1:2, pargroup = "ranef")) ## CIs for the SDs of the REs
 ##' @importFrom stats confint qnorm qchisq
 ##' @export
+## TODO: add bootstrap, calculate CIs for random effects (e.g. parameters of smooth terms)
 confint.tramME <- function(object, parm = NULL,
                            level = 0.95,
-                           pargroup = c("all", "fixef", "shift", "baseline", "ranef"),
+                           pargroup = c("all", "fixef", "shift", "baseline", "ranef", "smooth"),
                            type = c("Wald", "wald", "profile"),
                            estimate = FALSE,
                            pmatch = FALSE,
@@ -438,12 +675,15 @@ confint.tramME <- function(object, parm = NULL,
   pargroup <- match.arg(pargroup)
   plist <- .parallel_default(parallel, ncpus)
 
-  ## --- Indices, point estimates
-  b <- .get_cf(object)[.idx(object, fixed = FALSE, pargroup = "fixef")]
-  th <- .get_vc(object, as.theta = TRUE)
+  ## --- Point estimates
+  b <- coef(object, with_baseline = TRUE, fixed = FALSE)
+  th <- varcov(object, as.theta = TRUE, full = TRUE)
   pr <- c(b, th)
 
-  idx <- .idx(object, pargroup = pargroup, which = parm, pmatch = pmatch)
+  ## --- Select parameters
+  g <- .choose_parm(object, parm = parm, pargroup = pargroup, pmatch = pmatch,
+                    fixed = FALSE)
+  idx <- which(g)
   par <- pr[idx]
 
   if (any(is.na(pr)) || length(par) == 0) {
@@ -471,7 +711,7 @@ confint.tramME <- function(object, parm = NULL,
       if (plist$parallel == "multicore") {
         ci <- parallel::mclapply(idx, fun, mc.cores = ncpus)
       } else if (plist$parallel == "snow") {
-        ## FIXME: add snow support
+        ## TODO: add snow support
         stop("No snow support yet")
       }
     } else {
@@ -481,7 +721,7 @@ confint.tramME <- function(object, parm = NULL,
   }
 
   colnames(ci) <- c("lwr", "upr")
-  rownames(ci) <- names(idx)
+  rownames(ci) <- names(g[g])
   if (estimate) {
     ci <- cbind(ci, par)
     colnames(ci) <- c("lwr", "upr", "est")
@@ -490,66 +730,114 @@ confint.tramME <- function(object, parm = NULL,
 }
 
 
-##' Extract the conditional modes and conditional variances of random effects
+##' Point estimates and conditional variances of random effects.
 ##'
-##' @param object A \code{tramME} object.
-##' @param param An optional vector of parameter values in the structure
-##'   (beta, theta).
+##' Extract the conditional modes and conditional variances of random effects in
+##' a formatted or unformatted way.
+##'
+##' @details
+##'
+##' \code{raw = TRUE} returns the whole vector of random effects (i.e. with
+##'   parameters of smooth shift terms), while \code{raw = FALSE} only returns
+##'   the formatted list of actual random effects (i.e. for grouped
+##'   observations) values. For the conceptual differences between the two types
+##'   of random effects, see Hodges (2014, Chapter 13).
+##'
+##' The conditional variances of the fixed random effects are set to \code{NA}.
+##'
+##' @section Warning:
+##'
+##' The function has several optional arguments that allow great flexibilty
+##'   beyond its most basic usage. The user should be careful with setting
+##'   these, because some combinations might not return sensical results.  Only
+##'   limited sanity checks are performed.
+##'
+##' @inherit logLik.tramME references
+##' @inheritParams logLik.tramME
 ##' @param newdata An optional \code{data.frame} of new observations for which the
 ##'   new random effects values are predicted.
+##' @param fix_smooth Logical; it is set to \code{TRUE} by default, if
+##'   \code{newdata} is supplied.  The random effects parameters corresponding
+##'   the smooth terms are fixed and not fitted (posterior mode) to
+##'   \code{newdata} instead they are treated just like fixed effects
+##'   parameters. See details.
 ##' @param condVar If \code{TRUE}, include the conditional variances as attributes.
+##'   Only works with \code{raw = FALSE}.
 ##' @param raw Return the unformatted RE estimates as fitted by the model.
 ##' @param ... Optional arguments (for consistency with generic)
-##' @return Depending on the value of raw, either a numeric vector or a
+##' @return Depending on the value of \code{raw}, either a numeric vector or a
 ##'   \code{ranef.tramME} object which contains the conditional mode and variance
 ##'   estimates by grouping factors.
 ##' @examples
+##'
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- BoxCoxME(Reaction ~ Days + (Days | Subject), data = sleepstudy, order = 5)
 ##' ranef(fit, raw = TRUE)
 ##' ranef(fit)
+##'
 ##' @importFrom stats update
 ##' @importFrom nlme ranef
 ##' @aliases ranef
 ##' @export ranef
 ##' @export
-ranef.tramME <- function(object,
-                         param = c(coef(object, with_baseline = TRUE, fixed = FALSE),
-                                   varcov(object, as.theta = TRUE)),
-                         newdata = NULL,
-                         condVar = FALSE, raw = FALSE, ...) {
-  np <- length(coef(object, with_baseline = TRUE, fixed = FALSE)) +
-    length(varcov(object, as.theta = TRUE))
-  stopifnot(length(param) == np)
-
-  if (!is.null(newdata)) {
-    object <- update(object, ctm = object$model$ctm, data = newdata, nofit = TRUE)
+ranef.tramME <- function(object, param = NULL, newdata = NULL,
+                         fix_smooth = !is.null(newdata), condVar = FALSE,
+                         raw = FALSE, ...) {
+  if (is.null(object$model$smooth) && is.null(object$model$ranef))
+      return(NULL)
+  param <- .default_param(object, param, if (fix_smooth) "smooth" else 0)
+  ## NOTE: if fix_smooth and no other REs, we know the size of the
+  ## output and can return it w/o any other steps
+  if (fix_smooth && !is.null(object$model$smooth) &&
+      is.null(object$model$ranef)) {
+    re <- as.vector(object$param$gamma)
+    if (raw) return(re)
+    return(structure(list(), class = c("ranef.tramME", "list")))
   }
-
+  if (!is.null(newdata) || !is.null(param$gamma)) {
+    if (!is.null(param$gamma))
+      object$call$fixed[names(param$gamma)] <- param$gamma
+    ex <- quote(update(object, ctm = object$model$ctm,
+                       smooth = .tramME_smooth(object),
+                       nofit = TRUE))
+    if (!is.null(newdata))
+      ex$data <- quote(newdata)
+    object <- eval(ex)
+  }
+  pg <- param$gamma
+  param <- c(param$beta, param$theta)
   if (any(is.na(param))) {
-    re <- .get_par(object$tmb_obj)$gamma
+    re <- object$param$gamma
     re <- rep(NA, length(re))
+    re[names(pg)] <- pg
   } else {
     re <- .get_par(object$tmb_obj, param)$gamma
   }
-
+  attributes(re) <- NULL
   if (raw) {
     return(re)
   }
   if (length(re) == 0) {
     return(NULL)
   }
-
+  ## NOTE: remove REs that belong to penalized smooth terms
+  nsm <- attr(object$param$gamma, "type") != "sm"
+  re <- re[nsm]
   re_ <- attr(object$param, "re")
   out <- .re_format(re, re_$termsize, re_$names, re_$blocksize, re_$levels)
-
   if (condVar && !any(is.na(param))) {
     cv <- TMB::sdreport(object$tmb_obj, par.fixed = param)$diag.cov.random
-    cv <- .re_format(cv, re_$termsize, re_$names, re_$blocksize, re_$levels)
+    ## NOTE: remove SEs that belong to penalized smooth terms
+    fg <- attr(object$param$gamma, "fixed")
+    cv <- cv[nsm[!fg]] ## drop
+    fg <- fg[nsm]
+    cvf <- rep(NA, length(fg))
+    cvf[!fg] <- cv
+    cvf <- .re_format(cvf, re_$termsize, re_$names, re_$blocksize, re_$levels)
     out <- mapply(FUN = function(cm, cv) {
       attr(cm, "condVar") <- cv
       cm
-    }, cm = out, cv = cv, SIMPLIFY = FALSE)
+    }, cm = out, cv = cvf, SIMPLIFY = FALSE)
   }
   class(out) <- c("ranef.tramME", class(out))
   return(out)
@@ -559,35 +847,38 @@ ranef.tramME <- function(object,
 ##' Residuals of a tramME model
 ##'
 ##' Calculates the score residuals of an intercept term fixed at 0.
-##' @param object A \code{tramME} object.
-##' @param param An optional vector of parameter values in the structure
-##'   (beta, theta).
-##' @param newdata An optional data.frame.
-##' @param ... Optional arguments (currently ignored).
+##'
+##' @param newdata An optional \code{data.frame} of observations for which we
+##'   want to calculate the residuals.
+##' @inheritParams ranef.tramME
 ##' @examples
+##'
 ##' library("survival")
 ##' fit <- SurvregME(Surv(time, status) ~ rx + (1 | litter), data = rats)
 ##' resid(fit)
+##'
 ##' @importFrom stats residuals update
 ##' @export
-## FIXME: weights & offset arguments. Maybe taking do_update of the object into account.
+## TODO: more detailed descriptions
+## TODO: alternative: quantile residuals?
+## TODO: weights & offset arguments. Maybe taking do_update of the object into account.
 residuals.tramME <- function(object,
-                             param = c(coef(object, with_baseline = TRUE, fixed = FALSE),
-                                       varcov(object, as.theta = TRUE)),
-                             newdata = NULL, ...) {
-  np <- length(coef(object, with_baseline = TRUE, fixed = FALSE)) +
-    length(varcov(object, as.theta = TRUE))
-  stopifnot(length(param) == np)
-
-  if (!object$tmb_obj$env$resid && !is.null(newdata)) {
-    object <- update(object, ctm = object$model$ctm,
-                     data = newdata, resid = TRUE, nofit = TRUE)
-  } else if (!object$tmb_obj$env$resid) {
-    object <- update(object, resid = TRUE, nofit = TRUE)
-  } else if (!is.null(newdata)) {
-    object <- update(object, ctm = object$model$ctm, data = newdata, nofit = TRUE)
+                             param = NULL,
+                             newdata = NULL,
+                             fix_smooth = !is.null(newdata),
+                             ...) {
+  param <- .default_param(object, param, if (fix_smooth) "smooth" else 0)
+  if (!object$tmb_obj$env$resid || !is.null(newdata) ||
+      !is.null(param$gamma)) {
+    if (!is.null(param$gamma))
+      object$call$fixed[names(param$gamma)] <- param$gamma
+    ex <- quote(update(object, ctm = object$model$ctm,
+                       smooth = .tramME_smooth(object),
+                       nofit = TRUE, resid = TRUE))
+    if (!is.null(newdata)) ex$data <- quote(newdata)
+    object <- eval(ex)
   }
-
+  param <- c(param$beta, param$theta)
   if (any(is.na(param))) {
     r <- rep(NA, length(object$tmb_obj$env$parameters$alpha0))
   } else {
@@ -599,6 +890,31 @@ residuals.tramME <- function(object,
   return(r)
 }
 
+## @param re_fix What parts of the random effects vector should be fixed?
+## smooth: penalized smoozhing parameters; all: all random effecst
+## It handles the overlaps between \code{param$gamma} and \code{re_fix}
+## differently. \code{re_fix = "smooth"} overwrites while \code{re_fix = "all"}
+## respects the manually supplied values.
+.default_param <- function(object, param, re_fix) {
+  if (is.null(param)) param <- list()
+  stopifnot(is.list(param))
+  ## -- defaults for beta and theta
+  if (is.null(param$beta)) param$beta <- coef(object, with_baseline = TRUE, fixed = FALSE)
+  if (is.null(param$theta)) param$theta <- varcov(object, as.theta = TRUE, full = TRUE)
+  stopifnot(length(param$beta) == length(coef(object, with_baseline = TRUE, fixed = FALSE)))
+  stopifnot(length(param$theta) == length(varcov(object, as.theta = TRUE, full = TRUE)))
+  ## -- fixing random effects
+  g <- object$param$gamma
+  if (length(g)) stopifnot(all(names(param$gamma) %in% names(g)))
+  if (re_fix == "smooth" && !is.null(object$model$smooth)) {
+    g <- g[attr(g, "type") == "sm"]
+    param$gamma[names(g)] <- g
+  } else if (re_fix == "all" && length(g)) {
+    nms <- setdiff(names(g), names(param$gamma))
+    param$gamma[nms] <- g[nms]
+  }
+  return(param)
+}
 
 ##' Print tramME model
 ##' @param x A \code{tramME} object.
@@ -610,7 +926,10 @@ print.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L), ...) {
   mnm <- .model_name(x)
   cat("\n", mnm, "\n", sep = "")
   cat("\n\tFormula: ")
-  print(x$call$formula)
+  formula <- x$model$formula
+  if (inherits(formula, "fake_formula"))
+    formula <- eval(x$call$formula, envir = environment(formula))
+  print(formula)
   fitted <-!is.null(x$opt)
   if (fitted) {
     cat("\n\tFitted to dataset ")
@@ -631,11 +950,17 @@ print.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L), ...) {
     cat("\t================================\n\n")
     print(signif(fe, digits))
   }
+  if (!is.null(x$model$smooth)) {
+    sm <- edf_smooth(x)
+    cat("\n\tSmooth shift terms (edf):\n")
+    cat("\t=========================\n\n")
+    print(signif(sm, digits))
+  }
   vc <- VarCorr(x)
   if (length(vc) > 0) {
     if (fitted) {
       cat("\n\tRandom effects parameters:\n")
-      cat("\t===========================\n")
+      cat("\t==========================\n")
       print(vc, digits  = digits)
     } else if (all(!is.na(unlist(vc)))) {
       cat("\n\tRandom effects parameters set to:\n")
@@ -646,7 +971,7 @@ print.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L), ...) {
   ll <- logLik(x)
   if (!is.na(ll)) {
     cat("\n\tLog-likelihood: ", round(ll, digits),
-        " (df = ", attr(ll, "df"), ")", sep ="")
+        " (npar = ", attr(ll, "df"), ")", sep ="")
   }
   cat("\n\n")
   invisible(x)
@@ -672,9 +997,13 @@ summary.tramME <- function(object, ...) {
     `z value` = zval,
     `Pr(>|z|)` = 2 * pnorm(abs(zval), lower.tail = FALSE))
   rownames(coef) <- names(b)
+  smooth <- data.frame(edf = edf_smooth(object))
+  formula <- object$model$formula
+  if (inherits(formula, "fake_formula"))
+    formula <- eval(object$call$formula, envir = environment(formula))
   structure(
     list(name    = .model_name(object),
-         formula = object$call$formula,
+         formula = formula,
          wtd     = !is.null(model.weights(object$data)),
          fitted  = !is.null(object$opt),
          data    = object$call$data,
@@ -683,6 +1012,7 @@ summary.tramME <- function(object, ...) {
          coef    = coef,
          fixed   = b2[!(names(b2) %in% names(b))],
          varcorr = VarCorr(object),
+         smooth  = smooth,
          ll      = ll),
     class = "summary.tramME")
 }
@@ -738,28 +1068,28 @@ print.summary.tramME <- function(x,
                has.Pvalue = TRUE, P.values = TRUE, cs.ind = 1L:2L,
                tst.ind = 3L, na.print = "NA", ...)
   }
-  if (length(x$fixed) > 0) {
+  if (length(x$fixed)) {
     cat("\n\tFixed coefficients:\n")
     cat("\t===================\n\n")
     print(signif(x$fixed, digits))
   }
-  cat("\n\tRandom effects:\n")
-  cat("\t===============\n")
-  print(x$varcorr, digits  = digits)
+  if (length(x$smooth)) {
+    cat("\n\tSmooth shift terms:\n")
+    cat("\t===================\n\n")
+    printCoefmat(x$smooth, digits = digits,
+                 signif.stars = signif.stars, ...)
+  }
+  if (length(x$varcorr)) {
+    cat("\n\tRandom effects:\n")
+    cat("\t===============\n")
+    print(x$varcorr, digits  = digits)
+  }
   cat("\n\tLog-likelihood: ", round(x$ll, digits),
-      " (df = ", attr(x$ll, "df"), ")", sep ="")
+      " (npar = ", attr(x$ll, "df"), ")", sep ="")
   cat("\n\n")
   invisible(x)
 }
 
-##' Extract model frame from a tramME model
-##' @param formula A \code{tramME} object
-##' @param ... Optional arguments (currently ignored)
-##' @importFrom stats model.frame
-##' @export
-model.frame.tramME <- function(formula, ...) {
-  formula$data
-}
 
 ##' Generic method for \code{"offset"}
 ##' @param object An object.
@@ -884,49 +1214,6 @@ weights.tramME <- function(object, ...) {
   return(object)
 }
 
-##' Model matrix for tramME mdoels
-##'
-##' Creates the model matrix of fixed and random effects corresponding a \code{tramME}
-##' model from a \code{data.frame} of response and covariate values.
-##' @param object A \code{tramME} object.
-##' @param data A \code{data.frame} containing the variable values.
-##' @param type Either \code{"fixef"} or \code{"ranef"}.
-##' @param with_baseline Logical; indicating whether the returned fixed effects model
-##'   matrix should contain the columns corresponding to the baseline transfromation.
-##'   (ignored when \code{type = "ranef"})
-##' @param ... Additional arguments.
-##' @note The model matrix of the random effects is a sparse matrix and it is transposed
-##'   to be directly used with Matrix::crossprod which is faster than transposing and
-##'   multiplying.
-##' @importFrom stats model.matrix
-##' @export
-model.matrix.tramME <- function(object, data = model.frame(object),
-                                type = c("fixef", "ranef"),
-                                with_baseline = TRUE,
-                                ...) {
-  type <- match.arg(type)
-  switch(type,
-    fixef = {
-      if (with_baseline) {
-        model.matrix(object$model$ctm, data = data, ...)
-      } else {
-        if (is.null(object$model$ctm$bases$shifting)) {
-          NULL
-        } else {
-          model.matrix(object$model$ctm$bases$shifting, data = data, ...)
-        }
-      }
-    },
-    ranef = {
-      if (is.null(object$model$ranef)) {
-        NULL
-      } else {
-        re_terms(object$model$ranef, data = data,
-                 negative = object$model$negative)$Zt
-      }
-    }
-  )
-}
 
 ##' Fit the model.
 ##' @param object An object.
@@ -948,33 +1235,28 @@ fitmod.tramME <- function(object, initpar = NULL, control = optim_control(), ...
                        control = control$control,
                        trace = control$trace, ntry = control$ntry,
                        scale = control$scale)
-  parm <- .get_par(obj)
-  att <- attributes(object$param)
-  param <- .gen_param(parm, fe = att$fe,
-                      re = att$re,
-                      varnames = att$varnames)
+  ## parm <- .get_par(obj)
+  ## att <- attributes(object$param)
+  ## param <- .gen_param(parm, fe = att$fe,
+  ##                     re = att$re,
+  ##                     varnames = att$varnames)
+  param <- .upd_param(object$param, obj)
   object$tmb_obj <- obj
   object$param <- param
   object$opt <- opt
   return(object)
 }
 
-##' Duplicate a tramME object
-##'
-##' In general, this is not necessary for the usual usage of tramME.
-##' It is only written to avoid errors stemming from the fact that
-##' some parts of the tramME object are modified in place.
-##' @param object A \code{tramME} object.
-##' @param ... Optional arguments (currently ignored).
+## Duplicate a tramME object
+##
+## In general, this is not necessary for the usual usage of tramME.
+## It is only written to avoid errors stemming from the fact that
+## some parts of the tramME object are modified in place.
+## @param object A \code{tramME} object.
+## @param ... Optional arguments (currently ignored).
+## @return A copy of the original tramME object
 duplicate.tramME <- function(object, ...) {
   newobj <- object
-  par <- list(beta = coef(object, with_baseline = TRUE),
-              theta = varcov(object, as.theta = TRUE))
   newobj$tmb_obj <- duplicate(object$tmb_obj)
-  att <- attributes(object$param)
-  param <- .gen_param(par, fe = att$fe,
-                      re = att$re,
-                      varnames = att$varnames)
-  newobj$param <- param
   return(newobj)
 }

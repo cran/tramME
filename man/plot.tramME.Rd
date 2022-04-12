@@ -8,6 +8,7 @@
   x,
   newdata = model.frame(x),
   ranef = NULL,
+  fix_smooth = TRUE,
   type = c("trafo", "distribution", "survivor", "density", "logdensity", "hazard",
     "loghazard", "cumhazard", "odds", "logodds", "quantile"),
   ...
@@ -20,6 +21,9 @@
 
 \item{ranef}{Random effects (either in named list format or a numeric vector)
 or the word "zero". See Details.}
+
+\item{fix_smooth}{If \code{FALSE}, the random effects coefficients of the smooth
+terms are refitted to \code{newdata}. It's probably not what you want to do.}
 
 \item{type}{The scale on which the predictions are evaluated:
 \itemize{
@@ -49,7 +53,7 @@ values and a set of covariate and random effects values on a specified scale.
 }
 \details{
 When \code{ranef} is equal to "zero", a vector of zeros with the right size is
-substituted.
+substituted. For more details, see \code{\link[tramME]{predict.tramME}}.
 
 For more information on how to control the grid on which the functions are evaluated,
 see the documentation of \code{\link[mlt]{predict.mlt}}.
