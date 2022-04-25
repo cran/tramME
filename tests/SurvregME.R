@@ -21,4 +21,6 @@ stopifnot(m1$opt$convergence == 0, m2$convergence == 0)
 chkeq(logLik(m1), logLik(m2), check.attributes = FALSE)
 chkeq(coef(m1, with_baseline = TRUE), coef(m2, with_baseline = TRUE), tol = 1e-4)
 
+summarize_tests()
+
 options(oldopt)

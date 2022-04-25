@@ -85,4 +85,6 @@ chkeq(vc1, vc2, tol = 1e-2) ## NOTE: would it be more precise with numDeriv?
 chkeq(as.numeric(logLik(mod_gm)), -mod_gam$gcv.ubre,
       check.attributes = FALSE)
 
+summarize_tests()
+
 options(oldopt)

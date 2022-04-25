@@ -132,4 +132,6 @@ pdf(file = NULL)
 plot(mod_su, type = "density")
 dev.off()
 
+summarize_tests()
+
 options(oldopt)
