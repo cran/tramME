@@ -1,3 +1,8 @@
+# tramME 1.0.2 (2022-07-04)
+
+* Updated vignette `mixed-effects-additive-models`.
+* Cleaned up the documentation. 
+
 # tramME 1.0.1 (2022-04-23)
 
 * Updated test utilities to avoid issues with MKL on CRAN. 

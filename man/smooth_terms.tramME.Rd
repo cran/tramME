@@ -2,6 +2,7 @@
 % Please edit documentation in R/smooth.R
 \name{smooth_terms.tramME}
 \alias{smooth_terms.tramME}
+\alias{smooth_terms}
 \title{Extract and evaluate the smooth terms of a tramME model}
 \usage{
 \method{smooth_terms}{tramME}(object, k = 100, newdata = NULL, ...)

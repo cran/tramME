@@ -2,6 +2,7 @@
 % Please edit documentation in R/smooth.R
 \name{edf_smooth.tramME}
 \alias{edf_smooth.tramME}
+\alias{edf_smooth}
 \title{EDFs of smooth shift terms}
 \usage{
 \method{edf_smooth}{tramME}(object, ...)

@@ -1091,50 +1091,50 @@ print.summary.tramME <- function(x,
 }
 
 
-##' Generic method for \code{"offset"}
-##' @param object An object.
+## Generic method for \code{"offset"}
+## @param object An object.
 offset <- function(object)
   UseMethod("offset")
 
-##' Default method for \code{"offset"}
-##'
-##' Overloads the original \code{\link[stats]{offset}} function.
-##' @inheritParams stats::offset
+## Default method for \code{"offset"}
+##
+## Overloads the original \code{\link[stats]{offset}} function.
+## @inheritParams stats::offset
 offset.default <- function(object)
   stats::offset(object)
 
-##' Get the offset vector of a tramME object.
-##' @param object A \code{tramME} object.
+## Get the offset vector of a tramME object.
+## @param object A \code{tramME} object.
 offset.tramME <- function(object)
   model.offset(model.frame(object))
 
 
-##' Get the observation weight vector of a tramME object.
-##' @param object A \code{tramME} object.
-##' @param ... Optional arguments (ignored).
+## Get the observation weight vector of a tramME object.
+## @param object A \code{tramME} object.
+## @param ... Optional arguments (ignored).
 ##' @importFrom stats weights
 weights.tramME <- function(object, ...) {
   model.weights(model.frame(object))
 }
 
 
-##' Generic method for \code{"offset<-"}
-##' @param object A model object.
-##' @param value The new vector of the offsets.
-##' @return An object with the same class as \code{object}, with updated
-##'   offset vector.
+## Generic method for \code{"offset<-"}
+## @param object A model object.
+## @param value The new vector of the offsets.
+## @return An object with the same class as \code{object}, with updated
+##   offset vector.
 "offset<-" <- function(object, value)
   UseMethod("offset<-")
 
 
-##' Set the values of the offsets of a tramME model.
-##'
-##' This method updates the internal \code{tramTMB} object, the \code{model.frame}
-##' of the \code{tramME} object and the function call to propagate the change.
-##' @note It works only when the \code{tramME} model is defined with \code{do_update = TRUE}.
-##' @param object A \code{tramME} object defined with \code{do_update = TRUE}.
-##' @param value A vector of new offset values.
-##' @return A  \code{tramME} object with the new offset values.
+## Set the values of the offsets of a tramME model.
+##
+## This method updates the internal \code{tramTMB} object, the \code{model.frame}
+## of the \code{tramME} object and the function call to propagate the change.
+## @note It works only when the \code{tramME} model is defined with \code{do_update = TRUE}.
+## @param object A \code{tramME} object defined with \code{do_update = TRUE}.
+## @param value A vector of new offset values.
+## @return A  \code{tramME} object with the new offset values.
 ## @examples
 ## data("sleepstudy", package = "lme4")
 ## mod <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy, nofit = TRUE,
@@ -1169,23 +1169,23 @@ weights.tramME <- function(object, ...) {
 }
 
 
-##' Generic method for \code{"weights<-"}
-##' @param object A model object.
-##' @param value The new vector of the weights.
-##' @return An object with the same class as \code{object}, with updated
-##'   weight vector.
+## Generic method for \code{"weights<-"}
+## @param object A model object.
+## @param value The new vector of the weights.
+## @return An object with the same class as \code{object}, with updated
+##   weight vector.
 "weights<-" <- function(object, value)
   UseMethod("weights<-")
 
 
-##' Set the values of the observation weights of a tramME model.
-##'
-##' This method updates the internal \code{tramTMB} object, the \code{model.frame}
-##' of the \code{tramME} object and the function call to propagate the change.
-##' @note It works only when the \code{tramME} model is defined with \code{do_update = TRUE}.
-##' @param object A \code{tramME} object defined with \code{do_update = TRUE}.
-##' @param value A vector of new weight values.
-##' @return A  \code{tramME} object with the new weight values.
+## Set the values of the observation weights of a tramME model.
+##
+## This method updates the internal \code{tramTMB} object, the \code{model.frame}
+## of the \code{tramME} object and the function call to propagate the change.
+## @note It works only when the \code{tramME} model is defined with \code{do_update = TRUE}.
+## @param object A \code{tramME} object defined with \code{do_update = TRUE}.
+## @param value A vector of new weight values.
+## @return A  \code{tramME} object with the new weight values.
 ## @examples
 ## library("survival")
 ## data("eortc", package = "coxme")
@@ -1214,19 +1214,19 @@ weights.tramME <- function(object, ...) {
   return(object)
 }
 
-
-##' Fit the model.
-##' @param object An object.
-##' @param ... Optional parameters.
-##' @export
+## FIXME: remove
+## Fit the model.
+## @param object An object.
+## @param ... Optional parameters.
+## @export
 fitmod <- function(object, ...) {
   UseMethod("fitmod")
 }
 
-##' Call the optimizer on a tramME object
-##' @param object A \code{tramME} object.
-##' @inheritParams LmME
-##' @export
+## Call the optimizer on a tramME object
+## @param object A \code{tramME} object.
+## @inheritParams LmME
+## @export
 fitmod.tramME <- function(object, initpar = NULL, control = optim_control(), ...) {
   ## NOTE: force copy tramTMB object, to avoid accidentally creating tramMEs that share the
   ## tramTMB

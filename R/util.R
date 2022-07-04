@@ -282,154 +282,10 @@ NULL
   return(out)
 }
 
-## FIXME: remove
-## Get the coefficient vector
-## @param obj The tramME object
-## .get_cf <- function(obj) {
-##   obj$param$beta
-## }
 
-## FIXME: remove
-## Set the coefficient vector
-## @param obj The tramME object
-## @param val The vector of new values
-## @return A new list of parameters with updated beta part
-## .set_cf <- function(obj, val) {
-##   pr <- .get_par(obj$tmb_obj, fixed = FALSE)
-##   nb0 <- length(pr$beta0)
-##   nb <- length(pr$beta)
-##   stopifnot(length(val) == (nb0 + nb))
-##   if (all(!is.na(val)) && all(!is.na(obj$param$theta))) { ## NOTE: check constraints and update tmb
-##     if (!.check_par(obj$tmb_obj, c(val, obj$param$theta))) {
-##       stop(paste("The assigned parameter values do not satisfy the constraints",
-##                  "implied by the model.\n\t",
-##                  "Please check BOTH coef and varcov."))
-##     }
-##   }
-##   pr <- .get_par(obj$tmb_obj, c(val, obj$param$theta)) ## NOTE: to handle fixed values
-##   obj$param$beta[] <- c(pr$beta0, pr$beta)
-##   return(obj$param)
-## }
-
-## FIXME: remove
-## .get_vc <- function(obj, as.theta = FALSE) {
-##   if (as.theta)
-##     obj$param$theta
-##   else obj$param$varcov
-## }
-
-## Set the parameters of the random effect covariance matrix
-## @param obj The tramME object
-## @param val The vector of new values
-## @param as.theta The input is given according to the reparameterization used by tramTMB
-## @return A new list of parameters with updated beta part
-## FIXME: It does not support fixed parameter values atm
-## .set_vc <- function(obj, val, as.theta = FALSE) {
-##   att <- attributes(obj$param)
-##   bls <- c(att$re$blocksize, rep(1, length(att$sm$re_dims)))
-##   if (!as.theta) {
-##     stopifnot(identical(lapply(val, dim), lapply(obj$param$varcov, dim)))
-##     stopifnot(all(sapply(val, is.pd)))
-##     th_ <- .vc2th(val, bls)
-##   } else {
-##     stopifnot(length(val) == length(.get_par(obj$tmb_obj, fixed = FALSE)$theta))
-##     th_ <- val
-##   }
-##   if (all(!is.na(obj$param$beta)) && all(!is.null(th_))) { ## NOTE: check constraints and update tmb
-##     if (!is.null(obj$tmb_obj$env$map$beta))
-##       b_ <- obj$param$beta[!is.na(obj$tmb_obj$env$map$beta)]
-##     else b_ <- obj$param$beta
-##     if (!.check_par(obj$tmb_obj, c(b_, th_))) {
-##       stop(paste("The assigned parameter values do not satisfy the constraints",
-##                  "implied by the model.\n\t",
-##                  "Please check BOTH coef and varcov."))
-##     }
-##   }
-##   vc_ <- obj$param$varcov
-##   if (as.theta) {
-##     val_ <- .th2vc(val, bls)
-##   } else {
-##     val_ <- val
-##   }
-##   obj$param$theta[] <- th_
-##   obj$param$varcov <- mapply(function(old, new) {old[] <- new[]; old}, ## NOTE: to keep the names
-##                              vc_, val_, SIMPLIFY = FALSE)
-##   return(obj$param)
-## }
-
-## FIXME: to remove
-##' Get parameter indices of various structures
-##'
-##' If fixed is logical, it inidcates that the indices refer to the extended
-##' parameter vector
-##' pargroup = c("fixef", "ranef", "shift", "all")
-##' @param obj A tramME object
-##' @param fixed Logical; should the indices of fixed parameters also be returned?
-##' @param pargroup Parameter group
-##' @param which Parameter names or indices within groups
-##' @param pmatch Is partial matching allowed for \code{which}
-##' @param altpar Alternative parameterizations (currently only "lm" possible)
-.idx <- function(obj, fixed = NULL, pargroup = "all", which = NULL, pmatch = FALSE,
-                 altpar = NULL) {
-  att <- attributes(obj$param)
-  if (is.null(obj$tmb_obj$env$map$beta) || is.logical(fixed))
-    fnm <- names(obj$param$beta)
-  else fnm <- names(obj$param$beta)[!is.na(obj$tmb_obj$env$map$beta)]
-
-  if (is.null(obj$tmb_obj$env$map$theta) || is.logical(fixed))
-    rnm <- names(obj$param$theta)
-  else rnm <- names(obj$param$theta)[!is.na(obj$tmb_obj$env$map$theta)]
-
-  ## -- identify shift parameter names
-  snm <- fnm[!grepl(att$varnames[1], fnm, fixed = TRUE)]
-  snm <- snm[!grepl("(Intercept)", snm, fixed = TRUE)]
-
-  ## -- grouped names
-  if (isTRUE(altpar == "lm")) {
-    fnm <- c("(Intercept)", fnm[fnm %in% snm], "(Sigma)")
-    gnm <- switch(pargroup, fixef = fnm[-length(fnm)], ranef = rnm,
-                  all = c(fnm, rnm),
-                  shift = snm, baseline = setdiff(fnm, snm))
-  } else {
-    gnm <- switch(pargroup, fixef = fnm, ranef = rnm, all = c(fnm, rnm),
-                  shift = snm, baseline = setdiff(fnm, snm))
-  }
-
-  if (is.numeric(which)) {
-    nm <- gnm[which]
-    nm <- nm[!is.na(nm)]
-  } else if (is.character(which)) {
-    if (pmatch) {
-      i <- unlist(lapply(which, grep, gnm))
-      nm <- gnm[i]
-    } else {
-      i <- match(which, gnm)
-      nm <- gnm[i[!is.na(i)]]
-    }
-  } else if (is.null(which)) {
-    nm <- gnm
-  } else {
-    stop("Parameters are either identified by their indices or by their names.")
-  }
-  out <- match(nm, c(fnm, rnm))
-  names(out) <- nm
-
-  if (is.logical(fixed) && !fixed) {
-    if (length(bfi <- which(is.na(obj$tmb_obj$env$map$beta))))
-      out <- out[match(out, bfi, nomatch = 0) == 0]
-    ## if (!is.null(map$theta)) { ## FIXME: does not work with fixed theta values atm
-    ##   bti <- which(is.na(map$theta))
-    ##   out <- out[match(out, bti, nomatch = 0) == 0]
-    ## }
-  }
-  out
-}
-
-
-##' Check positive definiteness
-##' @param m a matrix
-##' @return logical
-##' @export
+## Check positive definiteness
+## @param m a matrix
+## @return logical
 is.pd <- function(m) {
   if (!isSymmetric(m))
     return(FALSE)
@@ -437,9 +293,9 @@ is.pd <- function(m) {
 }
 
 
-##' Boilerplate parallel-handling function, modified from \code{glmmTMB}
-##' @param parallel Parallel backend
-##' @param ncpus Number of cores/cpus
+## Boilerplate parallel-handling function, modified from \code{glmmTMB}
+## @param parallel Parallel backend
+## @param ncpus Number of cores/cpus
 .parallel_default <- function(parallel = c("no","multicore","snow"), ncpus = 1L) {
   if (missing(parallel)) parallel <- getOption("profile.parallel", "no")
   parallel <- match.arg(parallel)
@@ -494,11 +350,11 @@ is.pd <- function(m) {
 }
 
 
-##' Create a 'conditional' ctm model with random effects as offsets
-##' @param mod A \code{ctm} model.
-##' @param coef Coefficient vector for the dummy ctm model.
-##' @param negative The sign of the random effect term in the corresponding
-##'   \code{tramME} model.
+## Create a 'conditional' ctm model with random effects as offsets
+## @param mod A \code{ctm} model.
+## @param coef Coefficient vector for the dummy ctm model.
+## @param negative The sign of the random effect term in the corresponding
+##   \code{tramME} model.
 ##' @importFrom variables numeric_var
 ##' @importFrom basefun as.basis
 ##' @importFrom mlt ctm "coef<-"

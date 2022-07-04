@@ -18,6 +18,23 @@ library("glmmTMB")
 library("xtable")
 library("gamm4")
 
+## ----tramME-exmpl1, eval=FALSE, echo=TRUE-------------------------------------
+#  ## tramME is available from CRAN:
+#  ## install.packages("tramME")
+#  library("tramME")
+#  mc1 <- CoxphME(                            ### conditional proportional hazards
+#      Time ~                                 ### response time intervals
+#             Insects +                       ### fixed effects
+#             Habitat +
+#             Landscape +
+#             s(Temperature, k = 20) +        ### non-linear terms, as in mgcv
+#             s(Elevation100, k = 20) +
+#             (1 | PlotID),                   ### random intercept, as in lme4
+#      data = carrion,                        ### data
+#      log_first = TRUE,                      ### log(time) before modeling
+#      order = 6                              ### order of Bernstein
+#  )
+
 ## ----load-carrion, include=FALSE----------------------------------------------
 carrion <- read.csv("carrion.csv")
 carrion$Time <- with(carrion, Surv(time1, time2, type = "interval2"))
@@ -393,10 +410,9 @@ for (ii in 2:4) {
 }
 legend("bottomright", levels(andrew$TREAT), lty = 1:4, lwd = 2, bty = "n", cex = 0.9)
 
-## ----algae-glmm---------------------------------------------------------------
-urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
-                      data = andrew, family = beta_family())
-summary(urchin_zib)
+## ----algae-glmm, eval=FALSE---------------------------------------------------
+#  urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
+#                        data = andrew, family = beta_family())
 
 ## ----algae-tram---------------------------------------------------------------
 urchin_tram <- ColrME(
@@ -488,16 +504,20 @@ nd <- expand.grid(pALGAE = seq(0, 1, length.out = 100),
                   KEEP.OUT.ATTRS = FALSE)
 colnames(nd)[1] <- variable.names(urchin_tram, "response")
 
-if (!file.exists("algae_mcdf.rda")) {
-## save results in a single df
+if (!file.exists("urchin.rda")) {
+  ## estimate the glmmTMB model
+  urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
+                        data = andrew, family = beta_family())
+  ## save results in a single df
   urchin_res <- nd
   colnames(urchin_res)[1] <- "pALGAE"
   urchin_res$tramME_shift <- marginalize.tramME(urchin_tram,
                                                 data = nd, type = "distribution")
   urchin_res$zib <- marginalize.zib.glmmTMB(urchin_zib, data = nd,
                                             type = "distribution")
+  urchin_zib_ll <- data.frame(ll = logLik(urchin_zib), np = length(urchin_zib$obj$par))
 } else{
-  load("algae_mcdf.rda")
+  load("urchin.rda")
 }
 
 ## ----plot-algae-mCDF1, echo=FALSE, fig.width=9, fig.height=3.5----------------
@@ -540,11 +560,10 @@ legend("center",
        c("Linear transformation model", "Zero-inflated beta", "ECDF"),
        col = c(cols, 1), lty = 1, bty = "n", lwd = c(rep(2, 2), 1), horiz = TRUE)
 
-## ----algae-glmm2--------------------------------------------------------------
-urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
-                           ziformula = ~ TREAT, dispformula = ~ TREAT,
-                           data = andrew, family = beta_family())
-summary(urchin_zib_disp)
+## ----algae-glmm2, eval=FALSE--------------------------------------------------
+#  urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
+#                             ziformula = ~ TREAT, dispformula = ~ TREAT,
+#                             data = andrew, family = beta_family())
 
 ## ----algae-tram2--------------------------------------------------------------
 urchin_tram_strat <- ColrME(
@@ -556,11 +575,22 @@ summary(urchin_tram_strat)
 
 ## ----algae-mCDF2, echo=FALSE--------------------------------------------------
 if (!("tramME_strat" %in% colnames(urchin_res))) {
+  ## fit the glmm
+  urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
+                             ziformula = ~ TREAT, dispformula = ~ TREAT,
+                             data = andrew, family = beta_family())
+  ## marginalize
   urchin_res$tramME_strat <- marginalize.tramME(urchin_tram_strat,
     data = nd, type = "distribution")
   urchin_res$zib_disp <- marginalize.zib.glmmTMB(urchin_zib_disp,
     data = nd, type = "distribution")
-  save(urchin_res, file = "algae_mcdf.rda")
+}
+if (nrow(urchin_zib_ll) == 1) {
+  urchin_zib_ll <- rbind(urchin_zib_ll,
+    c(logLik(urchin_zib_disp), length(urchin_zib_disp$obj$par)))
+}
+if (!file.exists("urchin.rda")) {
+  save(urchin_res, urchin_zib_ll, file = "urchin.rda")
 }
 
 ## ----plot-algae-mCDF2, echo=FALSE, fig.width=9, fig.height=3.5----------------
@@ -584,15 +614,17 @@ legend("center",
        col = c(cols, 1), lty = 1, bty = "n", lwd = c(rep(2, 2), 1), horiz = TRUE)
 
 ## ----algae-loglik, results="asis", echo=FALSE---------------------------------
-lls <- data.frame(c(
-  logLik(urchin_zib), logLik(urchin_tram),
-  logLik(urchin_zib_disp), logLik(urchin_tram_strat)))
-rownames(lls) <- c("Zero-inflated beta w/o dispersion model",
+lls <- data.frame(c(urchin_zib_ll$ll[1], urchin_zib_ll$ll[2],
+                    logLik(urchin_tram), logLik(urchin_tram_strat)),
+                  c(urchin_zib_ll$np[1], urchin_zib_ll$np[2],
+                    length(urchin_tram$tmb_obj$par),
+                    length(urchin_tram_strat$tmb_obj$par)))
+rownames(lls) <- c("Zero-inflated beta without dispersion model",
+                   "Zero-inflated beta with dispersion model",
                    "Linear transformation model",
-                   "Zero-inflated beta w/ dispersion model",
                    "Stratified linear transformation model")
-colnames(lls) <- "$\\log\\mathcal{L}$"
-print(xtable(lls, align = "lr"), sanitize.text.function = function(x) x,
+colnames(lls) <- c("$\\log\\mathcal{L}$", "Number of parameters")
+print(xtable(lls, align = "lrr", digits = c(0, 2, 0)), sanitize.text.function = function(x) x,
       booktabs = TRUE, floating = FALSE)
 
 ## ----mosquito-data, echo=FALSE------------------------------------------------
@@ -602,7 +634,8 @@ AGO[factors] <- lapply(AGO[factors], factor)
 AGO$AEAfemale <- as.integer(AGO$AEAfemale)
 
 ## ----cotram-model, echo=TRUE, eval=FALSE--------------------------------------
-#  ## additive count transformation model
+#  ## Additive count transformation model
+#  ## See ?cotram::cotram for the documentation
 #  CotramME <- function(formula, data,
 #                       method = c("logit", "cloglog", "loglog", "probit"),
 #                       log_first = TRUE, plus_one = log_first, prob = 0.9,
@@ -734,9 +767,10 @@ par(mfrow = c(2, 2), mar = c(4, 4, 3, 1), cex = 0.8, las = 1)
 plotsm(sm_mosquito_nb[[1]], "Week", "s(Week)")
 plotsm(sm_mosquito_nb[[2]], "CovRate200", "s(CovRate200)")
 mtext("Negative binomial model", side = 3, line = -2, outer = TRUE)
+sm <- sm_mosquito_tram
 for (i in seq_along(sm_mosquito_tram)) {
-  sm_mosquito_tram[[i]][, 2] <- -sm_mosquito_tram[[i]][, 2]
-  plot(sm_mosquito_tram[i], panel.first = grid())
+  sm[[i]][, 2] <- -sm[[i]][, 2]
+  plot(sm[i], panel.first = grid())
 }
 mtext("Count transfromation model", side = 3, line = -23, outer = TRUE)
 
@@ -765,7 +799,8 @@ if (!file.exists("mosquito_models.rda")) {
   rownames(ci_mosquito) <- c("Year = 2018", "Income = middle", "Placement = out",
                              "Income = middle \\& Placement = out")
 
-  save(sm_mosquito_nb, sm_mosquito_tram, ll_mosquito, ci_mosquito, sums_mosquito,
+  save(sm_mosquito_nb, sm_mosquito_tram,
+       ll_mosquito, ci_mosquito, sums_mosquito,
        file = "mosquito_models.rda")
 }
 add <- list()
@@ -778,6 +813,263 @@ add$command <- paste(c("& \\multicolumn{2}{c}{Negative binomial} &",
 print(xtable(ci_mosquito, align = c("@{}l", rep("r", 3), "r@{}")),
       include.colnames = FALSE, floating = FALSE, add.to.row = add,
       sanitize.text.function = function(x) x, booktabs = TRUE)
+
+## ----dgp-code-----------------------------------------------------------------
+##' @param n Numeric vector, number of observations in each group
+##' @param beta Numeric, effect size
+##' @param sfun Function with a numeric argument, non-linear smooth shift term
+##' @param sigma Numeric, SD of random intercepts
+##' @param hinv Function with a numeric argument, inverse transformation function
+##' @param link Function with a single numeric argument on [0, 1] link function
+##' @param scale Numeric, optional scaling constant on the transformation scale
+##' @param seed Seed for the random number generator
+##' @param two_sets Logical; generate both an estimation and a test sample
+gen_smpl <- function(n, beta, sfun, sigma, hinv, link, scale = 1,
+                     seed = NULL, two_sets = TRUE) {
+  ## -- setting up the seed
+  if (!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+    runif(1)
+  if (is.null(seed))
+    RNGstate <- get(".Random.seed", envir = .GlobalEnv)
+  else {
+    R.seed <- get(".Random.seed", envir = .GlobalEnv)
+    set.seed(seed)
+    RNGstate <- structure(seed, kind = as.list(RNGkind()))
+    on.exit(assign(".Random.seed", R.seed, envir = .GlobalEnv))
+  }
+  if (two_sets) n <- rep(n, 2)
+  x1 <- runif(sum(n))
+  x2 <- runif(sum(n))
+  gr <- factor(rep(seq_along(n), n))
+  re <- rep(rnorm(length(n), mean = 0, sd = sigma), n)
+  lp <- x1 * beta + sfun(x2) + re
+  y  <- hinv((link(runif(sum(n))) + lp) * scale)
+  if (two_sets) {
+    n <- sum(n) / 2
+    out <- list(est  = data.frame(x1 = x1[1:n], x2 = x2[1:n], gr = gr[1:n],
+                                  y = y[1:n]),
+                test =  data.frame(x1 = tail(x1, n), x2 = tail(x2, n),
+                                   gr = tail(gr, n), y = tail(y, n)))
+  } else {
+    out <- data.frame(x1 = x1, x2 = x2, gr = gr, y = y)
+  }
+  out
+}
+
+## ----sim-setup, echo=FALSE----------------------------------------------------
+## ==== Simulation inputs
+b   <- qnorm(0.7) * sqrt(2) ## PI = 0.7, SD of the parametric part is sqrt(1/12) * b = 0.2141 on the LP scale
+sf  <- function(x) 2 * b * sqrt(1/12) * sin(x * pi) / sqrt(2 - 16 / pi^2) ## same SD as the parametric terms on the LP scale
+sig <- sqrt(1/12) * b ## same RE SD on LP scale
+hi1 <- function(x) x
+hi2 <- function(x) qchisq(pnorm(x), df = 3)
+lnk <- qnorm
+
+## ==== Helper function to extract results
+get_res <- function(res, what, which = NULL, simplify = TRUE) {
+  out <- lapply(res, function(x) {
+    if (!is.null(which)) x <- x[which]
+    sapply(x, function(xx) {
+      if (length(xx) == 1 && is.na(xx)) NA
+      else {
+        if (is.function(what)) return(what(xx))
+        xx[[what]]
+      }
+    })
+  })
+  if (simplify) {
+    out <- do.call("rbind", out)
+    if (!is.function(what))
+      colnames(out) <- paste0(names(res[[1]]), "_", what)
+  }
+  out
+}
+
+## ----intcens-dgp--------------------------------------------------------------
+make_intcens <- function(x, length = 1) {
+  Surv(floor(x / length) * length, ceiling(x / length) * length,
+       type = "interval2")
+}
+
+## ----sim1, echo=FALSE, results="hide"-----------------------------------------
+if (!file.exists("sim1.rda")) {
+  seeds <- 301:800
+  system.time({
+    sims1 <- parallel::mclapply(seeds, function(s) {
+      smpl <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                       hinv = hi1, link = lnk, seed = s, two_sets = TRUE)
+      m1 <- LmME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m1$opt$convergence == 0) {
+        lmm <- list(ll    = logLik(m1),
+                    lloos = logLik(m1, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m1), sigma = sqrt(varcov(m1)$gr[1,1]),
+                    theta = m1$param$beta[attr(m1$param$beta, "type") == "bl"],
+                    beta_se = sqrt(vcov(m1, parm = "x1")[1,1]))
+      } else {
+        lmm <- NA
+      }
+      m2 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m2$opt$convergence == 0) {
+        bcm <- list(ll    = logLik(m2),
+                    lloos = logLik(m2, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m2), sigma = sqrt(varcov(m2)$gr[1,1]),
+                    theta = m2$param$beta[attr(m2$param$beta, "type") == "bl"],
+                    beta_se = sqrt(vcov(m2, parm = "x1")[1,1]),
+                    intercept = mean(sf(smpl$est$x2)))
+      } else {
+        bcm <- NA
+      }
+      list(LmME = lmm, BoxCoxME = bcm)
+    }, mc.cores = 6)
+  })
+  save(sims1, file = "sim1.rda")
+} else {
+  load("sim1.rda")
+}
+
+## -- non-convergence
+rowSums(sapply(sims1, function(x)
+  sapply(x, function(xx) c(length(xx) == 1 && is.na(xx))))
+  )
+
+## ----sim1-beta-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth"----
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(pnorm(get_res(sims1, "beta") / sqrt(2)) - 0.7,
+        ylab = "PI", names = c("Normal", "Non-normal"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+abline(h = 0, lwd = 2, lty = 2, col = 2)
+
+## ----sim1-beta-ci-------------------------------------------------------------
+cvi <- get_res(sims1, what = function(x) {
+  ci <- x$beta + x$beta_se * qnorm(0.975) * c(-1, 1)
+  (ci[1] <= b) && (b < ci[2])
+})
+(cvr <- colMeans(cvi, na.rm = TRUE)) ## Coverage rate
+sqrt(cvr * (1 - cvr) / nrow(cvi)) ## Monte Carlo SE
+
+## ----sim1-pred-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth"----
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(get_res(sims1, "lloos"), ylab = "Out-of-sample log-likelihood",
+        names = c("Normal", "Non-normal"), boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+
+## ----sim1-baseline-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth"----
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+th <- get_res(sims1, "theta", "BoxCoxME", simplify = FALSE)
+th <- do.call("cbind", th)
+## NOTE: to compare with the true transformation function (identity) we need to
+## adjust the fitted baseline transformation with the expectation of the smooth
+## term
+ic <- get_res(sims1, "intercept", "BoxCoxME", simplify = FALSE)
+ic <- sapply(ic, `[`, 1)
+dat <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                hinv = hi1, link = lnk, seed = 1, two_sets = FALSE)
+bcm <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = dat, nofit = TRUE)
+nd  <- dat[rep(1, 100), ]
+nd[[variable.names(bcm, "response")]] <- seq(-1, 2, length.out = 100)
+mm  <- model.matrix(bcm$model$ctm$bases$response, data = nd)
+tr <- mm %*% th + matrix(rep(ic, each = 100), nrow = 100)
+matplot(nd$y, tr, type = "l", col = grey(0.1,0.1), lty = 1,
+        ylab = "h(y)", xlab = "y", panel.first = grid())
+abline(0,1, lwd = 2, col = 2)
+
+## ----intcens-example----------------------------------------------------------
+dat <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                hinv = hi2, link = lnk, seed = 1, two_sets = FALSE)
+head(dat$y) ## exact values
+head(make_intcens(dat$y, length = 2)) ## interval-censored version
+
+## ----sim2, echo=FALSE, results="hide"-----------------------------------------
+nd <- data.frame(x2 = seq(0, 1, length.out = 100))
+if (!file.exists("sim2.rda")) {
+  seeds <- 1001:1500
+  system.time({
+    sims2 <- parallel::mclapply(seeds, function(s) {
+      smpl <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                       hinv = hi2, link = lnk, seed = s, two_sets = TRUE)
+      m1 <- LmME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m1$opt$convergence == 0) {
+        lmm <- list(ll    = logLik(m1),
+                    lloos = logLik(m1, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m1), sigma = sqrt(varcov(m1)$gr[1,1]),
+                    beta_se = sqrt(vcov(m1, parm = "x1")[1,1]))
+      } else {
+        lmm <- NA
+      }
+      m2 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m2$opt$convergence == 0) {
+        sm <- smooth_terms(m2, newdata = nd)[[1]][,2] + mean(sf(smpl$est$x2))
+        bcm <- list(ll    = logLik(m2),
+                    lloos = logLik(m2, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m2), sigma = sqrt(varcov(m2)$gr[1,1]),
+                    beta_se = sqrt(vcov(m2, parm = "x1")[1,1]),
+                    smooth = sm)
+      } else {
+        bcm <- NA
+      }
+      smpl$est$y <- make_intcens(smpl$est$y, length = 2)
+      m3 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m3$opt$convergence == 0) {
+        sm <- smooth_terms(m3, newdata = nd)[[1]][, 2] + mean(sf(smpl$est$x2))
+        icm <- list(ll    = logLik(m3),
+                    lloos = logLik(m3, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m3), sigma = sqrt(varcov(m3)$gr[1,1]),
+                    beta_se = sqrt(vcov(m3, parm = "x1")[1,1]),
+                    smooth = sm)
+      } else {
+        icm <- NA
+      }
+      list(LmME = lmm, BoxCoxME = bcm, BoxCoxME_ic = icm)
+    }, mc.cores = 8)
+  })
+  save(sims2, file = "sim2.rda")
+} else {
+  load("sim2.rda")
+}
+
+## -- non-convergence
+rowSums(sapply(sims2, function(x)
+  sapply(x, function(xx) c(length(xx) == 1 && is.na(xx))))
+  )
+
+## ----sim2-beta-ci-------------------------------------------------------------
+cvi <- get_res(sims2, what = function(x) {
+  ci <- x$beta + x$beta_se * qnorm(0.975) * c(-1, 1)
+  (ci[1] <= b) && (b < ci[2])
+})
+(cvr <- colMeans(cvi, na.rm = TRUE)) ## Coverage rate
+sqrt(cvr * (1 - cvr) / nrow(cvi)) ## Monte Carlo SE
+
+## ----sim2-beta-plot, echo=FALSE, fig.width=4.5, fig.height=3.5, out.width=".5\\textwidth"----
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(pnorm(get_res(sims2, "beta") / sqrt(2)) - 0.7,
+        ylab = "PI", names = c("Normal", "Non-normal", "Non-normal (IC)"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+abline(h = 0, lwd = 2, lty = 2, col = 2)
+
+## ----sim2-pred-plot, echo=FALSE, fig.width=4.5, fig.height=3.5, out.width=".5\\textwidth"----
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(get_res(sims2, "lloos"), ylab = "Out-of-sample log-likelihood",
+        names = c("Normal", "Non-normal", "Non-normal (IC)"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+
+## ----sim2-smooth-plot, echo=FALSE, fig.width=6, fig.height=3.5, out.width=".8\\textwidth"----
+par(mfrow = c(1, 2), las = 1, mar = c(4, 5, 1, 1), cex = 0.8)
+sms <- get_res(sims2, what = "smooth", which = c("BoxCoxME", "BoxCoxME_ic"),
+               simplify = FALSE)
+sm1 <- sapply(sms, function(x) x[, 1])
+matplot(nd$x2, sm1, type = "l", col = grey(0.1, 0.1), lty = 1,
+        ylab = expression(hat(f) * "(x)"), xlab = "x",
+        panel.first = grid())
+lines(nd$x2, sf(nd$x2), col = 2, lwd = 2)
+sm2 <- sapply(sms, function(x) x[, 2])
+matplot(nd$x2, sm2, type = "l", col = grey(0.1, 0.1), lty = 1,
+        ylab = expression(hat(f) * "(x)"), xlab = "x",
+        panel.first = grid())
+lines(nd$x2, sf(nd$x2), col = 2, lwd = 2)
 
 ## ----info---------------------------------------------------------------------
 sessionInfo()

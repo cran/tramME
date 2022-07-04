@@ -1,7 +1,7 @@
 Package: tramME
 Title: Transformation Models with Mixed Effects
-Version: 1.0.1
-Date: 2022-04-23
+Version: 1.0.2
+Date: 2022-07-04
 Authors@R: c(person("Balint", "Tamasi", role = c("aut", "cre"),
                     email = "balint.tamasi@uzh.ch", comment = c(ORCID = "0000-0002-2629-7362")),
              person("Torsten", "Hothorn",  role = "ctb",
@@ -25,11 +25,11 @@ VignetteBuilder: knitr
 License: GPL-2
 URL: http://ctm.R-forge.R-project.org
 Encoding: UTF-8
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.0
 NeedsCompilation: yes
-Packaged: 2022-04-23 16:01:45 UTC; balint
+Packaged: 2022-07-04 14:31:16 UTC; balint
 Author: Balint Tamasi [aut, cre] (<https://orcid.org/0000-0002-2629-7362>),
   Torsten Hothorn [ctb] (<https://orcid.org/0000-0001-8301-0471>)
 Maintainer: Balint Tamasi <balint.tamasi@uzh.ch>
 Repository: CRAN
-Date/Publication: 2022-04-25 07:10:02 UTC
+Date/Publication: 2022-07-05 00:20:02 UTC

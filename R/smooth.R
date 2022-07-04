@@ -69,9 +69,9 @@
     list(X = Xs, Z = Zs)
 }
 
-##' Get smooth terms.
-##' @param object An object.
-##' @param ... Optional parameters.
+## Evaluate the smooth terms of a model.
+## @param object An object.
+## @param ... Optional parameters.
 ##' @export
 smooth_terms <- function(object, ...) {
   UseMethod("smooth_terms")
@@ -158,6 +158,7 @@ smooth_terms <- function(object, ...) {
 ##' fit <- LmME(accel ~ s(times), data = mcycle)
 ##' plot(smooth_terms(fit))
 ##' @export
+##' @aliases smooth_terms
 ## TODO: options for extracting SEs & covariance matrices or bands
 ## TODO: add a fun_x option to change the covariate scale
 ## right now, when s(fun(x)) is the term, the function return x vs s(fun(x))
@@ -308,9 +309,9 @@ plot.smooth.tramME <- function(x, which = seq_along(x), col = 1, fill = grey(0.5
 }
 
 
-##' Calculate edf for smooth terms
-##' @param object An object.
-##' @param ... Optional parameters.
+## Calculate the effective degrees of freedom for smooth terms
+## @param object An object.
+## @param ... Optional parameters.
 ##' @export
 edf_smooth <- function(object, ...) {
   UseMethod("edf_smooth")
@@ -348,6 +349,7 @@ edf_smooth <- function(object, ...) {
 ##' fit <- LmME(accel ~ s(times), data = mcycle)
 ##' edf_smooth(fit)
 ##' @export
+##' @aliases edf_smooth
 ## TODO: extend this to other terms (eg. REs)
 edf_smooth.tramME <- function(object, ...) {
   if (is.null(object$model$smooth)) return(NULL)

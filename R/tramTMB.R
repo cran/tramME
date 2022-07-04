@@ -700,19 +700,19 @@ tramTMB <- function(data, parameters, constraint, negative, map = list(),
 }
 
 
-##' Optimize the tramTMB object
-##'
-##' Currently only with \code{alabama::auglag} with either \code{nlminb} or \code{optim}
-##' in the case of constrained optimization and \code{nlminb} if there are no constraints.
-##' @param obj a tramTMB object
-##' @param par optional vector of initial parameter values
-##' @param method the method used by \code{alabama::auglag}
-##' @param control a list of control parameters
-##' @param trace logical, whether the trace should be printed during the optimization
-##' @param ntry number of restarts with perturbed initial values when not converged
-##' @param scale Logical, if \code{TRUE}, the fixed effects design matrices are scaled
-##'   to improve convergence
-##' @param ... optional arguments, currently not in use
+## Optimize the tramTMB object
+##
+## Currently only with \code{alabama::auglag} with either \code{nlminb} or \code{optim}
+## in the case of constrained optimization and \code{nlminb} if there are no constraints.
+## @param obj a tramTMB object
+## @param par optional vector of initial parameter values
+## @param method the method used by \code{alabama::auglag}
+## @param control a list of control parameters
+## @param trace logical, whether the trace should be printed during the optimization
+## @param ntry number of restarts with perturbed initial values when not converged
+## @param scale Logical, if \code{TRUE}, the fixed effects design matrices are scaled
+##   to improve convergence
+## @param ... optional arguments, currently not in use
 ##' @importFrom stats nlminb
 ##' @importFrom stats optim
 ## FIXME: optional final check, w/ pdHess, mgc

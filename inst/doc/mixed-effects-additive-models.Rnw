@@ -13,7 +13,7 @@
 \usepackage[colorlinks=true, urlcolor=black, linkcolor=blue, citecolor=blue]{hyperref}
 \usepackage{booktabs}
 \usepackage{doi}
-
+\usepackage[inline]{enumitem}
 
 \renewcommand{\tt}[1]{\texttt{#1}}
 \newcommand{\todo}[1]{\textbf{\color{red} TODO: #1}}
@@ -25,27 +25,30 @@
 % Math notation
 \newcommand{\IP}{{\mathbb{P}}}
 \newcommand{\IR}{{\mathbb{R}}}
-% \newcommand{\U}{{\mathbf{U}}}
-\newcommand{\bcU}{{\boldsymbol{\mathcal{U}}}}
-\newcommand{\bfu}{{\mathbf{u}}}
-% \newcommand{\X}{{\mathbf{X}}}
+\newcommand{\IE}{{\mathbb{E}}}
+\newcommand{\U}{{\mathbf{U}}}
 \newcommand{\X}{{\boldsymbol{X}}}
-% \newcommand{\x}{{\mathbf{x}}}
+\newcommand{\bH}{{\boldsymbol{H}}}
+\newcommand{\bS}{{\boldsymbol{S}}}
 \newcommand{\x}{{\boldsymbol{x}}}
-\newcommand{\bcX}{{\boldsymbol{\mathcal{X}}}}
 \newcommand{\Y}{{\boldsymbol{Y}}}
-\newcommand{\bcY}{{\boldsymbol{\mathcal{Y}}}}
 \newcommand{\y}{{\boldsymbol{y}}}
+\newcommand{\z}{{\boldsymbol{z}}}
+% \newcommand{\bcB}{{\boldsymbol{\mathcal{B}}}}
+% \newcommand{\bcb}{{\boldsymbol{\mathcal{b}}}}
+\newcommand{\ba}{{\boldsymbol{a}}}
+\newcommand{\bb}{{\boldsymbol{b}}}
 \newcommand{\bbeta}{{\boldsymbol{\beta}}}
-\newcommand{\bvartheta}{{\boldsymbol{\vartheta}}}
 \newcommand{\bgamma}{{\boldsymbol{\gamma}}}
+\newcommand{\bdelta}{{\boldsymbol{\delta}}}
+\newcommand{\blambda}{{\boldsymbol{\lambda}}}
+\newcommand{\bvartheta}{{\boldsymbol{\vartheta}}}
 \newcommand{\bGamma}{{\boldsymbol{\Gamma}}}
 \newcommand{\bSigma}{{\boldsymbol{\Sigma}}{}}
 \newcommand{\vect}[1]{\boldsymbol{#1}}
 \newcommand{\cN}{{\mathcal{N}}}
 \newcommand{\cL}{{\mathcal{L}}}
 \newcommand{\0}{{\mathbf{0}}}
-\renewcommand{\a}{{\mathbf{a}}}
 \newcommand{\T}{^{\top}}
 \renewcommand{\d}{\mathsf{\,d}}
 
@@ -92,7 +95,7 @@ library("gamm4")
 \and Torsten Hothorn \\ {\small \url{Torsten.Hothorn@R-project.org}}
 }
 
-\date{5/4/2022}
+\date{4/7/2022}
 
 \begin{document}
 
@@ -102,11 +105,227 @@ library("gamm4")
   This vignette serves as an online appendix for the manuscript
   ``Mixed-Effects Additive Transformation Models''.
   %% \citet{Tamasi_2022}. 
-  It presents four example analyses that
-  use mixed-effects additive transformation models to reanalyze
+  It presents details on estimation and inference in
+  the titular model class
+  as well as
+  four example analyses that
+  % use mixed-effects additive transformation models to reanalyze
+  use these models to reanalyze
   ecological phenomena from recently published studies.
 }
 
+\section{Estimation and inference}\label{sec:inference}
+
+In this section, we give a brief summary
+on maximum likelihood estimation and inference
+in mixed-effects additive transformation models.
+The model can be written in its general form as
+%
+\begin{align}
+  \IP\left(Y_{i}\leq y \mid \x_{i}, \z_{i}, \bgamma \right)
+  &= F\left(h(y) +
+    f_{1}(x_{1i}) + f_{2}(x_{2i}, x_{3i}) + \dots +
+    \x_{+i}\T\bbeta +
+    \z_{i}\T\bgamma\right)
+    \qquad \bgamma \sim \cN_{q}(\0, \bSigma). \label{eq:memodel}
+\end{align}
+%
+with $F(\cdot)$ inverse link function and $h(y)$ baseline transformation function.
+Each smooth term ($f_{j}(\cdot)$) can be represented
+with the help of basis functions
+$f_{j}(x_{ji}) = \bb_{j}(x_{i})\T\bdelta_{j}$.
+Penalties on the $\bdelta_{j}$ parameters can be added to the model
+to prevent overfitting
+in the general form of $\lambda_{j}\bdelta_{j}\T\bS_{j}\bdelta_{j}$.
+$\lambda_{j}$ is the smoothing parameter
+that controls the amount of penalty imposed on the $j$th term
+and thus controls the smoothness of $f_{j}(\cdot)$,
+while the penalty matrix $\bS$ defines
+how exactly the parameters
+of a specific set of basis functions
+are penalized.
+
+The log-likelihood of Model~\ref{eq:memodel}
+can be formulated
+with the help of appropriate penalty terms
+for the smooth effects as well as the random effects
+%
+\begin{align}
+  \ell(\bvartheta, \bbeta, \bSigma, \blambda)
+  &= \ell^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta)
+    - \frac{1}{2} \sum_{j=1}^{J}\lambda_{j}\bdelta_{j}\T\bS_{j}\bdelta_{j}
+    - \frac{1}{2} \bgamma\T \bSigma^{-1}\bgamma
+    + c, \label{eq:loglik}
+\end{align}
+%
+where $\ell^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta) =
+\sum_{i=1}^{N}\ell_{i}^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta)$
+is the unpenalized or conditional
+(on the vector of random effects and penalized coefficients)
+log-likelihood, which can be written
+as the sum of the log-likelihood contributions
+of the individual observations,
+assuming conditional independence.
+$\blambda$ denotes the vector of smoothing parameters
+corresponding to $f_{1}(\cdot), f_{2}(\cdot), \dots, f_{J}(\cdot)$ smooth terms,
+and $\bdelta = \left(\bdelta_{1}\T, \bdelta_{2}\T, \dots, \bdelta_{J}\T\right)\T$.
+The covariance matrix of the stacked vector of random effects ($\bSigma$)
+is positive definite and typically has a block structure,
+which can be leveraged to calculate the inverse efficiently.
+The term $c$ is a constant,
+which does not depend on the parameters (either fixed or random)
+of the model.
+
+The conditional log-likelihood contributions of the observations,
+given that they are exactly observed can be written as
+%
+\begin{align*}
+  \ell_{i}^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta)
+  &= \log F'\left(h(y_{i}) +
+    f_{1}(x_{1i}) + f_{2}(x_{2i}, x_{3i}) + \dots +
+    \x_{+i}\T\bbeta +
+    \z_{i}\T\bgamma\right) + \log h'(y_{i})
+\end{align*}
+%
+where $F'(\cdot)$ and $h'(\cdot)$ are the derivative functions
+of $F(\cdot)$ and $h(\cdot)$, respectively.
+Because we directly parameterize
+the cumulative distribution function of the outcome
+in Equation~\ref{eq:memodel},
+it is straightforward to express the log-likelihood contributions
+of randomly censored observations:
+%
+\begin{align}
+\ell_{i}^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta)
+  &= \log\left(\IP\left(Y_{i}\leq \bar{y}_{i} \mid \x_{i}, \z_{i}, \bgamma \right)
+    - \IP\left(Y_{i}\leq \ubar{y}_{i} \mid \x_{i}, \z_{i}, \bgamma \right) \right),
+    \label{eq:ic}
+\end{align}
+%
+for an interval-censored observation on $\ubar{y}_{i}\leq y_{i} < \bar{y}_{i}$.
+The contribution of left ($-\infty < y_{i} < \bar{y}_{i}$)
+and right-censored ($\ubar{y}_{i} \leq y_{i} < \infty$) observations
+can be expressed by setting
+the second part of this expression to 0
+and the first part to 1, respectively.
+
+Likelihood-based inference
+in the family of mixed-effects transformation models
+is presented by \citet{Tamasi_Hothorn_2021}.
+The estimation procedure described there is directly applicable
+in the setting with penalized smooth additive terms
+utilizing their mixed model representation \citep{Ruppert_2003, Wand_smoothing_2003}.
+In the case of some smoothing bases,
+a reparameterization is necessary
+to fit into a mixed model-based estimation framework
+(\citealp[Appendix]{Wood_2004} and \citealp[Chapter~8]{Fahrmeir_2013}).
+The marginal log-likelihood function of the model
+can be efficiently evaluated
+by integrating over the vector of random effects
+using the Laplace approximation (see Section~\ref{sec:compute} for details).
+In the mixed-effects representation,
+the smoothing parameters can be estimated
+as variance components of the mixed model
+via maximum likelihood or restricted maximum likelihood (REML).
+
+Frequentist inference for the penalized smooth terms
+can be based on the covariance matrix estimate
+of fixed and random parameters
+using the generalized delta method \citep{Kristensenetal_2016}.
+This estimate approximates
+the mean squared error for the predictions
+of the random effects \citep{Zheng_Cadigan_2021},
+and it is also in agreement with results derived
+in a Bayesian setting for independent hierarchical models \citep{Kass_Steffey_1989}.
+
+The effective degrees of freedom (EDF)
+of the individual smooth terms
+give an approximation of the effective number of parameters
+used in modeling the non-linear terms.
+Following \citet{Wood_2016} and \citet[][Section~6.11]{Wood_gam_2017},
+the EDFs can be estimated by summing up the appropriate elements
+of the diagonal of the matrix $V\mathcal{I}$,
+where $V$ is the joint variance-covariance matrix
+of all unpenalized (i.e., fixed-effects) and penalized (random) parameters.
+The matrix $\mathcal{I}$ is the negative Hessian
+of the \emph{unpenalized} log-likelihood
+($\ell^{\star}(\bvartheta, \bbeta, \bgamma, \bdelta)$
+in Equation~\ref{eq:loglik}),
+evaluated at the vector of parameter estimates.
+
+\section{Computational details}\label{sec:compute}
+
+In our implementation of the additive mixed-effects transformation models,
+similarly to \citet{Hothornetal_2018},
+we approximate the baseline transformation
+($h(y)$ in Equation~\ref{eq:memodel})
+with the help of \emph{Bernstein polynomial basis} \citep{Farouki_2012}:
+%
+\begin{align*}
+  h(y) &= \ba_{\text{Bs},M}(y)\T\bvartheta
+       = \frac{1}{M+1}\sum_{m=0}^{M}\vartheta_{m}
+         \binom{M}{m}\tilde y^{m}(1-\tilde y)^{M-m},
+\end{align*}
+%
+where $\ba_{\text{Bs},M}(y)$ denotes
+the set of order $M$ polynomials in Bernstein form,
+and $\tilde y$ equals to $y$ scaled to the interval $[0, 1]$.
+In practice, the exact order of the polynomials in Bernstein form
+usually does not have a large effect on the results
+beyond a minimal value.
+\citet{Hothorn_mlt_2020} discusses the choice of order in fixed effects-only
+transformation models and recommends choosing $M$ between 5 and 10.
+In the application of the main article, we used the order of 6 as a default.
+
+Likelihood-based estimation and inference
+in mixed-effects additive transformation models
+is implemented by the \textsf{R} add-on package \pkg{tramME}
+\citep{Tamasi_Hothorn_2021}.
+The package utilizes existing implementations
+of linear transformation models
+\citep[\pkg{mlt} and \pkg{tram} packages by][]{Hothorn_mlt_2020}
+for the user interface and to set up inputs for the estimation procedure.
+The penalized smooth terms are defined with the help
+of the \pkg{mgcv} package \citep{Wood_gam_2017},
+which provides functionality to reformulate these terms
+to their mixed-effects representations as described by
+\citet[Appendix]{Wood_2004}.
+\pkg{tramME} uses the Template Model Builder package
+\citep[TMB,][]{Kristensenetal_2016}
+to evaluate the log-likelihood via Laplace approximation
+and to calculate the gradients of it with automatic differentiation (\pkg{glmmTMB} uses
+the same underlying techniques).
+As a result, model estimation and inference in \pkg{tramME} is
+fast and efficient.
+
+The user interface of \pkg{tramME} follows
+standard model specification conventions of the most popular \textsf{R} packages
+(\pkg{lme4}, \citealp{Bates_lme4_2015},
+\pkg{mgcv}, \citealp{Wood_gam_2017})
+to define mixed-effects additive transformation models. Thus,
+transition from a \texttt{gam}, \texttt{lmer}, or \texttt{glmer} model is very
+simple. For example,
+a mixed-effects additive parametric proportional hazards model
+can be defined with the function call
+%
+<<tramME-exmpl1, eval=FALSE, echo=TRUE>>=
+## tramME is available from CRAN:
+## install.packages("tramME")
+library("tramME")
+mc1 <- CoxphME(                            ### conditional proportional hazards
+    Time ~                                 ### response time intervals
+           Insects +                       ### fixed effects
+           Habitat +
+           Landscape +
+           s(Temperature, k = 20) +        ### non-linear terms, as in mgcv
+           s(Elevation100, k = 20) +
+           (1 | PlotID),                   ### random intercept, as in lme4
+    data = carrion,                        ### data
+    log_first = TRUE,                      ### log(time) before modeling
+    order = 6                              ### order of Bernstein
+)
+@
+%
 
 \section{The rat carrion decomposition experiment}
 
@@ -519,7 +738,7 @@ and compare the effect estimates from the normal model to
 its non-parametric counterpart.
 But first, notice that by changing the transformation from
 $h(y) = \vartheta_{0} + \vartheta_{1}y$ to
-$h(y) = \a(y)\T\bvartheta$,
+$h(y) = \ba(y)\T\bvartheta$,
 we change the scale on which the coefficients
 and the smooth terms are interpreted.
 In the normal additive mixed model,
@@ -872,8 +1091,8 @@ The algae colonization was measured
 on five quadrants located on several larger patches,
 so there is a clear grouped structure in the data.
 \citet{Douma_2019} reanalyzed the data as a demonstration for the usage
-of mixed-effects models for zero-inflated beta regression models.
-Here we fit mixed-effects transformation models to the data,
+of mixed-effects models for zero-inflated beta regression.
+Here, we fit mixed-effects transformation models to the data
 and compare the results to zero-inflated mixed-model estimates
 obtained from \texttt{glmmTMB} \citep{Brooks_2017,pkg:glmmTMB}.
 Figure~\ref{fig:algae-data} presents the empirical cumulative distribution functions
@@ -909,10 +1128,9 @@ with random intercepts for the patches.
 The probability of observing zero values
 is allowed to vary with the treatment.
 %
-<<algae-glmm>>=
+<<algae-glmm, eval=FALSE>>=
 urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
                       data = andrew, family = beta_family())
-summary(urchin_zib)
 @
 
 As an alternative to the traditional beta regression approach,
@@ -1049,16 +1267,20 @@ nd <- expand.grid(pALGAE = seq(0, 1, length.out = 100),
                   KEEP.OUT.ATTRS = FALSE)
 colnames(nd)[1] <- variable.names(urchin_tram, "response")
 
-if (!file.exists("algae_mcdf.rda")) {
-## save results in a single df
+if (!file.exists("urchin.rda")) {
+  ## estimate the glmmTMB model
+  urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
+                        data = andrew, family = beta_family())
+  ## save results in a single df
   urchin_res <- nd
   colnames(urchin_res)[1] <- "pALGAE"
   urchin_res$tramME_shift <- marginalize.tramME(urchin_tram,
                                                 data = nd, type = "distribution")
   urchin_res$zib <- marginalize.zib.glmmTMB(urchin_zib, data = nd,
                                             type = "distribution")
+  urchin_zib_ll <- data.frame(ll = logLik(urchin_zib), np = length(urchin_zib$obj$par))
 } else{
-  load("algae_mcdf.rda")
+  load("urchin.rda")
 }
 @
 
@@ -1118,11 +1340,10 @@ in the treatment groups occur in many situations \citep{Douma_2019}.
 By modeling the dispersion separately, we can incorporate such differences
 in the beta regression model.
 %
-<<algae-glmm2>>=
+<<algae-glmm2, eval=FALSE>>=
 urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
                            ziformula = ~ TREAT, dispformula = ~ TREAT,
                            data = andrew, family = beta_family())
-summary(urchin_zib_disp)
 @
 
 In the mixed-effects linear transformation model,
@@ -1140,11 +1361,22 @@ summary(urchin_tram_strat)
 
 <<algae-mCDF2, echo=FALSE>>=
 if (!("tramME_strat" %in% colnames(urchin_res))) {
+  ## fit the glmm
+  urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
+                             ziformula = ~ TREAT, dispformula = ~ TREAT,
+                             data = andrew, family = beta_family())
+  ## marginalize
   urchin_res$tramME_strat <- marginalize.tramME(urchin_tram_strat,
     data = nd, type = "distribution")
   urchin_res$zib_disp <- marginalize.zib.glmmTMB(urchin_zib_disp,
     data = nd, type = "distribution")
-  save(urchin_res, file = "algae_mcdf.rda")
+}
+if (nrow(urchin_zib_ll) == 1) {
+  urchin_zib_ll <- rbind(urchin_zib_ll,
+    c(logLik(urchin_zib_disp), length(urchin_zib_disp$obj$par)))
+}
+if (!file.exists("urchin.rda")) {
+  save(urchin_res, urchin_zib_ll, file = "urchin.rda")
 }
 @
 
@@ -1198,15 +1430,17 @@ This is also reflected in the log-likelihood values (Table~\ref{tbl:ll-algae}).
 }\label{tbl:ll-algae}
 
 <<algae-loglik, results="asis", echo=FALSE>>=
-lls <- data.frame(c(
-  logLik(urchin_zib), logLik(urchin_tram),
-  logLik(urchin_zib_disp), logLik(urchin_tram_strat)))
-rownames(lls) <- c("Zero-inflated beta w/o dispersion model",
+lls <- data.frame(c(urchin_zib_ll$ll[1], urchin_zib_ll$ll[2],
+                    logLik(urchin_tram), logLik(urchin_tram_strat)),
+                  c(urchin_zib_ll$np[1], urchin_zib_ll$np[2],
+                    length(urchin_tram$tmb_obj$par),
+                    length(urchin_tram_strat$tmb_obj$par)))
+rownames(lls) <- c("Zero-inflated beta without dispersion model",
+                   "Zero-inflated beta with dispersion model",
                    "Linear transformation model",
-                   "Zero-inflated beta w/ dispersion model",
                    "Stratified linear transformation model")
-colnames(lls) <- "$\\log\\mathcal{L}$"
-print(xtable(lls, align = "lr"), sanitize.text.function = function(x) x,
+colnames(lls) <- c("$\\log\\mathcal{L}$", "Number of parameters")
+print(xtable(lls, align = "lrr", digits = c(0, 2, 0)), sanitize.text.function = function(x) x,
       booktabs = TRUE, floating = FALSE)
 @
 
@@ -1252,7 +1486,8 @@ count data via interval censoring \citep{Siegfried_Hothorn_2020},
 which is currently not part of the \pkg{tramME} package.
 %
 <<cotram-model, echo=TRUE, eval=FALSE>>=
-## additive count transformation model
+## Additive count transformation model
+## See ?cotram::cotram for the documentation
 CotramME <- function(formula, data,
                      method = c("logit", "cloglog", "loglog", "probit"),
                      log_first = TRUE, plus_one = log_first, prob = 0.9,
@@ -1444,9 +1679,10 @@ par(mfrow = c(2, 2), mar = c(4, 4, 3, 1), cex = 0.8, las = 1)
 plotsm(sm_mosquito_nb[[1]], "Week", "s(Week)")
 plotsm(sm_mosquito_nb[[2]], "CovRate200", "s(CovRate200)")
 mtext("Negative binomial model", side = 3, line = -2, outer = TRUE)
+sm <- sm_mosquito_tram
 for (i in seq_along(sm_mosquito_tram)) {
-  sm_mosquito_tram[[i]][, 2] <- -sm_mosquito_tram[[i]][, 2]
-  plot(sm_mosquito_tram[i], panel.first = grid())
+  sm[[i]][, 2] <- -sm[[i]][, 2]
+  plot(sm[i], panel.first = grid())
 }
 mtext("Count transfromation model", side = 3, line = -23, outer = TRUE)
 @
@@ -1501,7 +1737,8 @@ if (!file.exists("mosquito_models.rda")) {
   rownames(ci_mosquito) <- c("Year = 2018", "Income = middle", "Placement = out",
                              "Income = middle \\& Placement = out")
 
-  save(sm_mosquito_nb, sm_mosquito_tram, ll_mosquito, ci_mosquito, sums_mosquito,
+  save(sm_mosquito_nb, sm_mosquito_tram,
+       ll_mosquito, ci_mosquito, sums_mosquito,
        file = "mosquito_models.rda")
 }
 add <- list()
@@ -1526,6 +1763,542 @@ the transformation model, at least for the nonlinear effect of \code{CovRate200}
 and thus one might wonder if the stricter
 distributional assumption lead to overconfident model interpretation.
 
+\section{Simulation experiments}\label{sec:sim}
+
+The goals of the following simulation experiments are threefold.
+%
+\begin{enumerate*}
+\item First, we want to evaluate the loss of model performance when using
+the flexible, distribution-free
+mixed-effects additive transformation model approach
+in a scenario when a simple normal linear additive mixed model is appropriate.
+\item We are interested in comparing the performances
+of the normal and non-normal model under a highly non-normal data-generating process.
+\item Finally, we investigate the performance of the non-normal transformation model
+in the case of interval-censored data.
+\end{enumerate*}
+
+We consider a normal and a non-normal data-generating process
+for simulating grouped data with non-linear covariate effects.
+The conditional distributions corresponding to
+both of these can be written in the general transformation model form:
+%
+\begin{align*}
+  \IP(Y\leq y\mid x_{1}, x_{2}, \gamma_{j})
+  &= \Phi\left(h(y) - \beta x_{1} - f(x_{2}) - \gamma_{j}\right)
+    \qquad \gamma_{\left\{1:J\right\}}\overset{\text{i.i.d.}}{\sim}\cN(0,\sigma),
+\end{align*}
+%
+where $\Phi$ denotes the CDF of the standard Gaussian distribution,
+$\beta x_{1}$ is the parametric fixed-effect term,
+$f(x_{2})$ is a non-linear term
+and $\gamma_{j}$ is the random intercept of the group $j=1\dots J$
+with $\sigma$ standard deviation.
+The data are simulated by numerically inverting the conditional distribution function.
+%
+<<dgp-code>>=
+##' @param n Numeric vector, number of observations in each group
+##' @param beta Numeric, effect size
+##' @param sfun Function with a numeric argument, non-linear smooth shift term
+##' @param sigma Numeric, SD of random intercepts
+##' @param hinv Function with a numeric argument, inverse transformation function
+##' @param link Function with a single numeric argument on [0, 1] link function
+##' @param scale Numeric, optional scaling constant on the transformation scale
+##' @param seed Seed for the random number generator
+##' @param two_sets Logical; generate both an estimation and a test sample
+gen_smpl <- function(n, beta, sfun, sigma, hinv, link, scale = 1,
+                     seed = NULL, two_sets = TRUE) {
+  ## -- setting up the seed
+  if (!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+    runif(1)
+  if (is.null(seed))
+    RNGstate <- get(".Random.seed", envir = .GlobalEnv)
+  else {
+    R.seed <- get(".Random.seed", envir = .GlobalEnv)
+    set.seed(seed)
+    RNGstate <- structure(seed, kind = as.list(RNGkind()))
+    on.exit(assign(".Random.seed", R.seed, envir = .GlobalEnv))
+  }
+  if (two_sets) n <- rep(n, 2)
+  x1 <- runif(sum(n))
+  x2 <- runif(sum(n))
+  gr <- factor(rep(seq_along(n), n))
+  re <- rep(rnorm(length(n), mean = 0, sd = sigma), n)
+  lp <- x1 * beta + sfun(x2) + re
+  y  <- hinv((link(runif(sum(n))) + lp) * scale)
+  if (two_sets) {
+    n <- sum(n) / 2
+    out <- list(est  = data.frame(x1 = x1[1:n], x2 = x2[1:n], gr = gr[1:n],
+                                  y = y[1:n]),
+                test =  data.frame(x1 = tail(x1, n), x2 = tail(x2, n),
+                                   gr = tail(gr, n), y = tail(y, n)))
+  } else {
+    out <- data.frame(x1 = x1, x2 = x2, gr = gr, y = y)
+  }
+  out
+}
+@
+
+For the inverse baseline transformations
+and the non-linear shift term we set the following
+functional forms:
+%
+\begin{align*}
+  h_{1}(y) &= y, \qquad h_{2}(y) = \Phi^{-1}\left(F_{\chi^{2}_{3}}(y)\right), \qquad f(x) = \xi \sin(\pi x),
+\end{align*}
+%
+with $\Phi^{-1}(\cdot)$ as the quantile function of the standard normal distribution
+and $F_{\chi^{2}_{3}}(\cdot)$ is the distribution function
+of the $\chi^{2}$-distribution with 3 degrees of freedom.
+By using a linear function, $h_{1}(y)$ as the transformation function,
+we assume a normal additive mixed-model.
+In contrast, setting $h_{2}(t)$ introduces non-normality.
+In this case, the conditional distribution
+implied by the data-generating mechanism is
+$\chi^{2}$ ($\text{df}=3$) when the linear predictor is zero.
+In the simulations, we use $\beta=\sqrt{2}\Phi(0.7)$
+so that the effect size of the parametric fixed-effect term
+is $0.7$ on the probabilistic index scale
+in both the normal and the non-normal case
+(see Section~\ref{sec:ecoli} for details).
+Values of $x_{1}$ and $x_{2}$ are drawn
+from the uniform distribution on the interval between 0 and 1
+for each observation separately.
+The the parameters $\sigma$ and $\xi$ are set to values
+that result in equal variances for the parametric ($\beta x_{1}$),
+the non-linear ($f(x_{2})$) and the random-effects terms
+of the linear predictor on the transformation scale.
+
+<<sim-setup, echo=FALSE>>=
+## ==== Simulation inputs
+b   <- qnorm(0.7) * sqrt(2) ## PI = 0.7, SD of the parametric part is sqrt(1/12) * b = 0.2141 on the LP scale
+sf  <- function(x) 2 * b * sqrt(1/12) * sin(x * pi) / sqrt(2 - 16 / pi^2) ## same SD as the parametric terms on the LP scale
+sig <- sqrt(1/12) * b ## same RE SD on LP scale
+hi1 <- function(x) x
+hi2 <- function(x) qchisq(pnorm(x), df = 3)
+lnk <- qnorm
+
+## ==== Helper function to extract results
+get_res <- function(res, what, which = NULL, simplify = TRUE) {
+  out <- lapply(res, function(x) {
+    if (!is.null(which)) x <- x[which]
+    sapply(x, function(xx) {
+      if (length(xx) == 1 && is.na(xx)) NA
+      else {
+        if (is.function(what)) return(what(xx))
+        xx[[what]]
+      }
+    })
+  })
+  if (simplify) {
+    out <- do.call("rbind", out)
+    if (!is.function(what))
+      colnames(out) <- paste0(names(res[[1]]), "_", what)
+  }
+  out
+}
+@
+
+For the third question,
+to generate censored outcomes on an interval of a given length
+from continuous data,
+we define the following function:
+%
+<<intcens-dgp>>=
+make_intcens <- function(x, length = 1) {
+  Surv(floor(x / length) * length, ceiling(x / length) * length,
+       type = "interval2")
+}
+@
+
+In all scenarios,
+we simulate moderate-sized datasets with 100 subjects/groups ($J=100$)
+and four observations per each group.
+We repeat all simulations 500 times.
+
+Our primary focus in these simulation experiments
+is on inference about the fixed-effects parameter $\beta$
+and the general predictive performances of the model variants
+evaluated through the out-of-sample log-likelihood.
+For the out-of-sample log-likelihood calculations,
+we integrate over the random intercepts in the log-likelihood
+(i.e., the exponential of Equation~\ref{eq:loglik})
+of a new set of observations
+and evaluate it at the fitted values of the
+remaining parameters
+(coefficients corresponding to the baseline transformation,
+the fixed effect and the smooth term
+as well as the variance component and smoothing parameters).
+
+\subsection{Normal data-generating process}
+
+To investigate our first question,
+we draw samples from the (conditionally) normal additive mixed model
+(i.e., $h(y)=h_{1}(y)=y$)
+and fit a mixed-effects additive transformation model
+(with standard normal inverse link),
+as well as the correctly specified normal additive mixed model,
+to it.
+
+<<sim1, echo=FALSE, results="hide">>=
+if (!file.exists("sim1.rda")) {
+  seeds <- 301:800
+  system.time({
+    sims1 <- parallel::mclapply(seeds, function(s) {
+      smpl <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                       hinv = hi1, link = lnk, seed = s, two_sets = TRUE)
+      m1 <- LmME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m1$opt$convergence == 0) {
+        lmm <- list(ll    = logLik(m1),
+                    lloos = logLik(m1, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m1), sigma = sqrt(varcov(m1)$gr[1,1]),
+                    theta = m1$param$beta[attr(m1$param$beta, "type") == "bl"],
+                    beta_se = sqrt(vcov(m1, parm = "x1")[1,1]))
+      } else {
+        lmm <- NA
+      }
+      m2 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m2$opt$convergence == 0) {
+        bcm <- list(ll    = logLik(m2),
+                    lloos = logLik(m2, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m2), sigma = sqrt(varcov(m2)$gr[1,1]),
+                    theta = m2$param$beta[attr(m2$param$beta, "type") == "bl"],
+                    beta_se = sqrt(vcov(m2, parm = "x1")[1,1]),
+                    intercept = mean(sf(smpl$est$x2)))
+      } else {
+        bcm <- NA
+      }
+      list(LmME = lmm, BoxCoxME = bcm)
+    }, mc.cores = 6)
+  })
+  save(sims1, file = "sim1.rda")
+} else {
+  load("sim1.rda")
+}
+
+## -- non-convergence
+rowSums(sapply(sims1, function(x)
+  sapply(x, function(xx) c(length(xx) == 1 && is.na(xx))))
+  )
+@
+
+\begin{figure}
+  \centering
+
+<<sim1-beta-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth">>=
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(pnorm(get_res(sims1, "beta") / sqrt(2)) - 0.7,
+        ylab = "PI", names = c("Normal", "Non-normal"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+abline(h = 0, lwd = 2, lty = 2, col = 2)
+@
+\caption{Bias of the coefficient of the parametric fixed term in the case
+  of the conditionally normal data-generating process.
+  The results are presented on the probabilistic index scale.
+  ``Normal'' corresponds to the results from the normal additive mixed model,
+  while ``Non-normal'' denotes the distribution-free mixed-effects additive
+  transformation model.}\label{fig:sim1-bias}
+
+\end{figure}
+
+According to Figure~\ref{fig:sim1-bias},
+both the correctly specified additive model
+and the flexible transformation model results in unbiased estimates
+for the $\beta$ parameter,
+with no visible additional variability in the case of the more general,
+distribution-free approach.
+The coverage rates of the 95\%~Wald confidence intervals from the two models
+are very close to their nominal levels.
+%
+<<sim1-beta-ci>>=
+cvi <- get_res(sims1, what = function(x) {
+  ci <- x$beta + x$beta_se * qnorm(0.975) * c(-1, 1)
+  (ci[1] <= b) && (b < ci[2])
+})
+(cvr <- colMeans(cvi, na.rm = TRUE)) ## Coverage rate
+sqrt(cvr * (1 - cvr) / nrow(cvi)) ## Monte Carlo SE
+@
+
+The Monte Carlo distributions of out-of-sample log-likelihood
+are presented in Figure~\ref{fig:sim1-pred}.
+For each simulated dataset for fitting the two models,
+we generated an independent evaluation dataset of the same size
+and structure.
+We calculated the log-likelihood of this new data given the parameters
+fitted to the estimation sample.
+The predictive performance of the two models are very close to each other,
+with just slight reduction in the log-likelihood values
+for the more complex transformation model.
+
+\begin{figure}
+  \centering
+
+<<sim1-pred-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth">>=
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(get_res(sims1, "lloos"), ylab = "Out-of-sample log-likelihood",
+        names = c("Normal", "Non-normal"), boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+@
+\caption{Predictive performance of the normal additive mixed model
+  and the mixed-effects additive
+  transformation model evaluated by the out-of-sample log-likelihood
+  of an independently generated dataset.}\label{fig:sim1-pred}
+
+\end{figure}
+
+To visually assess,
+how well the mixed-effects additive transformation model
+approximates the conditionally normal response distribution,
+we plot the fitted baseline transformation functions ($\widehat h(y)$),
+and compare to the true function $h(y)=y$ (Figure~\ref{fig:sim1-baseline}).
+
+\begin{figure}
+  \centering
+<<sim1-baseline-plot, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth">>=
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+th <- get_res(sims1, "theta", "BoxCoxME", simplify = FALSE)
+th <- do.call("cbind", th)
+## NOTE: to compare with the true transformation function (identity) we need to
+## adjust the fitted baseline transformation with the expectation of the smooth
+## term
+ic <- get_res(sims1, "intercept", "BoxCoxME", simplify = FALSE)
+ic <- sapply(ic, `[`, 1)
+dat <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                hinv = hi1, link = lnk, seed = 1, two_sets = FALSE)
+bcm <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = dat, nofit = TRUE)
+nd  <- dat[rep(1, 100), ]
+nd[[variable.names(bcm, "response")]] <- seq(-1, 2, length.out = 100)
+mm  <- model.matrix(bcm$model$ctm$bases$response, data = nd)
+tr <- mm %*% th + matrix(rep(ic, each = 100), nrow = 100)
+matplot(nd$y, tr, type = "l", col = grey(0.1,0.1), lty = 1,
+        ylab = "h(y)", xlab = "y", panel.first = grid())
+abline(0,1, lwd = 2, col = 2)
+@
+\caption{Fitted baseline transformation functions from the mixed-effects
+  additive transformation model under normal data-generating mechanism.
+  The red line shows the true value.}\label{fig:sim1-baseline}
+
+\end{figure}
+
+
+\subsection{Non-normal data-generating process}
+
+In many applied regression problems,
+the assumption that the outcome is normally distributed,
+conditionally on the predictors,
+is violated.
+Normal additive mixed models are still
+often used in these cases,
+mainly due to the fact that
+the normal linear model can be remarkably
+robust to some violations of the model assumptions
+\citep{Schielzeth_etal_2020}.
+In the next simulation experiment,
+we compare the normal additive mixed model
+and non-normal mixed-effects transformation model
+based on the inference on the parametric fixed term
+and out-of-sample predictive performance
+under a non-normal, skewed data-generating process.
+
+As an additional goal,
+we also investigate the performance
+of the transformation approach
+when the outcome variable is interval-censored,
+i.e., none of the values are exactly observed,
+only up to an interval.
+For each iteration in the Monte Carlo simulations,
+we generate a dataset with exactly observed outcomes
+(from the conditionally non-normal data-generating process)
+and fit the normal additive model
+and the non-normal transformation model to it.
+We then create the censored version
+of the same variable by binning
+its values into intervals
+(of length two in our simulations)
+and define the corresponding \code{Surv} object.
+%
+<<intcens-example>>=
+dat <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                hinv = hi2, link = lnk, seed = 1, two_sets = FALSE)
+head(dat$y) ## exact values
+head(make_intcens(dat$y, length = 2)) ## interval-censored version
+@
+%
+In the next step, we refit the transformation model
+using the interval-censored data,
+and compare its results to the additive mixed model
+and the transformation model with exact responses.
+To ensure the comparability of the out-of-sample predictions,
+we only transform the response in the estimation sample,
+but not the evaluation sample,
+to interval-censored.
+
+<<sim2, echo=FALSE, results="hide">>=
+nd <- data.frame(x2 = seq(0, 1, length.out = 100))
+if (!file.exists("sim2.rda")) {
+  seeds <- 1001:1500
+  system.time({
+    sims2 <- parallel::mclapply(seeds, function(s) {
+      smpl <- gen_smpl(rep(4, 100), beta = b, sfun = sf, sigma = sig,
+                       hinv = hi2, link = lnk, seed = s, two_sets = TRUE)
+      m1 <- LmME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m1$opt$convergence == 0) {
+        lmm <- list(ll    = logLik(m1),
+                    lloos = logLik(m1, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m1), sigma = sqrt(varcov(m1)$gr[1,1]),
+                    beta_se = sqrt(vcov(m1, parm = "x1")[1,1]))
+      } else {
+        lmm <- NA
+      }
+      m2 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m2$opt$convergence == 0) {
+        sm <- smooth_terms(m2, newdata = nd)[[1]][,2] + mean(sf(smpl$est$x2))
+        bcm <- list(ll    = logLik(m2),
+                    lloos = logLik(m2, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m2), sigma = sqrt(varcov(m2)$gr[1,1]),
+                    beta_se = sqrt(vcov(m2, parm = "x1")[1,1]),
+                    smooth = sm)
+      } else {
+        bcm <- NA
+      }
+      smpl$est$y <- make_intcens(smpl$est$y, length = 2)
+      m3 <- BoxCoxME(y ~ x1 + s(x2) + (1 | gr), data = smpl$est)
+      if (m3$opt$convergence == 0) {
+        sm <- smooth_terms(m3, newdata = nd)[[1]][, 2] + mean(sf(smpl$est$x2))
+        icm <- list(ll    = logLik(m3),
+                    lloos = logLik(m3, newdata = smpl$test, type = "fix_smooth"),
+                    beta  = coef(m3), sigma = sqrt(varcov(m3)$gr[1,1]),
+                    beta_se = sqrt(vcov(m3, parm = "x1")[1,1]),
+                    smooth = sm)
+      } else {
+        icm <- NA
+      }
+      list(LmME = lmm, BoxCoxME = bcm, BoxCoxME_ic = icm)
+    }, mc.cores = 8)
+  })
+  save(sims2, file = "sim2.rda")
+} else {
+  load("sim2.rda")
+}
+
+## -- non-convergence
+rowSums(sapply(sims2, function(x)
+  sapply(x, function(xx) c(length(xx) == 1 && is.na(xx))))
+  )
+@
+
+Figure~\ref{fig:sim2-bias} show the bias in the estimates of the coefficient $\beta$
+in the case of the two models and the transformation model under interval-censored data.
+In the case of the (misspecified) normal additive mixed-model,
+there is a sign of slight
+downward bias, while the transformation model gives unbiased estimates for the parametric
+fixed-effects coefficient,
+irrespective of whether it uses the exact observations
+or their interval-censored version.
+The coverages of the 95\% Wald confidence intervals
+are close to their nominal levels in all cases.
+%
+<<sim2-beta-ci>>=
+cvi <- get_res(sims2, what = function(x) {
+  ci <- x$beta + x$beta_se * qnorm(0.975) * c(-1, 1)
+  (ci[1] <= b) && (b < ci[2])
+})
+(cvr <- colMeans(cvi, na.rm = TRUE)) ## Coverage rate
+sqrt(cvr * (1 - cvr) / nrow(cvi)) ## Monte Carlo SE
+@
+
+
+\begin{figure}
+  \centering
+
+<<sim2-beta-plot, echo=FALSE, fig.width=4.5, fig.height=3.5, out.width=".5\\textwidth">>=
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(pnorm(get_res(sims2, "beta") / sqrt(2)) - 0.7,
+        ylab = "PI", names = c("Normal", "Non-normal", "Non-normal (IC)"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+abline(h = 0, lwd = 2, lty = 2, col = 2)
+@
+\caption{Bias of the coefficient of the parametric fixed term in the case
+  of the conditionally non-normal data-generating process.
+  The results are presented on the probabilistic index scale.
+  ``Normal'' corresponds to the results from the normal additive mixed model,
+  ``Non-normal'' denotes the distribution-free mixed-effects additive transformation model
+  and ``Non-normal (IC)'' show the results of the transformation model
+  under interval-censoring.}\label{fig:sim2-bias}
+
+\end{figure}
+
+The differences between the normal and the distribution-free approaches
+are more marked in their out-of-sample predictive performances.
+As Figure~\ref{fig:sim2-pred} shows,
+the normal additive mixed model performs poorly compared
+to the transformation model,
+even in the interval-censored case,
+when the observations in the estimation sample
+are not exactly observed.
+
+\begin{figure}
+  \centering
+
+<<sim2-pred-plot, echo=FALSE, fig.width=4.5, fig.height=3.5, out.width=".5\\textwidth">>=
+par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
+boxplot(get_res(sims2, "lloos"), ylab = "Out-of-sample log-likelihood",
+        names = c("Normal", "Non-normal", "Non-normal (IC)"),
+        boxwex = 0.5)
+grid(nx = NA, ny = NULL)
+@
+\caption{Predictive performance of the normal additive mixed model
+  and the mixed-effects additive
+  transformation model
+  with exact (``Non-normal'') and interval-censored (``Non-normal (IC)'') observations
+  evaluated by the out-of-sample log-likelihood
+  of an independently generated dataset.}\label{fig:sim2-pred}
+
+\end{figure}
+
+Figure~\ref{fig:sim2-smooth} presents the fitted smooth non-linear terms
+from the non-normal transformation model in the case of the exactly observed
+and interval-censored scenarios.
+As the results show, the model is able to recover the non-linear term
+even when the information on the outcome is limited to intervals.
+
+\begin{figure}
+  \centering
+
+<<sim2-smooth-plot, echo=FALSE, fig.width=6, fig.height=3.5, out.width=".8\\textwidth">>=
+par(mfrow = c(1, 2), las = 1, mar = c(4, 5, 1, 1), cex = 0.8)
+sms <- get_res(sims2, what = "smooth", which = c("BoxCoxME", "BoxCoxME_ic"),
+               simplify = FALSE)
+sm1 <- sapply(sms, function(x) x[, 1])
+matplot(nd$x2, sm1, type = "l", col = grey(0.1, 0.1), lty = 1,
+        ylab = expression(hat(f) * "(x)"), xlab = "x",
+        panel.first = grid())
+lines(nd$x2, sf(nd$x2), col = 2, lwd = 2)
+sm2 <- sapply(sms, function(x) x[, 2])
+matplot(nd$x2, sm2, type = "l", col = grey(0.1, 0.1), lty = 1,
+        ylab = expression(hat(f) * "(x)"), xlab = "x",
+        panel.first = grid())
+lines(nd$x2, sf(nd$x2), col = 2, lwd = 2)
+@
+\caption{Fitted non-linear effects from the mixed-effects
+  additive transformation model with exact observations (\emph{left panel})
+  and interval-censored observations (\emph{right panel})
+  under the non-normal data-generating mechanism.
+  The red curves show the true function.}\label{fig:sim2-smooth}
+
+\end{figure}
+
+In summary,
+the results of the simulation experiments presented above suggest
+that, at least in the scenarios considered,
+the cost of using the distribution-free transformation model framework
+in mixed-effects additive modeling is low,
+while it can improve the inference and predictive performance
+when the distributional assumptions of the available alternatives are not met.
+Moreover, our results confirm that the model provides reliable estimates
+when the outcome variable is censored.
 
 \clearpage
 
@@ -1561,7 +2334,6 @@ for (p in pkgs)
     x <- gsub(paste("\\{", p, ":", sep = ""), paste("\\{\\\\pkg{", p, "}:", sep = ""), x)
 cat(x, sep = "\n", file = "packages.bib", append = FALSE)
 @
-
 
 \bibliographystyle{plainnat}
 \bibliography{ref,packages}

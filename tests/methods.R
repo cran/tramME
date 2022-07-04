@@ -66,6 +66,7 @@ mod_gm <- LmME(y ~ s(x0)+ x1 + s(x2) + (1|fac), data = gamdat)
 chkid(dim(vcov(mod_gm, pargroup = "smooth")), c(4L, 4L))
 
 ## -- variable names
+mod_sr <- SurvregME(Surv(time, status) ~ rx, data = rats, nofit = TRUE)
 chkid(variable.names(mod_sr, "grouping"), NULL)
 chkid(variable.names(mod_sr, "interacting"), NULL)
 chkid(variable.names(mod_sr, "smooth"), NULL)
@@ -305,21 +306,22 @@ mod_cox2 <- update(mod_cox1, data = rats[1:200, ], ctm = mod_cox1$model$ctm)
 chkid(mod_cox1$model$ctm, mod_cox2$model$ctm) ## same
 
 ## -- fitmod
-data("neck_pain", package = "ordinalCont")
-mod_colr <- ColrME(vas ~ time * laser + (1 | id), data = neck_pain, bounds = c(0, 1),
-                   support = c(0, 1), order = 4, nofit = TRUE)
-fit <- fitmod(mod_colr)
+## FIXME: remove
+## data("neck_pain", package = "ordinalCont")
+## mod_colr <- ColrME(vas ~ time * laser + (1 | id), data = neck_pain, bounds = c(0, 1),
+##                    support = c(0, 1), order = 4, nofit = TRUE)
+## fit <- fitmod(mod_colr)
 ## NOTE: they do not share the environment in the tramTMB
-stopifnot(!identical(mod_colr$tmb_obj$env, fit$tmb_obj$env))
-fit2 <- ColrME(vas ~ time * laser + (1 | id), data = neck_pain, bounds = c(0, 1),
-               support = c(0, 1), order = 4)
-chkeq(logLik(fit), logLik(fit2))
+## stopifnot(!identical(mod_colr$tmb_obj$env, fit$tmb_obj$env))
+## fit2 <- ColrME(vas ~ time * laser + (1 | id), data = neck_pain, bounds = c(0, 1),
+##                support = c(0, 1), order = 4)
+## chkeq(logLik(fit), logLik(fit2))
 
-data("mcycle", package = "MASS")
-m <- LmME(accel ~ s(times), data = mcycle, nofit = TRUE)
-f1 <- fitmod(m)
-f2 <- LmME(accel ~ s(times), data = mcycle)
-chkeq(f1$param, f2$param, tol = 1e-4) ## NOTE: not exactly equal bec of different starting values
+## data("mcycle", package = "MASS")
+## m <- LmME(accel ~ s(times), data = mcycle, nofit = TRUE)
+## f1 <- fitmod(m)
+## f2 <- LmME(accel ~ s(times), data = mcycle)
+## chkeq(f1$param, f2$param, tol = 1e-4) ## NOTE: not exactly equal bec of different starting values
 
 ## -- model.frame
 mod_cox3 <- CoxphME(Surv(time, status) | celltype ~ trt + s(age) + karno,
