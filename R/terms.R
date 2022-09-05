@@ -81,15 +81,15 @@
     names(Xs) <- bs_nms
     X <- do.call("cbind", Xs)
     if (length(Zs)) {
-      Z <- as(do.call("cbind", Zs), "dgTMatrix")
+      Z <- as_dgTMatrix(do.call("cbind", Zs))
       attr(Z, "ranef") <- list(termsize = sapply(Zs, ncol))
     } else {
-      Z <- as(matrix(0, nrow = nrow(X), ncol = 0), "dgTMatrix")
+      Z <- nullTMatrix(nrow = nrow(X), ncol = 0L)
       attr(Z, "ranef") <- list(termsize = integer(0))
     }
   } else {
     X <- matrix(0, nrow = nrow(data), ncol = 0)
-    Z <- as(matrix(0, nrow = nrow(X), ncol = 0), "dgTMatrix")
+    Z <- nullTMatrix(nrow = nrow(X), ncol = 0L)
     attr(Z, "ranef") <- list(termsize = integer(0))
   }
   if (negative) {
@@ -110,6 +110,21 @@
   return(list(X = X, Z = Z))
 }
 
+## transfrom matrix to 'dgTMatrix'
+## NOTE: m should be numeric (and not logical)
+as_dgTMatrix <- function(m) as(as(m, "TsparseMatrix"), "generalMatrix")
+
+## create a 'TMatrix' with all 0 elements of a given size
+nullTMatrix <- function(nrow = 0, ncol = 0) {
+  args <- list(i = integer(0), j = integer(0),
+               dims = c(nrow, ncol), x = numeric(0))
+  if (utils::packageVersion("Matrix") >= "1.3.0") {
+    args$repr <- "T"
+  } else {
+    args$giveCsparse <- FALSE
+  }
+  do.call(Matrix::sparseMatrix, args)
+}
 
 ## Create random effects data and other required values
 ##
@@ -147,7 +162,7 @@
     }, n = ri$names, g = names(ri$names),
     SIMPLIFY = FALSE, USE.NAMES = FALSE))
   } else {
-    Zt <- as(matrix(0, nrow = 0, ncol = nrow(data)), "dgTMatrix")
+    Zt <- nullTMatrix(nrow = 0L, ncol = nrow(data))
     ri <- list(termsize = integer(0), blocksize = integer(0),
                npar = 0L)
     pn <- character(0)

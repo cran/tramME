@@ -1,3 +1,8 @@
+# tramME 1.0.3 (2022-09-05)
+
+* Adapted matrix type conversions to Matrix 1.5.0.
+* Fixed typo in vignette `mixed-effects-additive-models`.
+
 # tramME 1.0.2 (2022-07-04)
 
 * Updated vignette `mixed-effects-additive-models`.

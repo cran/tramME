@@ -290,7 +290,7 @@ diff_smooth <- function(mod, DOY = NULL, n = 100) {
     X <- XZ$X
     X[, attr(XZ$X, "type") != "sm"] <- 0
     Z_ <- Matrix::t(XZ$Zt)[, attr(XZ$Zt, "type") == "sm", drop = FALSE]
-    Z <- as(matrix(0, nrow = nrow(Z_), ncol = length(mod$param$gamma)), "dgTMatrix")
+    Z <- tramME:::nullTMatrix(nrow = nrow(Z_), ncol = length(mod$param$gamma))
     Z[, attr(mod$param$gamma, "type") == "sm"] <- Z_
     list(X = X, Z = Z)
   }
@@ -306,7 +306,7 @@ diff_smooth <- function(mod, DOY = NULL, n = 100) {
   nd$DOY <- nd$DOY + 1
   XZ <- model.matrix(mod, data = nd, type = c("X", "Zt"), keep_sign = FALSE)
   XZ2 <- XZ_sm(XZ)
-  XZ <- list(X = XZ2$X - XZ1$X, Z = as(XZ2$Z - XZ1$Z, "dgTMatrix"))
+  XZ <- list(X = XZ2$X - XZ1$X, Z = tramME:::as_dgTMatrix(XZ2$Z - XZ1$Z))
   pr <- predict(mod$tmb_obj, newdata = XZ, scale = "lp")
   split(data.frame(DOY = nd_$DOY, df = pr$pred, se = pr$se), nd$treatment)
 }

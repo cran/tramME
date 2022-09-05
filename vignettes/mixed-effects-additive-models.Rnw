@@ -865,7 +865,7 @@ diff_smooth <- function(mod, DOY = NULL, n = 100) {
     X <- XZ$X
     X[, attr(XZ$X, "type") != "sm"] <- 0
     Z_ <- Matrix::t(XZ$Zt)[, attr(XZ$Zt, "type") == "sm", drop = FALSE]
-    Z <- as(matrix(0, nrow = nrow(Z_), ncol = length(mod$param$gamma)), "dgTMatrix")
+    Z <- tramME:::nullTMatrix(nrow = nrow(Z_), ncol = length(mod$param$gamma))
     Z[, attr(mod$param$gamma, "type") == "sm"] <- Z_
     list(X = X, Z = Z)
   }
@@ -881,7 +881,7 @@ diff_smooth <- function(mod, DOY = NULL, n = 100) {
   nd$DOY <- nd$DOY + 1
   XZ <- model.matrix(mod, data = nd, type = c("X", "Zt"), keep_sign = FALSE)
   XZ2 <- XZ_sm(XZ)
-  XZ <- list(X = XZ2$X - XZ1$X, Z = as(XZ2$Z - XZ1$Z, "dgTMatrix"))
+  XZ <- list(X = XZ2$X - XZ1$X, Z = tramME:::as_dgTMatrix(XZ2$Z - XZ1$Z))
   pr <- predict(mod$tmb_obj, newdata = XZ, scale = "lp")
   split(data.frame(DOY = nd_$DOY, df = pr$pred, se = pr$se), nd$treatment)
 }
@@ -1856,7 +1856,7 @@ In contrast, setting $h_{2}(t)$ introduces non-normality.
 In this case, the conditional distribution
 implied by the data-generating mechanism is
 $\chi^{2}$ ($\text{df}=3$) when the linear predictor is zero.
-In the simulations, we use $\beta=\sqrt{2}\Phi(0.7)$
+In the simulations, we use $\beta=\sqrt{2}\Phi^{-1}(0.7)$
 so that the effect size of the parametric fixed-effect term
 is $0.7$ on the probabilistic index scale
 in both the normal and the non-normal case

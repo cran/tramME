@@ -280,7 +280,7 @@ fe_terms <- function(mod) {
 ## @return A list containing data and parameter values to be used in the TMB model.
 re_terms <- function(ranef, data, negative, drop.unused.levels = TRUE) {
   if (is.null(ranef)) {
-    out <- list(Zt = Matrix::Matrix(0, nrow = 0, ncol = nrow(data), doDiag = FALSE),
+    out <- list(Zt = nullTMatrix(nrow = 0, ncol = nrow(data)),
                 termsize = integer(0), blocksize = integer(0),
                 ui = Matrix::Matrix(0, nrow = 0, ncol = 0),
                 ci = numeric(0),
@@ -319,7 +319,7 @@ sm_terms <- function(smooth, data, negative) {
   out <- list()
   if (is.null(smooth)) {
     out$X <- matrix(0, nrow = nrow(data), ncol = 0)
-    out$Z <- Matrix::Matrix(0, nrow = nrow(data), ncol = 0, doDiag = FALSE)
+    out$Z <- nullTMatrix(nrow = nrow(data), ncol = 0)
     out$re_dims <- numeric(0)
   } else {
     if (inherits(smooth, "tramME_smooth")) {
@@ -329,11 +329,10 @@ sm_terms <- function(smooth, data, negative) {
     }
     out$X <- do.call("cbind", sm$X)
     if (length(sm$Z)) {
-      out$Z <- as(do.call("cbind", sm$Z), "dgTMatrix")
+      out$Z <- as_dgTMatrix(do.call("cbind", sm$Z))
       out$re_dims <- sapply(sm$Z, ncol)
     } else {
-      out$Z <- Matrix::Matrix(0, nrow = nrow(out$X), ncol = 0,
-                              doDiag = FALSE)
+      out$Z <- nullTMatrix(nrow = nrow(out$X), ncol = 0L)
       out$re_dims <- numeric(0)
     }
   }
@@ -505,9 +504,7 @@ tramTMB <- function(data, parameters, constraint, negative, map = list(),
   if (is.null(data$postest_scale) || data$postest_scale == 0L) {
     data$Ype <- matrix(0, nrow = 0, ncol = length(parameters$beta0))
     data$Xpe <- matrix(0, nrow = 0, ncol = length(parameters$beta))
-    ## data$Zpe <- Matrix::Matrix(0, nrow = 0, ncol = length(parameters$gamma),
-    ##                            doDiag = FALSE)
-    data$Zpe <- as(matrix(0, nrow = 0, ncol = length(parameters$gamma)), "dgTMatrix")
+    data$Zpe <- nullTMatrix(nrow = 0L, ncol = length(parameters$gamma))
     data$postest_scale <- 0
   }
   if (is.null(data$as_lm)) data$as_lm <- 0

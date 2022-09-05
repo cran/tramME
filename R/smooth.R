@@ -203,7 +203,7 @@ smooth_terms.tramME <- function(object, k = 100, newdata = NULL, ...) {
     ## -- XXX: see explanation in 3)
     Z1 <- Matrix::t(mm$Zt)
     idx1 <- which(grepl(lab, colnames(Z1), fixed = TRUE))
-    Z <- as(matrix(0, nrow = nrow(Z1), ncol = gl), "dgTMatrix")
+    Z <- nullTMatrix(nrow = nrow(Z1), ncol = gl)
     idx <- which(grepl(lab, gn, fixed = TRUE))
     Z[, idx] <- Z1[, idx1]
     ## --
@@ -211,7 +211,7 @@ smooth_terms.tramME <- function(object, k = 100, newdata = NULL, ...) {
     Zs[[i]] <- Z
   }
   X <- do.call("rbind", Xs)
-  Z <- as(do.call("rbind", Zs), "dgTMatrix")
+  Z <- as(do.call("rbind", Zs), "TsparseMatrix")
   pr <- predict(object$tmb_obj, newdata = list(X = X, Z = Z), scale = "lp", as.lm = as.lm)
   for (i in 1:length(grs)) {
     gr <- grs[[i]]
