@@ -252,6 +252,7 @@ smooth_terms.LmME <- function(object, as.lm = FALSE, k = 100, newdata = NULL, ..
 ##' @param which Select terms to be printed by their indices
 ##' @param col Line color for the point estimates.
 ##' @param fill Fill color for the confidence intervals.
+##' @param trafo Monotonic transformation to be applied on the smooth terms
 ##' @param add Add the plot to an existing figure.
 ##' @param ... Optional parameters passed to the plotting functions.
 ##' @examples
@@ -262,8 +263,9 @@ smooth_terms.LmME <- function(object, as.lm = FALSE, k = 100, newdata = NULL, ..
 ##' @importFrom grDevices grey
 ##' @export
 ## TODO: same y limits
+## TODO: a dedicated function to calculate CIs
 plot.smooth.tramME <- function(x, which = seq_along(x), col = 1, fill = grey(0.5, 0.25),
-                               add = FALSE, ...) {
+                               trafo = I, add = FALSE, ...) {
   if (length(x) == 0)
     return(invisible(x))
   if ((n <- length(x)) > 1 && !add && length(which) > 1) {
@@ -278,10 +280,11 @@ plot.smooth.tramME <- function(x, which = seq_along(x), col = 1, fill = grey(0.5
     ln <- attr(x[[i]], "label")
     xx <- x[[i]][[vn]]
     yy <- x[[i]][[ln]]
-    ci <- yy + qnorm(0.975) * x[[i]]$se %o% c(-1, 1)
+    ci <- trafo(yy + qnorm(0.975) * x[[i]]$se %o% c(-1, 1))
+    yy <- trafo(yy)
     if (!add) {
       fc <- call
-      fc[c("which", "col", "fill", "add")] <- NULL
+      fc[c("which", "col", "fill", "trafo", "add")] <- NULL
       fc[[1L]] <- quote(plot)
       fc$x <- 0
       fc$type <- "n"
@@ -292,7 +295,7 @@ plot.smooth.tramME <- function(x, which = seq_along(x), col = 1, fill = grey(0.5
       eval(fc)
     }
     fc <- call
-    fc[c(formalArgs(plot.default), "which", "col", "fill", "add")] <- NULL
+    fc[c(formalArgs(plot.default), "which", "col", "fill", "trafo", "add")] <- NULL
     fc[[1L]] <- quote(lines)
     fc$x <- xx
     fc$y <- yy
@@ -350,7 +353,14 @@ edf_smooth <- function(object, ...) {
 ##' edf_smooth(fit)
 ##' @export
 ##' @aliases edf_smooth
-## TODO: extend this to other terms (eg. REs)
+## TODO: The current approach is very slow with largeish datasets (~10k)
+## maybe not integrating out the random effects is not the way to go
+## (large, non-sparse Hessians) especially when there are many
+## This will force us to give up 'analytical'
+## Other idea: fix everything that is not interesting in the auxiliary models
+## TODO: extend this to other terms (eg. REs) -- only after sorting out the
+## performance issue
+##' @importFrom Matrix solve rowSums
 edf_smooth.tramME <- function(object, ...) {
   if (is.null(object$model$smooth)) return(NULL)
   ## Get indices
@@ -366,7 +376,8 @@ edf_smooth.tramME <- function(object, ...) {
   args$par <- c(object$param$beta, object$param$gamma, object$param$theta)
   args$joint <- FALSE
   args$method <- "analytical"
-  Hp <- do.call(".Hessian", args)
+  args$sparse <- TRUE
+  Hp <- do.call("Hess", args)
   ## Get unpenalized (neg log-likelihood) Hessian
   data <- object$tmb_obj$env$data
   data$part <- 1
@@ -376,32 +387,12 @@ edf_smooth.tramME <- function(object, ...) {
   args$par <- c(object$param$beta, object$param$gamma, object$param$theta)
   args$joint <- FALSE
   args$method <- "analytical"
-  Hl <- do.call(".Hessian", args)
-  MM <- try(.blockSolve(Hp, Hl, idx))
-  if (inherits(MM, "try-error")) MM <- solve(Hp, Hl)[idx, idx]
+  args$sparse <- TRUE
+  Hl <- do.call("Hess", args)
+  dMM <- rowSums(solve(Hp) * Hl)[idx]
   ## Cumulate diagonal elements
   nm <- names(idx)
   nm <- factor(nm, levels = unique(nm))
   idx <- split(seq_along(idx), nm)
-  dMM <- diag(MM)
   sapply(idx, function(i) sum(dMM[i]))
-}
-
-## Solve AX=B for a block of X
-## A and B are assumed symmetric PD matrices
-## Equivalent to solve(A, B)[idx, idx]
-##' @importFrom Matrix solve crossprod tcrossprod diag
-.blockSolve <- function(A, B, idx) {
-  ## Schur complements
-  A1 <- A[idx, idx]
-  A2 <- A[-idx, -idx]
-  A3 <- A[-idx, idx]
-  MM1 <- solve(A2, A3)
-  MM2 <- A1 - crossprod(A3, MM1)
-  M1  <- solve(MM2)
-  M2  <- -tcrossprod(M1, MM1)
-  ## Block multiplication
-  B1 <- B[idx, idx]
-  B4 <- B[idx, -idx]
-  M1 %*% B1 + tcrossprod(M2, B4)
 }

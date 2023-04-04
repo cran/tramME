@@ -9,6 +9,7 @@
   which = seq_along(x),
   col = 1,
   fill = grey(0.5, 0.25),
+  trafo = I,
   add = FALSE,
   ...
 )
@@ -21,6 +22,8 @@
 \item{col}{Line color for the point estimates.}
 
 \item{fill}{Fill color for the confidence intervals.}
+
+\item{trafo}{Monotonic transformation to be applied on the smooth terms}
 
 \item{add}{Add the plot to an existing figure.}
 

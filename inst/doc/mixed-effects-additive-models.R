@@ -31,7 +31,7 @@ library("gamm4")
 #             s(Elevation100, k = 20) +
 #             (1 | PlotID),                   ### random intercept, as in lme4
 #      data = carrion,                        ### data
-#      log_first = TRUE,                      ### log(time) before modeling
+#      log_first = TRUE,                      ### log(Time) before modeling
 #      order = 6                              ### order of Bernstein
 #  )
 
@@ -47,6 +47,26 @@ carrion$Landscape <- factor(carrion$Landscape)
 carrion$Landscape <- relevel(carrion$Landscape, ref = "seminatural")
 carrion$PlotID <- factor(carrion$PlotID)
 
+## ----fig-carrion-cens, echo=FALSE, fig.width=8, fig.height=4, out.width="0.9\\textwidth"----
+par(mfrow = c(1, 2))
+## -- Plot 1
+par(cex = 0.9, mar = c(5, 4, 2, 1))
+idx <- 140:155
+dpl <- carrion$Time[idx]
+plot(0, type = "n", ylim = range(idx) + c(-0.5, 0.5), xlim = c(0, 120),
+     ylab = "ID", xlab = "Follow-up time (days)", yaxt = "n")
+abline(h = idx, v = seq(0, 120, by = 20), col = "lightgrey", lty = 3)
+axis(2, at = idx, las = 2)
+ic <- dpl[, 3] > 0
+segments(y0 = idx[ic], x0 = dpl[ic, 1], x1 = dpl[ic, 2], lwd = 2)
+arrows(y0 = idx[!ic], x0 = dpl[!ic, 1], x1 = 123, length = 0.1, lwd = 2)
+## -- Plot 2
+par(cex = 0.9, mar = c(5, 4, 2, 1))
+dpl <- carrion$Time[carrion$Time[, 3] > 0] ## exclude right censored
+plot(ecdf(dpl[, 2] - dpl[, 1]), xlab = "Interval length (days)", main = NULL,
+     verticals = TRUE, las = 1, ylab = "Probability")
+grid()
+
 ## ----fig-carrion-data, echo=FALSE, fig.width=4, fig.height=3.5, out.width=".5\\textwidth"----
 sv <- survfit(Time ~ Insects, data = carrion)
 par(cex = 0.8, mar = c(4, 4.2, 2, 1), las = 1)
@@ -56,6 +76,9 @@ grid()
 legend("topright", c("Insect = no", "Insect = yes"), lty = c(1, 2),
        lwd = 2, bty = "n")
 
+## ----carrion-outome, echo=TRUE------------------------------------------------
+head(carrion$Time, 10)
+
 ## ----carrion-model------------------------------------------------------------
 dcmp <- CoxphME(Time ~ Insects + Habitat + Landscape
                 + s(Temperature, k = 20) + s(Elevation100, k = 20)
@@ -63,11 +86,12 @@ dcmp <- CoxphME(Time ~ Insects + Habitat + Landscape
                 log_first = TRUE, order = 6)
 summary(dcmp)
 
-## ----eval=FALSE---------------------------------------------------------------
-#  plot(smooth_terms(dcmp))
+## ----plot-carrion-smooth, eval=FALSE------------------------------------------
+#  plot(smooth_terms(dcmp), panel.first = grid())
 
-## ----plot-carrion-smooth, echo=FALSE, fig.width=8, fig.height=4.5-------------
-plot(smooth_terms(dcmp))
+## ----plot-carrion-smooth2, echo=FALSE, fig.width=8, fig.height=4--------------
+par(mar = c(4, 4, 1, 1))
+plot(smooth_terms(dcmp), panel.first = grid())
 
 ## ----resid, echo=FALSE--------------------------------------------------------
 ## From Surv object to a matrix with left and right censoring values
@@ -209,12 +233,12 @@ ecoli[fs] <- lapply(ecoli[fs], factor)
 ## ----ecoli-est, echo=TRUE-----------------------------------------------------
 ## specifications w/o random effects
 mf <- c(log10(ecoli_MPN) ~ treatment + cattle +
-          s(DOY, bs = 'cr', by = treatment),
-        log10(ecoli_MPN) ~ treatment + cattle + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr', by = treatment),
-        log10(ecoli_MPN) ~ cattle + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ s(DOY, bs = 'cr'))
+          s(DOY, bs = "cr", by = treatment),
+        log10(ecoli_MPN) ~ treatment + cattle + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = "cr", by = treatment),
+        log10(ecoli_MPN) ~ cattle + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ s(DOY, bs = "cr"))
 names(mf) <- paste("Model", c(1:5, "Null"))
 ecoli_res <- data.frame(matrix(NA, nrow = length(mf), ncol = 3))
 colnames(ecoli_res) <- c("gamm", "LmME", "BoxCoxME")

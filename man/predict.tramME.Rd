@@ -9,8 +9,8 @@
   newdata = model.frame(object),
   ranef = NULL,
   fix_smooth = TRUE,
-  type = c("lp", "trafo", "distribution", "survivor", "density", "logdensity",
-    "hazard", "loghazard", "cumhazard", "odds", "logodds", "quantile"),
+  type = c("lp", "trafo", "distribution", "survivor", "density", "logdensity", "hazard",
+    "loghazard", "cumhazard", "odds", "logodds", "quantile"),
   ...
 )
 }

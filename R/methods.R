@@ -437,30 +437,68 @@ vcov.tramME <- function(object, parm = NULL,
   b <- coef(object, with_baseline = TRUE, fixed = FALSE)
   th <- varcov(object, as.theta = TRUE, full = TRUE)
   pr <- c(b, th)
-  if (any(is.na(pr))) {
-    out <- matrix(NA, nrow = length(pr), ncol = length(pr))
-  } else {
-    if ("method" %in% names(list(...))) {
-      out <- vcov(object$tmb_obj, par = pr, ...) ## if method is specified try that
-    } else {
-      if (is.null(object$tmb_obj$env$random) && !object$tmb_obj$env$resid) {
-        method <- "analytical" ## when analytical makes sense do that
-      } else method <- "optimHess" ## default
-      out <- try(vcov(object$tmb_obj, par = pr, method = method, ...), silent = TRUE)
-      if (inherits(out, "try-error")) {
-        ## NOTE: numDeriv is often more stable numerically
-        out <- vcov(object$tmb_obj, par = pr, method = "numDeriv", ...)
-      }
-    }
-  }
   g <- .choose_parm(object, parm = parm, pargroup = pargroup, pmatch = pmatch,
                     fixed = FALSE)
-  out <- out[g, g, drop = FALSE]
+  if (any(is.na(pr))) {
+    out <- matrix(NA, nrow = sum(g), ncol = sum(g))
+  } else {
+    he <- Hess(object$tmb_obj, par = pr, ...)
+    out <- inv_block(he, block = which(g))
+  }
   colnames(out) <- rownames(out) <- names(g[g])
   return(out)
 }
 
-## FIXME: move to util
+
+## FIXME: replace the one in tramTMB
+## Invert (a block) of the Hessian using Schur complements
+## @param he The Hessian.
+## @param block Index vector of the block we want to invert.
+## @param ... Optional arguments passed to \code{try_solve}
+inv_block <- function(he, block = NULL, ...) {
+  if (!is.null(block)) {
+    h1 <- he[block, block, drop = FALSE]
+    h2 <- he[-block, -block, drop = FALSE]
+    h3 <- he[-block, block, drop = FALSE]
+    he2 <- try(h1 - crossprod(h3, solve(h2, h3)), silent = TRUE)
+    if (inherits(he2, "try-error")) {
+      return(try_solve(he, ...)[block, block, drop = FALSE])
+    } else {
+      he <- he2
+    }
+  }
+  try_solve(he, ...)
+}
+
+## Trying harder to invert the Hessian or solve a system of equations (similar
+## to in \code{vcov.mlt})
+## @param a A positive definite matrix
+## @param b An optional matrix
+## @param lam Adjustmet factor. \code{lam = 0} switches off the robust option.
+## @param ret_Hess Return the adjusted Hessian ## TODO: do we need this?
+## @return The variance-covariance matrix
+try_solve <- function(a, b, lam = 1e-6, max_step = 2, ret_Hess = FALSE, ...) {
+  step <- 0
+  while((step <- step + 1) <= (max_step + 1)) {
+    a2 <- a + (step - 1) * lam * diag(nrow(a))
+    if (missing(b)) {
+      out <- try(chol2inv(chol(a2)), silent = TRUE)
+    } else {
+      out <- try(solve(a2, b), silent = TRUE)
+    }
+    if (!inherits(out, "try-error")) {
+      if (step > 1)
+        warning("Hessian could not be inverted, an approximation is used.")
+      break
+    }
+    if (lam == 0) break
+  }
+  if (inherits(out, "try-error")) out <- a * NaN
+  if (ret_Hess) return(a2)
+  return(out)
+}
+
+## @return a named logical vector
 .choose_parm <- function(object, parm, pargroup, pmatch, fixed = FALSE) {
   b  <- coef(object, with_baseline = TRUE, fixed = TRUE)
   th <- varcov(object, as.theta = TRUE, full = TRUE)
@@ -925,11 +963,11 @@ residuals.tramME <- function(object,
 print.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L), ...) {
   mnm <- .model_name(x)
   cat("\n", mnm, "\n", sep = "")
-  cat("\n\tFormula: ")
   formula <- x$model$formula
   if (inherits(formula, "fake_formula"))
     formula <- eval(x$call$formula, envir = environment(formula))
-  print(formula)
+  cat("\n\tFormula:\n", paste(deparse(formula), sep = "\n", collapse = "\n"),
+      "\n", sep = "")
   fitted <-!is.null(x$opt)
   if (fitted) {
     cat("\n\tFitted to dataset ")
@@ -1032,8 +1070,8 @@ print.summary.tramME <- function(x,
   signif.stars = getOption("show.signif.stars"),
   ...) {
   cat("\n", x$name, "\n", sep = "")
-  cat("\n\tFormula: ")
-  print(x$formula)
+  cat("\n\tFormula:\n", paste(deparse(x$formula), sep = "\n", collapse = "\n"),
+      "\n", sep = "")
   wmsg <- if (x$wtd) " (weighted estimation)" else ""
   if (fancy) {
     if (x$fitted) {

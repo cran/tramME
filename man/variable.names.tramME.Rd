@@ -6,8 +6,7 @@
 \usage{
 \method{variable.names}{tramME}(
   object,
-  which = c("all", "response", "grouping", "shifting", "interacting", "smooth",
-    "ranef"),
+  which = c("all", "response", "grouping", "shifting", "interacting", "smooth", "ranef"),
   ...
 )
 }

@@ -1,3 +1,13 @@
+# tramME 1.0.4 (2023-04-04)
+
+* Activate the multi-core capabilities of `TMB`
+* `Resp()` function to extend the functionality of `Surv` objects
+* `trafo` option for `plot.smooth.tramME` to plot monotonic transformations of
+  the smooth terms
+* Faster and more robust `vcov` and `edf_smooth` calculations.
+* `simulate` method (with limited functionality in this version) returned 
+* Updated additive `tramME` package vignette
+
 # tramME 1.0.3 (2022-09-05)
 
 * Adapted matrix type conversions to Matrix 1.5.0.

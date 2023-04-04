@@ -1,7 +1,7 @@
 Package: tramME
 Title: Transformation Models with Mixed Effects
-Version: 1.0.3
-Date: 2022-09-05
+Version: 1.0.4
+Date: 2023-04-04
 Authors@R: c(person("Balint", "Tamasi", role = c("aut", "cre"),
                     email = "balint.tamasi@uzh.ch",
                     comment = c(ORCID = "0000-0002-2629-7362")),
@@ -22,7 +22,7 @@ Description: Likelihood-based estimation of mixed-effects transformation models
 Depends: R (>= 3.6.0), tram (>= 0.3.2), mlt (>= 1.1.0)
 Imports: alabama, lme4 (>= 1.1.19), Matrix, methods, mgcv (>= 1.8.34),
         nlme, TMB (>= 1.7.15), stats, variables (>= 1.0.2), basefun (>=
-        1.0.6), numDeriv, MASS, coneproj
+        1.0.6), numDeriv, MASS, coneproj, mvtnorm
 Suggests: multcomp, parallel, survival, knitr, coxme, ordinal,
         ordinalCont, gamm4, gamlss.dist, glmmTMB, xtable
 LinkingTo: TMB, RcppEigen
@@ -30,11 +30,11 @@ VignetteBuilder: knitr
 License: GPL-2
 URL: http://ctm.R-forge.R-project.org
 Encoding: UTF-8
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2022-09-05 09:09:09 UTC; balint
+Packaged: 2023-04-04 14:47:59 UTC; balint
 Author: Balint Tamasi [aut, cre] (<https://orcid.org/0000-0002-2629-7362>),
   Torsten Hothorn [ctb] (<https://orcid.org/0000-0001-8301-0471>)
 Maintainer: Balint Tamasi <balint.tamasi@uzh.ch>
 Repository: CRAN
-Date/Publication: 2022-09-05 09:40:02 UTC
+Date/Publication: 2023-04-04 15:10:03 UTC

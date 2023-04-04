@@ -52,12 +52,12 @@ remove_from_formula <- function(f, what = c("|", "||", "s", "te", "ti", "t2"),
 }
 
 
-## Create a corresponding ctm model for a tramME model
-##
-## Takes a tramME formula and generates the FE ctm model (model_only = TRUE)
-## @param formula Model formula.
-## @param mname tram(ME) model name.
-## @param ... Optional arguments passed to \code{\link[tram]{tram}}
+##' Create a corresponding ctm model for a tramME model
+##'
+##' Takes a tramME formula and generates the FE ctm model (model_only = TRUE)
+##' @param formula Model formula.
+##' @param mname tram(ME) model name.
+##' @param ... Optional arguments passed to \code{\link[tram]{tram}}
 ##' @export
 .tramME2ctm <- function(formula, mname, ...) {
   .nosmooth <- function(trm) mgcv::interpret.gam(trm)$pf
@@ -286,7 +286,8 @@ re_terms <- function(ranef, data, negative, drop.unused.levels = TRUE) {
                 ci = numeric(0),
                 gamma = numeric(0), theta = numeric(0))
   } else {
-    rt <- lme4::mkReTrms(ranef, data, drop.unused.levels = drop.unused.levels)
+    rt <- lme4::mkReTrms(ranef, data, drop.unused.levels = drop.unused.levels,
+                         reorder.terms = FALSE)
     out <- list()
     out$Zt <- rt$Zt
     if (negative) out$Zt <- -out$Zt
@@ -837,8 +838,7 @@ optim_control <- function(method = c("nlminb", "BFGS", "CG", "L-BFGS-B"),
   dat <- obj$env$data
   ## 1) First try: use the strategy similar to mlt
   if (is.null(par)) {
-    if (inherits(resp, "response"))
-      resp <- resp$approxy
+    resp <- R(resp)$approxy
     ## -- NOTE: crude weighted ECDF
     we <- dat$weights
     rwe <- round(we)
@@ -931,54 +931,22 @@ optim_control <- function(method = c("nlminb", "BFGS", "CG", "L-BFGS-B"),
 }
 
 
-##' Variance-covariance matrix of the parameters
-##' @param object A \code{tramTMB} object.
-##' @param par An optional vector of parameter values.
-##' @param method Method for calculating the covariance matrix.
-##' @param control Optional named list of controls to be passed to the specific methods.
-##' @param ... Optional arguments (ignored)
-##' @importFrom stats vcov optimHess
-##' @export
-## FIXME: might not be needed when .Hessian is also available
-vcov.tramTMB <- function(object, par = object$env$par_checked,
-                         method = c("optimHess", "numDeriv", "analytical"),
-                         control = list(), ...) {
-  method <- match.arg(method)
-  if (!.check_par(object, par))
-    stop("The supplied parameter vector does not satisfy the constraints.")
-  he <- switch(method,
-    optimHess = optimHess(par, object$fn, object$gr, control = control),
-    numDeriv = {
-      if (!is.null(control$method)) {
-        meth <- control$method
-        control$method <- NULL
-      } else {
-        meth <- "Richardson"
-      }
-      numDeriv::jacobian(func = object$gr, x = par,
-                         method = meth, method.args = control)
-    },
-    analytical = {
-      stopifnot(is.null(object$env$random))
-      object$he(par)
-    })
-  vc <- .robustInv(he)
-  rownames(vc) <- colnames(vc) <- names(par)
-  return(vc)
-}
-
 ## Hessian of the negative log-likelihood function
 ## @param object A \code{tramTMB} object.
 ## @param par An optional vector of parameter values.
 ## @param method Method for calculating the covariance matrix.
 ## @param control Optional named list of controls to be passed to the specific methods.
 ## @param joint If \code{TRUE}, calculate joint precision.
+## @param sparse If \code{TRUE}, the output is forced to be a symmetric sparse matrix
 ## @param ... Optional arguments (ignored)
 ##' @importFrom stats optimHess
-## FIXME: should I make it a proper method of tramTMB?
-.Hessian <- function(object, par = object$env$par_checked,
-                     method = c("optimHess", "numDeriv", "analytical"),
-                     control = list(), joint = FALSE, ...) {
+##' @importFrom Matrix forceSymmetric
+Hess <- function(object, par = object$env$par_checked,
+                 method = c("optimHess", "numDeriv", "analytical"),
+                 control = list(), joint = FALSE,
+                 sparse = FALSE, ...) {
+  if (missing(method) && is.null(object$env$random))
+    method <- "analytical"
   method <- match.arg(method)
   if (!.check_par(object, par))
     stop("The supplied parameter vector does not satisfy the constraints.")
@@ -1004,28 +972,12 @@ vcov.tramTMB <- function(object, par = object$env$par_checked,
                          getJointPrecision = TRUE)
     he <- sdr$jointPrecision
   }
+  if (sparse)
+    he <- forceSymmetric(he)
   return(he)
 }
 
-## Invert (a block) of the Hessian using Schur complements
-## @param he The Hessian.
-## @param block Index vector of the block we want to invert.
-## @param ... Optional arguments passed to \code{.robustInv}
-.invHess <- function(he, block = NULL, ...) {
-  if (!is.null(block)) {
-    h1 <- he[block, block]
-    h2 <- he[-block, -block]
-    h3 <- he[-block, block]
-    he2 <- try(h1 - crossprod(h3, solve(h2, h3)), silent = TRUE) ## w/ crossprod?
-    if (inherits(he2, "try-error")) {
-      return(.robustInv(he, ...)[block, block])
-    } else {
-      he <- he2
-    }
-  }
-  .robustInv(he, ...)
-}
-
+## FIXME: replace this with try_solve in predict.tramTMB
 ## Trying harder to invert the Hessian (same as in \code{vcov.mlt})
 ## @param he The Hessian matrix
 ## @param lam Adjustmet factor. \code{lam = 0} switches off the robust option.

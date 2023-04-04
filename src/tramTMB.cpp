@@ -180,7 +180,7 @@ Type objective_function<Type>::operator() ()
   // === Evaluate different parts of the negative ll
   DATA_INTEGER(part); // 0 = posterior, 1 = likelihood, 2 = prior
 
-  parallel_accumulator<Type> npld(this); // negative prior log-density
+  Type npld = 0; // negative prior log-density
   parallel_accumulator<Type> nll(this);  // negative log-likelihood
 
 

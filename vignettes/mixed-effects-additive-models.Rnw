@@ -55,6 +55,19 @@
 \usepackage{accents}
 \newcommand{\ubar}[1]{\underaccent{\bar}{#1}}
 
+
+%%%%% Section titles, table, figure, equation labels
+%% Sections with A, B, C etc
+\let\thesectionWithoutS\thesection %% <- store old definition
+\renewcommand\thesection{S\thesectionWithoutS}
+%% equation, figure, table references prepended with S
+\let\theequationWithoutS\theequation %% <- store old definition
+\renewcommand\theequation{S\theequationWithoutS}
+\let\thefigureWithoutS\thefigure %% <- store old definition
+\renewcommand\thefigure{S\thefigureWithoutS}
+\let\thetableWithoutS\thetable %% <- store old definition
+\renewcommand\thetable{S\thetableWithoutS}
+
 %%%%%% Column header formatting in xtables
 %% https://stackoverflow.com/a/33237779/10826854
 \usepackage{array}
@@ -90,28 +103,33 @@ library("xtable")
 library("gamm4")
 @
 
-\title{Online Appendix: Mixed-Effects Additive Transformation Models}
-\author{B\'alint Tam\'asi \\ {\small \url{balint.tamasi@uzh.ch}}
+\title{\textbf{Online Appendix:}\\
+  Flexible Regression for Correlated and Censored Ecological
+  Data with Mixed-Effects Additive Transformation Models
+}
+\author{B\'alint Tam\'asi \\ {\small \url{Balint.Tamasi@uzh.ch}}
 \and Torsten Hothorn \\ {\small \url{Torsten.Hothorn@R-project.org}}
 }
 
-\date{4/7/2022}
+\date{16/3/2023}
 
 \begin{document}
 
 \maketitle
 
 \abstract{
-  This vignette serves as an online appendix for the manuscript
-  ``Mixed-Effects Additive Transformation Models''.
+  This vignette serves as the online appendix for the manuscript
+  \emph{``Flexible Regression for Correlated and Censored Ecological
+  Data with Mixed-Effects Additive Transformation Models''}.
   %% \citet{Tamasi_2022}. 
-  It presents details on estimation and inference in
-  the titular model class
-  as well as
+  It presents details on the estimation and inference in
+  the titular model class,
   four example analyses that
   % use mixed-effects additive transformation models to reanalyze
   use these models to reanalyze
-  ecological phenomena from recently published studies.
+  ecological phenomena from recently published studies,
+  as well as a small simulation exercise to verify the correctness
+  of the implementation.
 }
 
 \section{Estimation and inference}\label{sec:inference}
@@ -127,7 +145,7 @@ The model can be written in its general form as
     f_{1}(x_{1i}) + f_{2}(x_{2i}, x_{3i}) + \dots +
     \x_{+i}\T\bbeta +
     \z_{i}\T\bgamma\right)
-    \qquad \bgamma \sim \cN_{q}(\0, \bSigma). \label{eq:memodel}
+    \qquad \bgamma \sim \cN_{q}(\0, \bSigma), \label{eq:memodel}
 \end{align}
 %
 with $F(\cdot)$ inverse link function and $h(y)$ baseline transformation function.
@@ -140,9 +158,9 @@ in the general form of $\lambda_{j}\bdelta_{j}\T\bS_{j}\bdelta_{j}$.
 $\lambda_{j}$ is the smoothing parameter
 that controls the amount of penalty imposed on the $j$th term
 and thus controls the smoothness of $f_{j}(\cdot)$,
-while the penalty matrix $\bS$ defines
+while the penalty matrix $\bS_{j}$ defines
 how exactly the parameters
-of a specific set of basis functions
+$\bdelta_{j}$
 are penalized.
 
 The log-likelihood of Model~\ref{eq:memodel}
@@ -171,7 +189,7 @@ corresponding to $f_{1}(\cdot), f_{2}(\cdot), \dots, f_{J}(\cdot)$ smooth terms,
 and $\bdelta = \left(\bdelta_{1}\T, \bdelta_{2}\T, \dots, \bdelta_{J}\T\right)\T$.
 The covariance matrix of the stacked vector of random effects ($\bSigma$)
 is positive definite and typically has a block structure,
-which can be leveraged to calculate the inverse efficiently.
+which can be leveraged in the calculations.
 The term $c$ is a constant,
 which does not depend on the parameters (either fixed or random)
 of the model.
@@ -229,19 +247,19 @@ as variance components of the mixed model
 via maximum likelihood or restricted maximum likelihood (REML).
 
 Frequentist inference for the penalized smooth terms
-can be based on the covariance matrix estimate
+can be based on the joint covariance matrix estimate
 of fixed and random parameters
 using the generalized delta method \citep{Kristensenetal_2016}.
 This estimate approximates
-the mean squared error for the predictions
-of the random effects \citep{Zheng_Cadigan_2021},
+the mean squared error of the random effects predictions
+\citep{Zheng_Cadigan_2021},
 and it is also in agreement with results derived
 in a Bayesian setting for independent hierarchical models \citep{Kass_Steffey_1989}.
 
 The effective degrees of freedom (EDF)
 of the individual smooth terms
 give an approximation of the effective number of parameters
-used in modeling the non-linear terms.
+used in modeling these penalized smooth functions.
 Following \citet{Wood_2016} and \citet[][Section~6.11]{Wood_gam_2017},
 the EDFs can be estimated by summing up the appropriate elements
 of the diagonal of the matrix $V\mathcal{I}$,
@@ -255,11 +273,15 @@ evaluated at the vector of parameter estimates.
 
 \section{Computational details}\label{sec:compute}
 
-In our implementation of the additive mixed-effects transformation models,
-similarly to \citet{Hothornetal_2018},
-we approximate the baseline transformation
+\pkg{tramME} offers several methods
+to approximate the baseline transformation function
 ($h(y)$ in Equation~\ref{eq:memodel})
-with the help of \emph{Bernstein polynomial basis} \citep{Farouki_2012}:
+of additive mixed-effects transformation models
+\citep[see][for the available options]{Tamasi_Hothorn_2021}.
+Similarly to \citet{Hothornetal_2018},
+the \emph{Bernstein polynomial basis} \citep{Farouki_2012}
+is used for a general and flexible parameterization
+for continuous outcomes:
 %
 \begin{align*}
   h(y) &= \ba_{\text{Bs},M}(y)\T\bvartheta
@@ -291,11 +313,12 @@ which provides functionality to reformulate these terms
 to their mixed-effects representations as described by
 \citet[Appendix]{Wood_2004}.
 \pkg{tramME} uses the Template Model Builder package
-\citep[TMB,][]{Kristensenetal_2016}
+\citep[\pkg{TMB},][]{Kristensenetal_2016}
 to evaluate the log-likelihood via Laplace approximation
-and to calculate the gradients of it with automatic differentiation (\pkg{glmmTMB} uses
-the same underlying techniques).
-As a result, model estimation and inference in \pkg{tramME} is
+and to calculate the gradients of it with automatic differentiation
+\citep[\pkg{glmmTMB}, by][uses
+the same underlying techniques]{Brooks_2017}.
+Consequently, model estimation and inference in \pkg{tramME} is
 fast and efficient.
 
 The user interface of \pkg{tramME} follows
@@ -321,34 +344,13 @@ mc1 <- CoxphME(                            ### conditional proportional hazards
            s(Elevation100, k = 20) +
            (1 | PlotID),                   ### random intercept, as in lme4
     data = carrion,                        ### data
-    log_first = TRUE,                      ### log(time) before modeling
+    log_first = TRUE,                      ### log(Time) before modeling
     order = 6                              ### order of Bernstein
 )
 @
 %
 
 \section{The rat carrion decomposition experiment}
-
-Our first example presents
-the reanalysis of the carrion decomposition data
-by \citet{Englmeier2022}.
-In the original study,
-the authors analyzed the environmental factors
-that affect the decomposition process
-of small rodent carrion
-using data from an experiment,
-in which they placed rat carcasses
-in different environments
-and recorded the time until complete decomposition.
-As we describe it in the main article,
-the outcome variable
-(time until complete decomposition)
-is \emph{interval censored}
-due to the discrete follow-up.
-The survival curves for specimen
-with and without the presence of insects
-are shown in Figure~\ref{fig:carrion-surv}
-
 
 <<load-carrion, include=FALSE>>=
 carrion <- read.csv("carrion.csv")
@@ -362,6 +364,39 @@ carrion$Landscape <- factor(carrion$Landscape)
 carrion$Landscape <- relevel(carrion$Landscape, ref = "seminatural")
 carrion$PlotID <- factor(carrion$PlotID)
 @
+
+\begin{figure}[!ht]
+  \centering
+
+<<fig-carrion-cens, echo=FALSE, fig.width=8, fig.height=4, out.width="0.9\\textwidth">>=
+par(mfrow = c(1, 2))
+## -- Plot 1
+par(cex = 0.9, mar = c(5, 4, 2, 1))
+idx <- 140:155
+dpl <- carrion$Time[idx]
+plot(0, type = "n", ylim = range(idx) + c(-0.5, 0.5), xlim = c(0, 120),
+     ylab = "ID", xlab = "Follow-up time (days)", yaxt = "n")
+abline(h = idx, v = seq(0, 120, by = 20), col = "lightgrey", lty = 3)
+axis(2, at = idx, las = 2)
+ic <- dpl[, 3] > 0
+segments(y0 = idx[ic], x0 = dpl[ic, 1], x1 = dpl[ic, 2], lwd = 2)
+arrows(y0 = idx[!ic], x0 = dpl[!ic, 1], x1 = 123, length = 0.1, lwd = 2)
+## -- Plot 2
+par(cex = 0.9, mar = c(5, 4, 2, 1))
+dpl <- carrion$Time[carrion$Time[, 3] > 0] ## exclude right censored
+plot(ecdf(dpl[, 2] - dpl[, 1]), xlab = "Interval length (days)", main = NULL,
+     verticals = TRUE, las = 1, ylab = "Probability")
+grid()
+@
+
+\caption{
+  Censoring in the carrion decomposition dataset of \protect\citet{Englmeier2022}.
+  \emph{Left panel}: Examples of censoring types.
+  Segments with arrows denote right-censored observations,
+  other segments show interval-censored outcomes.
+  \emph{Right panel}: The distribution of the interval lengths of interval-censored observations.
+}\label{fig:carrion-cens}
+\end{figure}
 
 \begin{figure}[!ht]
   \centering
@@ -383,6 +418,46 @@ legend("topright", c("Insect = no", "Insect = yes"), lty = c(1, 2),
 \label{fig:carrion-surv}
 \end{figure}
 
+
+Our first example presents
+the reanalysis of the carrion decomposition data
+by \citet{Englmeier2022}.
+In the original study,
+the authors analyzed the environmental factors
+that affect the decomposition process
+of small rodent carrion
+using data from an experiment,
+in which they placed rat carcasses
+in different environments
+and recorded the time until complete decomposition.
+As we describe it in the main article,
+the outcome variable
+(time until complete decomposition)
+is \emph{interval censored}
+due to the discrete follow-up.
+Figure~\ref{fig:carrion-cens} presents some examples
+of the censored outcomes in the dataset.
+Segments with arrows denote right-censored observations,
+i.e., cases, where the total decomposition did not occur
+by the time of the last visit.
+As these examples demonstrate, the sites were visited at
+regular intervals, albeit we can see some variability
+in the lengths.
+The survival curves for specimen
+with and without the presence of insects
+are shown in Figure~\ref{fig:carrion-surv}.
+Based on this marginal view of the data,
+i.e., without adjusting for other important factors
+and ignoring cluster-level heterogeneity,
+the presence of insects accelerated the decomposition process.
+The 25\textsuperscript{th}, 50\textsuperscript{th} and 75\textsuperscript{th}
+percentiles in the cases where insects were present were
+\Sexpr{paste(round(quantile(sv, c(0.25, 0.5, 0.75))$quantile[2, ], 3), collapse = ", ")} %$
+days, respectively,
+while, without insects, the same quantiles amounted to
+\Sexpr{paste(round(quantile(sv, c(0.25, 0.5, 0.75))$quantile[1, ], 3), collapse = ", ")} %$
+days.
+
 The main environmental variables we include in our model are
 the indicator for the presence of insects (\texttt{Insects}),
 local (\texttt{Habitat}) and regional (\texttt{Landscape}) land use types,
@@ -393,6 +468,14 @@ and the elevational gradient was used
 as a surrogate for the long-term macroclimate (\texttt{Elevation100}).
 The plot-level unobserved sources of variability were modeled
 by including random intercepts (grouping variable: \texttt{PlotID}).
+The outcome variable (\texttt{Time})
+is a predefined \code{Surv} object
+that encodes the interval-censored decomposition times.
+%
+<<carrion-outome, echo=TRUE>>=
+head(carrion$Time, 10)
+@
+
 We estimate the following
 proportional-hazards mixed-effect additive transformation model
 for the decomposition intervals
@@ -407,8 +490,8 @@ summary(dcmp)
 %
 The smooth terms can be evaluated and plotted with
 %
-<<eval=FALSE>>=
-plot(smooth_terms(dcmp))
+<<plot-carrion-smooth, eval=FALSE>>=
+plot(smooth_terms(dcmp), panel.first = grid())
 @
 %
 As the results in Figure~\ref{fig:carrion-smooth} show,
@@ -416,8 +499,9 @@ the effects of temperature and elevation look fairly linear.
 
 \begin{figure}[!ht]
 \centering
-<<plot-carrion-smooth, echo=FALSE, fig.width=8, fig.height=4.5>>=
-plot(smooth_terms(dcmp))
+<<plot-carrion-smooth2, echo=FALSE, fig.width=8, fig.height=4>>=
+par(mar = c(4, 4, 1, 1))
+<<plot-carrion-smooth>>
 @
 \caption{Smooth effects of the continuous variables
   in the model of the decomposition times.}\label{fig:carrion-smooth}
@@ -646,7 +730,7 @@ with cubic regression splines
 and between-year and location-level variability were captured by
 random intercepts of pasture-specific year effects and separate stream effects.
 Note that although the cyclic version of the cubic regression splines
-(\texttt{bs = 'cc'} in \pkg{mgcv} and \pkg{tramME}) \citep{pkg:tramME}
+(\texttt{bs = "cc"} in \pkg{mgcv} and \pkg{tramME}) \citep{pkg:tramME}
 would be more appropriate for modeling the within-year trend,
 the original article used \texttt{bs = 'cr'}
 and hence we also stick with this basis in our reanalysis.
@@ -683,12 +767,12 @@ in terms of in-sample log-likelihood values.
 <<ecoli-est, echo=TRUE>>=
 ## specifications w/o random effects
 mf <- c(log10(ecoli_MPN) ~ treatment + cattle +
-          s(DOY, bs = 'cr', by = treatment),
-        log10(ecoli_MPN) ~ treatment + cattle + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr', by = treatment),
-        log10(ecoli_MPN) ~ cattle + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ treatment + s(DOY, bs = 'cr'),
-        log10(ecoli_MPN) ~ s(DOY, bs = 'cr'))
+          s(DOY, bs = "cr", by = treatment),
+        log10(ecoli_MPN) ~ treatment + cattle + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = "cr", by = treatment),
+        log10(ecoli_MPN) ~ cattle + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ treatment + s(DOY, bs = "cr"),
+        log10(ecoli_MPN) ~ s(DOY, bs = "cr"))
 names(mf) <- paste("Model", c(1:5, "Null"))
 ecoli_res <- data.frame(matrix(NA, nrow = length(mf), ncol = 3))
 colnames(ecoli_res) <- c("gamm", "LmME", "BoxCoxME")

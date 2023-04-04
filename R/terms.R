@@ -146,7 +146,7 @@ nullTMatrix <- function(nrow = 0, ncol = 0) {
   }
 
   if (length(ranef)) {
-    rt <- mkReTrms(ranef, data, ...)
+    rt <- mkReTrms(ranef, data, reorder.terms = FALSE, ...)
     Zt <- rt$Zt
     ri <- list(
       termsize = sapply(rt$Ztlist, NROW),
