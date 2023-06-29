@@ -52,54 +52,52 @@ remove_from_formula <- function(f, what = c("|", "||", "s", "te", "ti", "t2"),
 }
 
 
-##' Create a corresponding ctm model for a tramME model
-##'
-##' Takes a tramME formula and generates the FE ctm model (model_only = TRUE)
-##' @param formula Model formula.
-##' @param mname tram(ME) model name.
-##' @param ... Optional arguments passed to \code{\link[tram]{tram}}
-##' @export
+## Create a corresponding ctm model for a tramME model
+##
+## Takes a tramME formula and generates the FE ctm model (model_only = TRUE)
+## @param formula Model formula.
+## @param mname tram(ME) model name.
+## @param ... Optional arguments passed to \code{\link[tram]{tram}}
 .tramME2ctm <- function(formula, mname, ...) {
   .nosmooth <- function(trm) mgcv::interpret.gam(trm)$pf
   .nobars   <- function(trm) remove_from_formula(trm, c("|", "||"))
-  fc <- match.call()
   mname <- sub("ME", "", mname) ## NOTE: remove suffix if present
-  fc[[1L]] <- str2lang(paste0("tram::", mname))
-  fc$formula <- .nosmooth(.nobars(formula)) ## NOTE: we have to remove the bars first
-  fc$model_only <- TRUE
-  fc$mname <- NULL
-  ctmod <- eval(fc, parent.frame()) ## ctm with the fixed effects
+  formula <- .nosmooth(.nobars(formula)) ## NOTE: we have to remove the bars first
+  args <- as.list(match.call(expand.dots = TRUE)[-1L])
+  args$formula <- formula
+  args$mname <- NULL
+  args$model_only <- TRUE
+  ctmod <- do.call(do.call(what = `::`, args = list("tram", mname)), args = args)
   return(ctmod)
 }
 
 
-##' Create an object that defines a tramME_model
-##'
-##' There are two ways of defining tramME models:
-##' \enumerate{
-##'   \item A ctm model and a formula defining the random effects and smooth terms.
-##'   \item A formula combining the notation of \pkg{tram}, \pkg{lme4} and \pkg{mgcv},
-##'     a tram function name, and a dataset to set up the bases.
-##' }
-##' @param formula formula that either describes the whole model or
-##'   the random effects specification. If the model contains random effects or
-##'   smooth terms \code{formula} has to contain their definition in
-##'   \pkg{lme4}-style and \pkg{mgcv}-style notation, respectively.
-##' @inheritParams tram::tram
-##' @param tram tram model name: Lm, BoxCox, Colr, Polr, Coxph, Survreg, Lehmann,
-##'   Aareg, or the suffixed versions of these (e.g. ColrME). Ignored when a \code{ctm} model
-##'   is also supplied.
-##' @param ctm A \code{ctm} model
-##' @param smooth Optional pre-defined smooth specification of the class \code{tramME_smooth}.
-##'   If present, the smooth terms in the formula are ignored.
-##' @param negative an optional parameter that defines whether the random effects have
-##'   a positive or a negative sign in the model when the fixed effecst part is defined
-##'   through a ctm
-##' @param ... optional arguments passed to \pkg{tram} when the model is defined by the formula
-##' @return A tramME_model object that defines the mixed effects transfromation model.
-##' @note Similarly to \pkg{mlt}, the offsets and the weights are not part of the model,
-##'   but they are data and they are not saved in the returned object.
-##' @export
+## Create an object that defines a tramME_model
+##
+## There are two ways of defining tramME models:
+## \enumerate{
+##   \item A ctm model and a formula defining the random effects and smooth terms.
+##   \item A formula combining the notation of \pkg{tram}, \pkg{lme4} and \pkg{mgcv},
+##     a tram function name, and a dataset to set up the bases.
+## }
+## @param formula formula that either describes the whole model or
+##   the random effects specification. If the model contains random effects or
+##   smooth terms \code{formula} has to contain their definition in
+##   \pkg{lme4}-style and \pkg{mgcv}-style notation, respectively.
+## @inheritParams tram::tram
+## @param tram tram model name: Lm, BoxCox, Colr, Polr, Coxph, Survreg, Lehmann,
+##   Aareg, or the suffixed versions of these (e.g. ColrME). Ignored when a \code{ctm} model
+##   is also supplied.
+## @param ctm A \code{ctm} model
+## @param smooth Optional pre-defined smooth specification of the class \code{tramME_smooth}.
+##   If present, the smooth terms in the formula are ignored.
+## @param negative an optional parameter that defines whether the random effects have
+##   a positive or a negative sign in the model when the fixed effecst part is defined
+##   through a ctm
+## @param ... optional arguments passed to \pkg{tram} when the model is defined by the formula
+## @return A tramME_model object that defines the mixed effects transfromation model.
+## @note Similarly to \pkg{mlt}, the offsets and the weights are not part of the model,
+##   but they are data and they are not saved in the returned object.
 tramME_model <- function(formula = NULL, data = NULL, tram = NULL, ctm = NULL,
                          smooth = NULL, negative = NULL, ...) {
   ## -- TODO: add tensor products (t2) and remove this
@@ -121,15 +119,13 @@ tramME_model <- function(formula = NULL, data = NULL, tram = NULL, ctm = NULL,
   if (is.null(ctm)) {
     ## no ctm model, the mixed-effects model is defined by the formula
     stopifnot(!is.null(tram), !is.null(formula))
-    fc <- match.call()
-    fc[[1L]] <- quote(.tramME2ctm)
-    fc$mname <- tram
-    fc[c("tram", "ctm", "smooth", "negative")] <- NULL
-    fc$data <- data ## NOTE: needed for passing the inputs correctly
-    out$ctm <- eval(fc, parent.frame())
+    args <- as.list(match.call(expand.dots = TRUE)[-1L])
+    args$mname <- tram
+    args[c("tram", "ctm", "smooth", "negative")] <- NULL
+    out$ctm <- do.call(".tramME2ctm", args = args)
   } else {
-    ## There is a ctm, that describes the FE part,
-    ## formula could describe the RE par.
+    ## There is a ctm that describes the FE part, formula could describe the RE
+    ## part.
     stopifnot(inherits(ctm, "ctm"))
     out$formula <- fake_formula(structure(list(model = out), class = "tramME"))
   }
@@ -1012,18 +1008,18 @@ update.tramTMB <- function(object, ...) {
   do.call("tramTMB", args)
 }
 
-##' Generic for copying objects that are (partly) modified in place
-##' @param object An object.
-##' @param ... Optional parameters.
-##' @export
+## Generic for copying objects that are (partly) modified in place
+## @param object An object.
+## @param ... Optional parameters.
+## @export
 duplicate <- function(object, ...) {
   UseMethod("duplicate")
 }
 
-##' Create a duplicate of the tramTMB object
-##' @param object A \code{tramTMB} object.
-##' @param ... Optional parameters (not used).
-##' @importFrom utils lsf.str
+## Create a duplicate of the tramTMB object
+## @param object A \code{tramTMB} object.
+## @param ... Optional parameters (not used).
+## @importFrom utils lsf.str
 ##' @export
 duplicate.tramTMB <- function(object, ...) {
     unserialize(serialize(object,NULL))

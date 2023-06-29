@@ -173,7 +173,7 @@ Type objective_function<Type>::operator() ()
   // === Post-estimation calculations
   DATA_INTEGER(as_lm);
   DATA_INTEGER(postest_scale);
-  DATA_MATRIX(Ype)
+  DATA_MATRIX(Ype);
   DATA_MATRIX(Xpe);
   DATA_SPARSE_MATRIX(Zpe);
   // FIXME: is offset needed? DATA_VECTOR(offsetpe);
@@ -227,7 +227,9 @@ Type objective_function<Type>::operator() ()
   if (whichl.size()) {
     vector<Type> hl = Yl * beta0 + Xb(whichl) + Zg(whichl) + offset(whichl) + res(whichl);
     for (int i = 0; i < whichl.size(); i++) {
-      nll -= log(1.e-20 + cdf(hl(i), errdist(whichl(i)))) * weights(whichl(i));
+      Type p = cdf(hl(i), errdist(whichl(i)));
+      p = squeeze(p);
+      nll -= log(p) * weights(whichl(i));
     }
   }
 
@@ -235,7 +237,9 @@ Type objective_function<Type>::operator() ()
   if (whichr.size()) {
     vector<Type> hr = Yr * beta0 + Xb(whichr) + Zg(whichr) + offset(whichr) + res(whichr);
     for (int i = 0; i < whichr.size(); i++) {
-      nll -= log(1.e-20 + Type(1) - cdf(hr(i), errdist(whichr(i)))) * weights(whichr(i));
+      Type p = Type(1) - cdf(hr(i), errdist(whichr(i)));
+      p = squeeze(p);
+      nll -= log(p) * weights(whichr(i));
     }
   }
 
@@ -246,8 +250,9 @@ Type objective_function<Type>::operator() ()
     vector<Type> hil = Yil * beta0 + si;
     vector<Type> hir = Yir * beta0 + si;
     for (int i = 0; i < whichi.size(); i++) {
-      nll -= log(1.e-20 + cdf(hir(i), errdist(whichi(i))) - cdf(hil(i), errdist(whichi(i)))) *
-        weights(whichi(i));
+      Type p = cdf(hir(i), errdist(whichi(i))) - cdf(hil(i), errdist(whichi(i)));
+      p = squeeze(p);
+      nll -= log(p) * weights(whichi(i));
     }
   }
 
@@ -264,7 +269,9 @@ Type objective_function<Type>::operator() ()
   if (whichtl.size()) {
     vector<Type> htl = Ytl * beta0 + Xb(whichtl) + Zg(whichtl) + offset(whichtl) + res(whichtl);
     for (int i = 0; i < whichtl.size(); i++) {
-      nll += log(1.e-20 + Type(1) - cdf(htl(i), errdist(whichtl(i)))) * weights(whichtl(i));
+      Type p = Type(1) - cdf(htl(i), errdist(whichtl(i)));
+      p = squeeze(p);
+      nll += log(p) * weights(whichtl(i));
     }
   }
 
@@ -272,7 +279,9 @@ Type objective_function<Type>::operator() ()
   if (whichtr.size()) {
     vector<Type> htr = Ytr * beta0 + Xb(whichtr) + Zg(whichtr) + offset(whichtr) + res(whichtr);
     for (int i = 0; i < whichtr.size(); i++) {
-      nll += log(1.e-20 + cdf(htr(i), errdist(whichtr(i)))) * weights(whichtr(i));
+      Type p = cdf(htr(i), errdist(whichtr(i)));
+      p = squeeze(p);
+      nll += log(p) * weights(whichtr(i));
     }
   }
 
@@ -283,8 +292,9 @@ Type objective_function<Type>::operator() ()
     vector<Type> htil = Ytil * beta0 + sti;
     vector<Type> htir = Ytir * beta0 + sti;
     for (int i = 0; i < whichti.size(); i++) {
-      nll += log(1.e-20 + cdf(htir(i), errdist(whichti(i))) - cdf(htil(i), errdist(whichti(i)))) *
-        weights(whichti(i));
+      Type p = cdf(htir(i), errdist(whichti(i))) - cdf(htil(i), errdist(whichti(i)));
+      p = squeeze(p);
+      nll += log(p) * weights(whichti(i));
     }
   }
 

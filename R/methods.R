@@ -313,12 +313,12 @@ logLik.tramME <- function(object, param = NULL, newdata = NULL,
   if (!is.null(newdata) || !is.null(param$gamma)) {
     if (!is.null(param$gamma))
       object$call$fixed[names(param$gamma)] <- param$gamma
-    ex <- quote(update(object, ctm = object$model$ctm,
-                       smooth = .tramME_smooth(object),
-                       nofit = TRUE))
+    args <- list(object, ctm = object$model$ctm,
+                 smooth = .tramME_smooth(object),
+                 nofit = TRUE)
     if (!is.null(newdata))
-      ex$data <- quote(newdata)
-    object <- eval(ex)
+      args$data <- newdata
+    object <- do.call("update", args = args)
   }
   param <- c(param$beta, param$theta)
   if (any(is.na(param))) {
@@ -475,19 +475,23 @@ inv_block <- function(he, block = NULL, ...) {
 ## @param a A positive definite matrix
 ## @param b An optional matrix
 ## @param lam Adjustmet factor. \code{lam = 0} switches off the robust option.
-## @param ret_Hess Return the adjusted Hessian ## TODO: do we need this?
+## @param max_step Number of steps in trying to perturb the matrix to make it invertible.
+## @param warn Raise a warning when robust approximation is used.
+## @param ret_Hess Return the perturbed Hessian ## TODO: do we need this?
 ## @return The variance-covariance matrix
-try_solve <- function(a, b, lam = 1e-6, max_step = 2, ret_Hess = FALSE, ...) {
+try_solve <- function(a, b, lam = 1e-8, max_step = 3, warn = TRUE,
+                      ret_Hess = FALSE, ...) {
   step <- 0
   while((step <- step + 1) <= (max_step + 1)) {
-    a2 <- a + (step - 1) * lam * diag(nrow(a))
+    af <- (step > 1) * lam * 10^(step-2)
+    a2 <- a + af * diag(nrow(a))
     if (missing(b)) {
-      out <- try(chol2inv(chol(a2)), silent = TRUE)
+      out <- try(solve(a2), silent = TRUE)
     } else {
       out <- try(solve(a2, b), silent = TRUE)
     }
     if (!inherits(out, "try-error")) {
-      if (step > 1)
+      if (step > 1 && warn)
         warning("Hessian could not be inverted, an approximation is used.")
       break
     }
@@ -835,12 +839,12 @@ ranef.tramME <- function(object, param = NULL, newdata = NULL,
   if (!is.null(newdata) || !is.null(param$gamma)) {
     if (!is.null(param$gamma))
       object$call$fixed[names(param$gamma)] <- param$gamma
-    ex <- quote(update(object, ctm = object$model$ctm,
-                       smooth = .tramME_smooth(object),
-                       nofit = TRUE))
+    args <- list(object, ctm = object$model$ctm,
+                 smooth = .tramME_smooth(object),
+                 nofit = TRUE)
     if (!is.null(newdata))
-      ex$data <- quote(newdata)
-    object <- eval(ex)
+      args$data <- newdata
+    object <- do.call("update", args = args)
   }
   pg <- param$gamma
   param <- c(param$beta, param$theta)
@@ -910,11 +914,11 @@ residuals.tramME <- function(object,
       !is.null(param$gamma)) {
     if (!is.null(param$gamma))
       object$call$fixed[names(param$gamma)] <- param$gamma
-    ex <- quote(update(object, ctm = object$model$ctm,
-                       smooth = .tramME_smooth(object),
-                       nofit = TRUE, resid = TRUE))
-    if (!is.null(newdata)) ex$data <- quote(newdata)
-    object <- eval(ex)
+    args <- list(object, ctm = object$model$ctm,
+                 smooth = .tramME_smooth(object),
+                 nofit = TRUE, resid = TRUE)
+    if (!is.null(newdata)) args$data <- newdata
+    object <- do.call("update", args = args)
   }
   param <- c(param$beta, param$theta)
   if (any(is.na(param))) {
@@ -1293,6 +1297,7 @@ fitmod.tramME <- function(object, initpar = NULL, control = optim_control(), ...
 ## @param object A \code{tramME} object.
 ## @param ... Optional arguments (currently ignored).
 ## @return A copy of the original tramME object
+##' @export
 duplicate.tramME <- function(object, ...) {
   newobj <- object
   newobj$tmb_obj <- duplicate(object$tmb_obj)

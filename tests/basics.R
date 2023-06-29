@@ -38,6 +38,28 @@ chkeq(vc1, vc2[[1]])
 th2 <- tramME:::.vc2th(vc2, rs$blocksize) ## NOTE: check back-transformation
 chkeq(th, th2, check.attributes = FALSE)
 
+## -- Setting up models flexibly: TODO: extend a little bit with simulated data
+m1 <- BoxCoxME(dist ~ s(speed), data = cars)
+m2a <- BoxCox(dist ~ 1, data = cars, model_only = TRUE)
+m2 <- tramME(ctm = m2a, formula = ~ s(speed), data = cars)
+chkeq(logLik(m1), logLik(m2))
+
+## -- Call models from within lapply, when some inputs are defined in the function
+## both for LmME and tramME
+chkid({
+  lapply(1, function(i) {
+    dat <- cars
+    inherits(LmME(dist ~ speed, data = dat), "LmME")
+  })[[1]]}, TRUE)
+
+chkid({
+  lapply(1, function(i) {
+    dat <- cars
+    m1 <- BoxCox(dist ~ 1, data = dat, model_only = TRUE)
+    m2 <- tramME(ctm = m1, formula = ~ s(speed), data = dat)
+    inherits(m2, "tramME")
+  })[[1]]}, TRUE)
+
 summarize_tests()
 
 options(oldopt)

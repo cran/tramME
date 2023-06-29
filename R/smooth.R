@@ -389,7 +389,7 @@ edf_smooth.tramME <- function(object, ...) {
   args$method <- "analytical"
   args$sparse <- TRUE
   Hl <- do.call("Hess", args)
-  dMM <- rowSums(solve(Hp) * Hl)[idx]
+  dMM <- rowSums(try_solve(Hp, warn = FALSE) * Hl)[idx]
   ## Cumulate diagonal elements
   nm <- names(idx)
   nm <- factor(nm, levels = unique(nm))

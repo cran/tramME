@@ -21,13 +21,15 @@ SurvregME <- function(formula, data, subset, weights, offset, na.action = na.omi
                       fixed = NULL, nofit = FALSE,
                       control = optim_control(),
                       ...) {
-  cl <- match.call()
-  cl$call <- cl
-  cl$dist <- match.arg(dist)
-  cl$scale <- scale
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Survreg"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Survreg"
+  args$dist <- match.arg(dist)
+  args$scale <- scale
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("SurvregME", class(out))
+  return(out)
 }
 
 

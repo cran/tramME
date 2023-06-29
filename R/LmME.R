@@ -20,11 +20,13 @@ LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                  fixed = NULL, nofit = FALSE,
                  control = optim_control(),
                  ...) {
-  cl <- match.call()
-  cl$call <- cl
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Lm"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Lm"
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("LmME", class(out))
+  return(out)
 }
 
 

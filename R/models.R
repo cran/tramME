@@ -10,12 +10,13 @@ CoxphME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                     fixed = NULL, nofit = FALSE,
                     control = optim_control(),
                     ...) {
-  cl <- match.call()
-  ## cl$formula <- formula ##
-  cl$call <- cl
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Coxph"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Coxph"
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("CoxphME", class(out))
+  return(out)
 }
 
 
@@ -31,11 +32,13 @@ ColrME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                    fixed = NULL, nofit = FALSE,
                    control = optim_control(),
                    ...) {
-  cl <- match.call()
-  cl$call <- cl
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Colr"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Colr"
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("ColrME", class(out))
+  return(out)
 }
 
 
@@ -51,11 +54,13 @@ BoxCoxME <- function(formula, data, subset, weights, offset, na.action = na.omit
                      fixed = NULL, nofit = FALSE,
                      control = optim_control(),
                      ...) {
-  cl <- match.call()
-  cl$call <- cl
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "BoxCox"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "BoxCox"
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("BoxCoxME", class(out))
+  return(out)
 }
 
 
@@ -71,11 +76,13 @@ LehmannME <- function(formula, data, subset, weights, offset, na.action = na.omi
                       fixed = NULL, nofit = FALSE,
                       control = optim_control(),
                       ...) {
-  cl <- match.call()
-  cl$call <- cl
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Lehmann"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Lehmann"
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("LehmannME", class(out))
+  return(out)
 }
 
 
@@ -92,42 +99,63 @@ PolrME <- function(formula, data, subset, weights, offset, na.action = na.omit,
                    fixed = NULL, nofit = FALSE,
                    control = optim_control(),
                    ...) {
-  cl <- match.call()
-  cl$call <- cl
-  clmethod <- match.arg(method)
-  cl[[1L]] <- quote(tramME)
-  cl$tram <- "Polr"
-  eval(cl, parent.frame())
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- cl
+  args$tram <- "Polr"
+  args$method <- match.arg(method)
+  out <- do.call("tramME", args = args, envir = environment(formula))
+  class(out) <- c("PolrME", class(out))
+  return(out)
 }
 
+## A helper function to force the evaluation of name types It helps to avoid
+## mixups stemming from the unfortunate but necessary mixing of standard and
+## non-standard evaluation chains when setting up tramME models.
+get_names <- function(args, env) {
+  nms <- names(which(sapply(args, is.name)))
+  args[nms] <- mget(nms, env)
+  args
+}
 
-##' General function to define and fit tramME models
+##' General function to define and fit \code{tramME} models
 ##'
-##' The specific model types (\code{\link[tramME]{LmME}},
+##' @details
+##'
+##' The specific model functions (\code{\link[tramME]{LmME}},
 ##' \code{\link[tramME]{BoxCoxME}}, \code{\link[tramME]{ColrME}}, etc.) are
 ##' wrappers around this function.
 ##'
 ##' @section Warning:
 ##'
-##' You should not call directly this function. Only exported for technical reasons.
+##' Typically, the \code{tramME} function shouldn't be called directly; it is
+##'   only exported to allow the advanced users to define their \code{tramME}
+##'   models in a more flexible way from their basic building blocks.
 ##'
 ##' @inheritParams LmME
 ##' @param tram Parameter vector for the \code{tram} model type.
 ##' @param call The original function call (to be passed from the wrapper).
+##' @param ctm A model object of the \code{ctm} class that descibes the
+##'   fixed-effects part of the \code{tramME} model.
+##' @param smooth A \code{tramME_smooth} object that describes the smooth
+##'   additive elements of the \code{tramME} model.
+##' @param negative Logical; if \code{TRUE}, the model is parameterized with
+##'   negative coefficinets for the elements of the linear predictor.
 ##' @importFrom stats na.omit model.offset model.weights
 ##' @export
-tramME <- function(formula, tram, call,
-                   data, subset, weights, offset, na.action,
+tramME <- function(formula, data, subset, weights, offset, na.action,
+                   tram = NULL, call = NULL,
+                   ctm = NULL, smooth = NULL, negative = NULL,
                    silent = TRUE, resid = FALSE, do_update = FALSE,
                    estinit = TRUE, initpar = NULL,
                    fixed = NULL, nofit = FALSE,
                    control = optim_control(), ...) {
-  fc <- match.call()
-  fc$call <- NULL
-  fc[[1L]] <- quote(tramME_model)
-  mod <- eval(fc, parent.frame())
-
-  call <- substitute(call)
+  cl <- match.call(expand.dots = TRUE)
+  args <- as.list(cl[-1L])
+  args$call <- NULL
+  args <- get_names(args, environment()) ## XXX
+  mod <- do.call("tramME_model", args = args)
+  if (is.null(call <- substitute(call))) call <- cl
 
   ## -- Create model.frame
   m <- match(c("formula", "data", "subset", "na.action", "weights", "offset"),
@@ -146,7 +174,7 @@ tramME <- function(formula, tram, call,
 
   ## Additional parameter constraints for certain model types
   ## (from tram::Survreg & tram::Aareg)
-  if (sub("ME$", "", tram) == "Survreg") {
+  if (isTRUE(sub("ME$", "", tram) == "Survreg")) {
     cf <- coef(mod$ctm)
     dist <- list(...)$dist
     scale <- list(...)$scale
@@ -162,7 +190,7 @@ tramME <- function(formula, tram, call,
     }
   }
 
-  if (sub("ME$", "", tram) == "Aareg") {
+  if (isTRUE(sub("ME$", "", tram) == "Aareg")) {
     cf <- coef(mod$ctm)
     nm <- names(cf)
     nm <- nm[grep("Bs1", nm)]
@@ -208,10 +236,7 @@ tramME <- function(formula, tram, call,
   } else {
     opt <- NULL
   }
-  ## param <- .gen_param(obj, fe, re, sm, dat, nofit)
   structure(list(call = call, model = mod, data = dat, tmb_obj = obj, opt = opt,
-                 param = param),
-            class = c(paste0(sub("ME$", "", tram), "ME"), "tramME"))
-
+                 param = param), class = "tramME")
 }
 

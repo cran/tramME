@@ -2,17 +2,20 @@
 % Please edit documentation in R/models.R
 \name{tramME}
 \alias{tramME}
-\title{General function to define and fit tramME models}
+\title{General function to define and fit \code{tramME} models}
 \usage{
 tramME(
   formula,
-  tram,
-  call,
   data,
   subset,
   weights,
   offset,
   na.action,
+  tram = NULL,
+  call = NULL,
+  ctm = NULL,
+  smooth = NULL,
+  negative = NULL,
   silent = TRUE,
   resid = FALSE,
   do_update = FALSE,
@@ -30,10 +33,6 @@ tramME(
           fitted.  The details of model specification are given under
           \code{\link[tram]{tram}} and in the package vignette.
   }
-
-\item{tram}{Parameter vector for the \code{tram} model type.}
-
-\item{call}{The original function call (to be passed from the wrapper).}
 
 \item{data}{an optional data frame, list or environment (or object
           coercible by \code{as.data.frame} to a data frame) containing the
@@ -60,6 +59,19 @@ tramME(
           contain \code{NA}s.  The default is set to \code{na.omit}.
   }
 
+\item{tram}{Parameter vector for the \code{tram} model type.}
+
+\item{call}{The original function call (to be passed from the wrapper).}
+
+\item{ctm}{A model object of the \code{ctm} class that descibes the
+fixed-effects part of the \code{tramME} model.}
+
+\item{smooth}{A \code{tramME_smooth} object that describes the smooth
+additive elements of the \code{tramME} model.}
+
+\item{negative}{Logical; if \code{TRUE}, the model is parameterized with
+negative coefficinets for the elements of the linear predictor.}
+
 \item{silent}{Logical. Make \pkg{TMB} functionality silent.}
 
 \item{resid}{Logical. If \code{TRUE}, the score residuals are also calculated.
@@ -83,13 +95,18 @@ from a (fixed effects only) mlt model}
 \item{...}{additional arguments to \code{\link[tram]{tram}}.}
 }
 \description{
-The specific model types (\code{\link[tramME]{LmME}},
+General function to define and fit \code{tramME} models
+}
+\details{
+The specific model functions (\code{\link[tramME]{LmME}},
 \code{\link[tramME]{BoxCoxME}}, \code{\link[tramME]{ColrME}}, etc.) are
 wrappers around this function.
 }
 \section{Warning}{
 
 
-You should not call directly this function. Only exported for technical reasons.
+Typically, the \code{tramME} function shouldn't be called directly; it is
+  only exported to allow the advanced users to define their \code{tramME}
+  models in a more flexible way from their basic building blocks.
 }
 
