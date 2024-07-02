@@ -16,7 +16,7 @@
 \item{object}{A fitted \code{LmME} object.}
 
 \item{as.lm}{If \code{TRUE}, return the covariance matrix of the same
-parametrization as used by \code{\link[lme4]{lmer}}.}
+parameterization as used by \code{\link[lme4]{lmer}}.}
 
 \item{parm}{Names of the parameters to extract.}
 
@@ -41,7 +41,7 @@ Get the variance-covariance matrix of the parameters of an LmME model
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-vcov(fit) ## transformation model parametrization
-vcov(fit, as.lm = TRUE) ## LMM parametrization
+vcov(fit) ## transformation model parameterization
+vcov(fit, as.lm = TRUE) ## LMM parameterization
 vcov(fit, as.lm = TRUE, pargroup = "fixef") ## cov of fixed effects
 }

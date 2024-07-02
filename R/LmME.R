@@ -1,17 +1,46 @@
-##' Mixed-effects version of \code{\link[tram]{Lm}}
-##' @inheritParams tram::Lm
-##' @param silent Logical. Make \pkg{TMB} functionality silent.
-##' @param resid Logical. If \code{TRUE}, the score residuals are also calculated.
-##'   This comes with some performance cost.
-##' @param do_update Logical. If \code{TRUE}, the model is set up so that the weights and the
-##'   offsets are updateable. This comes with some performance cost.
-##' @param estinit logical, estimate a vector of initial values for the fixed effects parameters
-##'   from a (fixed effects only) mlt model
-##' @param initpar named list of initial parameter values, if \code{NULL}, it is ignored
-##' @inheritParams mlt::mlt
-##' @param nofit logical, if TRUE, creates the model object, but does not run the optimization
-##' @param control list with controls for optimization
-##' @return A LmME object.
+##' Mixed-effects Additive Normal Linear Regression Model
+##'
+##' Estimates the normal linear model parameterized as a linear transformation
+##' model.
+##'
+##' @inheritParams tramME
+##' @details
+##'
+##' The additive mixed-effects normal linear model is a special case of the
+##'   mixed-effects additive transformation model family, with the
+##'   transformation function restricted to be linear and the inverse link set
+##'   to the standard Gaussian CDF (see Hothorn et al., 2018). This function
+##'   estimates this model with the transformation model parameterization, and
+##'   offers features that are typically not available in other mixed-effects
+##'   additive implementations, such as stratum-specific variances, and censored
+##'   and/or truncated observations.
+##'
+##' The model extends \code{\link[tram:Lm]{tram::Lm}} with random effects and
+##'   (optionally penalized) additive terms. For details on mixed-effect
+##'   transformation models, see Tamasi and Hothorn (2021).
+##'
+##' The elements of the linear predictor are parameterized with negative
+##'   parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).
+##'
+##' The results can be transformed back to the usual linear mixed/additive model
+##'   parametrization with specific methods provided by \code{tramME}. The
+##'   differences between the two parametrizations are discussed in Tamasi and
+##'   Hothorn (2021).
+##'
+##' @inherit tramME references
+##' @return A \code{LmME} model object.
+##' @examples
+##' library("survival")
+##' data("sleepstudy", package = "lme4")
+##' ## Create a version of the response with 200 ms detection limit and 50 ms
+##' ## step sizes
+##' ub <- ceiling(sleepstudy$Reaction / 50) * 50
+##' lb <- floor(sleepstudy$Reaction / 50) * 50
+##' lb[ub == 200] <- 0
+##' sleepstudy$Reaction_ic <- Surv(lb, ub, type = "interval2")
+##' m <- LmME(Reaction_ic ~ Days + (Days | Subject), data = sleepstudy)
+##' summary(m)
+##' coef(m, as.lm = TRUE)
 ##' @importFrom tram Lm
 ##' @export
 LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
@@ -30,11 +59,16 @@ LmME <- function(formula, data, subset, weights, offset, na.action = na.omit,
 }
 
 
-##' Extract the coefficients of the fixed effects terms of an LmME model.
+##' Extract the coefficients of an \code{LmME} model
+##'
+##' Extracts the fixed effects coefficents (default behavior), the baseline
+##' parameters or all (baseline, fixed and random) coefficients of the model.
+##'
+##' See also the documentation of \code{\link{coef.tramME}}.
 ##' @param object An \code{LmME} object.
 ##' @param as.lm If \code{TRUE}, return the transformed coefficients as in a
 ##'   \code{lmerMod} object.
-##' @param ... Optional arguments passed to \code{coef.tramME}.
+##' @param ... Optional arguments passed to \code{\link{coef.tramME}}.
 ##' @inheritParams coef.tramME
 ##' @return A numeric vector of the transformed coefficients.
 ##' @examples
@@ -52,11 +86,11 @@ coef.LmME <- function(object, as.lm = FALSE, fixed = TRUE, ...) {
   if (!is.null(object$model$ctm$bases$interacting))
     stop("Cannot compute scaled coefficients with strata.")
 
-  par <- coef(object, with_baseline = TRUE, fixed = fixed)
+  par <- coef(object, with_baseline = TRUE, fixed = fixed, ...)
   rn <- variable.names(object, "response")
 
   scidx <- grep(rn, names(par), fixed = TRUE)
-  icidx <- grep("(Intercept)", names(par), fixed = TRUE)
+  icidx <- which(names(par) == "(Intercept)")
   sig <- 1 / par[scidx]
   par <- c(-par[icidx], par[-c(icidx, scidx)]) * sig
   return(par)
@@ -89,14 +123,14 @@ sigma.LmME <- function(object, ...) {
 ##'
 ##' @param object A fitted \code{LmME} object.
 ##' @param as.lm If \code{TRUE}, return the covariance matrix of the same
-##'   parametrization as used by \code{\link[lme4]{lmer}}.
+##'   parameterization as used by \code{\link[lme4]{lmer}}.
 ##' @inheritParams confint.LmME
 ##' @return A numeric covariance matrix.
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-##' vcov(fit) ## transformation model parametrization
-##' vcov(fit, as.lm = TRUE) ## LMM parametrization
+##' vcov(fit) ## transformation model parameterization
+##' vcov(fit, as.lm = TRUE) ## LMM parameterization
 ##' vcov(fit, as.lm = TRUE, pargroup = "fixef") ## cov of fixed effects
 ##' @importFrom stats vcov
 ##' @export
@@ -118,7 +152,7 @@ vcov.LmME <- function(object, as.lm = FALSE, parm = NULL,
   pr <- names(sdr$value)
   pr <- switch(pargroup, all = pr %in% c("b", "sigma", "th"),
                fixef = pr == "b", ranef = pr == "th",
-               stop("Unknown parameter group for parametrization with as.lm = TRUE."))
+               stop("Unknown parameter group for parameterization with as.lm = TRUE."))
   nm <- c("(Intercept)",
           names(coef(object, with_baseline = TRUE, fixed = FALSE))[-(1:2)],
           "(Sigma)",
@@ -134,13 +168,13 @@ vcov.LmME <- function(object, as.lm = FALSE, parm = NULL,
 ##' Variances and correlation matrices of random effects of an LmME object
 ##'
 ##' The returned parameters are the transformed versions of the original parameters that
-##' correspond to the normal linear mixed model parametrization.
+##' correspond to the normal linear mixed model parameterization.
 ##'
 ##' The function only returns the correlation matrices that belong to actual random effects
 ##' (defined for groups in the data) and ignores the random effects parameters of the smooth
 ##' shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
 ##' @param x An \code{LmME} object.
-##' @param sigma Standard deviation of the error term in the LMM parametrization (should
+##' @param sigma Standard deviation of the error term in the LMM parameterization (should
 ##'   not be set manually, only for consistency with the generic method)
 ##' @param as.lm If \code{TRUE}, return the variances and correlations that correspond to
 ##'   a normal linear mixed model (i.e. \code{lmerMod}).
@@ -150,8 +184,8 @@ vcov.LmME <- function(object, as.lm = FALSE, parm = NULL,
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-##' VarCorr(fit) ## tranformation model parametrization
-##' VarCorr(fit, as.lm = TRUE) ## LMM parametrization
+##' VarCorr(fit) ## tranformation model parameterization
+##' VarCorr(fit, as.lm = TRUE) ## LMM parameterization
 ##' @importFrom nlme VarCorr
 ##' @importFrom stats sigma
 ##' @export VarCorr
@@ -177,7 +211,7 @@ VarCorr.LmME <- function(x, sigma = 1, as.lm = FALSE, ...) {
 ##' Extract the variance-covariance matrix of the random effects of an LmME model
 ##' @param object A \code{LmME} object.
 ##' @param as.lm If \code{TRUE}, the returned values correspond to the LMM
-##'   parametrization.
+##'   parameterization.
 ##' @param as.theta Logical value, if \code{TRUE}, the values are returned
 ##'   in their reparameterized form.
 ##' @param full Logical value; if \code{TRUE}, return all random effects elements,
@@ -219,7 +253,7 @@ varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, full = FALSE, .
 ##' @param object An \code{LmME} object.
 ##' @param parm Names of the parameters to extract.
 ##' @param as.lm Logical. If \code{TRUE}, return results consistent with the normal linear
-##'   mixed model parametrization.
+##'   mixed model parameterization.
 ##' @param pargroup The name of the parameter group to extract. With \code{as.lm = FALSE},
 ##'   the available options are described in \code{confint.tramME}. When \code{as.lm = TRUE},
 ##'   the following options are available:
@@ -235,8 +269,8 @@ varcov.LmME <- function(object, as.lm = FALSE, as.theta = FALSE, full = FALSE, .
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-##' confint(fit) ## transformation model parametrization
-##' confint(fit, as.lm = TRUE) ## LMM parametrization
+##' confint(fit) ## transformation model parameterization
+##' confint(fit, as.lm = TRUE) ## LMM parameterization
 ##' confint(fit, as.lm = TRUE, pargroup = "fixef", estimate = TRUE)
 ##' confint(fit, as.lm = TRUE, parm = "(Sigma)") ## error SD
 ##' @importFrom stats confint qnorm
@@ -294,7 +328,7 @@ confint.LmME <- function(object, parm = NULL, level = 0.95,
 ##'
 ##' The \code{condVar} option is not implemented for \code{ranef.LmME}.
 ##' Setting \code{raw=TURE} will return the raw random effects estimates from
-##' the transformation model parametrization.
+##' the transformation model parameterization.
 ##' @param object A fitted LmME object.
 ##' @param as.lm If \code{TRUE}, return the transformed conditional modes as in a
 ##'   normal linear mixed effects model.
@@ -303,7 +337,7 @@ confint.LmME <- function(object, parm = NULL, level = 0.95,
 ##' @examples
 ##' data("sleepstudy", package = "lme4")
 ##' fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-##' ranef(fit, raw = TRUE) ## transformation model parametrization!
+##' ranef(fit, raw = TRUE) ## transformation model parameterization!
 ##' ranef(fit, as.lm = TRUE)
 ##' @importFrom nlme ranef
 ##' @importFrom stats sigma

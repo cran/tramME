@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{LmME} object.}
 
-\item{sigma}{Standard deviation of the error term in the LMM parametrization (should
+\item{sigma}{Standard deviation of the error term in the LMM parameterization (should
 not be set manually, only for consistency with the generic method)}
 
 \item{as.lm}{If \code{TRUE}, return the variances and correlations that correspond to
@@ -23,7 +23,7 @@ A list of vectors with variances and correlation matrices corresponding to the
 }
 \description{
 The returned parameters are the transformed versions of the original parameters that
-correspond to the normal linear mixed model parametrization.
+correspond to the normal linear mixed model parameterization.
 }
 \details{
 The function only returns the correlation matrices that belong to actual random effects
@@ -33,6 +33,6 @@ shift terms. To extract these, the user should use \code{varcov} with \code{full
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-VarCorr(fit) ## tranformation model parametrization
-VarCorr(fit, as.lm = TRUE) ## LMM parametrization
+VarCorr(fit) ## tranformation model parameterization
+VarCorr(fit, as.lm = TRUE) ## LMM parameterization
 }

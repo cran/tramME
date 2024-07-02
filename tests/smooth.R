@@ -77,6 +77,19 @@ m2 <- gam(y ~ x0 + x1 + s(x2, by = fac, fx = TRUE, k = 8), data = gamdat)
 edf2 <- summary(m2)$edf
 chkeq(edf1, as.vector(edf2), check.attributes = FALSE)
 
+## -- compare smooth with calculating by hand
+sm <- smooth_terms(mod)
+nd <- mcycle[c(rep(1, nrow(sm[[1]]))), ]
+nd$times <- sm[[1]]$times
+mm <- model.matrix(mod, data = nd, type = c("X", "Zt"), keep_sign = FALSE)
+xx <- cbind(mm$X, t(as.matrix(mm$Zt)))
+b <- coef(mod, complete = TRUE)[colnames(xx)]
+vc <- vcov(mod, parm = colnames(xx))
+pr <- as.numeric(xx %*% b)
+se <- sqrt(rowSums(xx %*% vc * xx))
+chkeq(pr, sm[[1]][, 2], tol = 1e-6)
+chkeq(se, sm[[1]][, 3], tol = 1e-6)
+
 summarize_tests()
 
 options(oldopt)

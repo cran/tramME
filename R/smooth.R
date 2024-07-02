@@ -353,6 +353,7 @@ edf_smooth <- function(object, ...) {
 ##' edf_smooth(fit)
 ##' @export
 ##' @aliases edf_smooth
+## TODO: Still see occasional numerical issues
 ## TODO: The current approach is very slow with largeish datasets (~10k)
 ## maybe not integrating out the random effects is not the way to go
 ## (large, non-sparse Hessians) especially when there are many

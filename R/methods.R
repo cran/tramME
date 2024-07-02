@@ -177,11 +177,21 @@ varcov.tramME <- function(object, as.theta = FALSE, full = FALSE, ...) {
 }
 
 
-##' Extract the coefficients of the fixed effects terms.
+##' Extract the coefficients of a \code{tramME} model
+##'
+##' Extracts the fixed effects coefficents (default behavior), the baseline
+##' parameters or all (baseline, fixed and random) coefficients of the model.
+##'
 ##' @param object A \code{tramME} object.
-##' @param with_baseline If \code{TRUE}, also include the baseline parameters and the
-##'   fixed effects parameters from the smooth terms.
+##' @param with_baseline If \code{TRUE}, also include the baseline parameters
+##'   and the fixed effects parameters from the smooth terms. (Kept for
+##'   compatibility with \code{tram})
 ##' @param fixed If \code{TRUE}, also include the fixed parameters.
+##' @param complete If \code{TRUE}, return all parameters that can be seen as
+##'   coefficients (baseline, fixed, random) in the \code{tramME} model.  With
+##'   \code{complete = TRUE}, \code{with_baseline = FALSE} and \code{fixed =
+##'   FALSE} are ignored. (The behavior of this argument might change in the
+##'   future).
 ##' @param ... Optional parameters (ignored).
 ##' @return Numeric vector of parameter values.
 ##' @examples
@@ -190,11 +200,20 @@ varcov.tramME <- function(object, as.theta = FALSE, full = FALSE, ...) {
 ##'                  dist = "exponential", nofit = TRUE)
 ##' coef(mod, with_baseline = TRUE)
 ##' coef(mod, with_baseline = TRUE, fixed = FALSE)
+##'
+##' data("sleepstudy", package = "lme4")
+##' mod2 <- BoxCoxME(Reaction ~ s(Days) + (Days || Subject), data = sleepstudy,
+##'                  nofit = TRUE)
+##' coef(mod2, complete = TRUE)
 ##' @importFrom stats coef
 ##' @export
-## FIXME: should probably rename with_baseline to full but keep with_baseline for backward compatibility
-coef.tramME <- function(object, with_baseline = FALSE, fixed = TRUE, ...) {
+## FIXME: Rely more on _complete_ but keep with_baseline for backward
+## compatibility
+coef.tramME <- function(object, with_baseline = FALSE, fixed = TRUE,
+                        complete = FALSE, ...) {
   cf <- object$param$beta
+  if (complete)
+    return(c(cf, object$param$gamma))
   g <- rep(TRUE, length(cf))
   if (!with_baseline)
     g <- g & (attr(cf, "type") == "sh")
@@ -402,11 +421,11 @@ print.anova.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L),
 ##' are on the same scale as the estimated parameter values, i.e. the standard
 ##' deviations of the random effect terms are on log scale.
 ##'
-##' The argument \code{parm} defines the indices or the names of the parameters
-##' of interest within the selected \code{pargroup}. When \code{pmatch = TRUE},
-##' partial matching of parameter names is allowed.
+##' Access to variances and covariances of penalized parameters is currently
+##' provided by the \code{parm} argument. Parameter names must be consistent
+##' with names in \code{object$param}.
 ##' @param object A fitted tramME object.
-##' @param parm The indeces or names of the parameters of interest. See in details.
+##' @param parm The names of the parameters of interest. See in details.
 ##' @param pargroup The name of the parameter group to return:
 ##'   \itemize{
 ##'     \item all: All parameters.
@@ -429,23 +448,49 @@ print.anova.tramME <- function(x, digits = max(getOption("digits") - 2L, 3L),
 ##' vcov(fit, parm = "Reaction") ## same as previous
 ##' @importFrom stats vcov
 ##' @export
-## FIXME: vcov of penalized parameters of smooth terms (random effects)
+## TODO: rewrite .choose_parm once I figure out what the most efficient way of
+## dealing with parameter selection could be
+## TODO: redesign options for pargroup to give access to penalized coefficients
+## TODO: parm to accept indices?
 vcov.tramME <- function(object, parm = NULL,
                         pargroup = c("all", "fixef", "shift", "baseline", "ranef", "smooth"),
                         pmatch = FALSE, ...) {
-  pargroup <- match.arg(pargroup)
-  b <- coef(object, with_baseline = TRUE, fixed = FALSE)
-  th <- varcov(object, as.theta = TRUE, full = TRUE)
-  pr <- c(b, th)
-  g <- .choose_parm(object, parm = parm, pargroup = pargroup, pmatch = pmatch,
-                    fixed = FALSE)
-  if (any(is.na(pr))) {
-    out <- matrix(NA, nrow = sum(g), ncol = sum(g))
-  } else {
-    he <- Hess(object$tmb_obj, par = pr, ...)
-    out <- inv_block(he, block = which(g))
+  if (pmatch) { ## FIXME
+    warning("pmatch is currently disabled in this function")
+    pmatch <- FALSE
   }
-  colnames(out) <- rownames(out) <- names(g[g])
+  b <- object$param$beta
+  b <- b[!attr(b, "fixed")]
+  th <- object$param$theta
+  th <- th[!attr(th, "fixed")]
+  pr <- c(b, th)
+  pn <- names(pr)
+  if (length(parm)) {
+    stopifnot(is.character(parm)) ## TODO: accept numeric inices? (in what?)
+    g <- object$param$gamma
+    g <- g[!attr(g, "fixed")]
+    if (any(parm %in% names(g))) {
+      joint <- TRUE
+      pn <- names(c(b, g, th))
+    } else {
+      joint <- FALSE
+    }
+    m <- match(parm, pn, nomatch = 0)
+    if (length(dn <- parm[m == 0]))
+      warning("Ignoring unknown parameters: ", paste(dn, collapse = ", "))
+  } else {
+    pargroup <- match.arg(pargroup)
+    m <- which(.choose_parm(object, parm = NULL, pargroup = pargroup, pmatch = pmatch,
+                            fixed = FALSE))
+    joint <- FALSE
+  }
+  if (any(is.na(pr))) {
+    out <- matrix(NA, nrow = sum(m > 0), ncol = sum(m > 0))
+  } else {
+    he <- Hess(object$tmb_obj, par = pr, joint = joint, ...)
+    out <- as.matrix(inv_block(he, block = m))
+  }
+  colnames(out) <- rownames(out) <- pn[m]
   return(out)
 }
 
@@ -541,11 +586,16 @@ try_solve <- function(a, b, lam = 1e-8, max_step = 3, warn = TRUE,
 
 ##' Variances and correlation matrices of random effects
 ##'
-##' This function calculates the variances and correlations from \code{varcov.tramME}.
+##' This function calculates the variances and correlations from
+##' \code{varcov.tramME}.
 ##'
-##' The function only returns the correlation matrices that belong to actual random effects
-##' (defined for groups in the data) and ignores the random effects parameters of the smooth
-##' shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
+##' The function only returns the correlation matrices that belong to actual
+##' random effects (defined for groups in the data) and ignores the random
+##' effects parameters of the smooth shift terms. To extract these, the user
+##' should use \code{varcov} with \code{full = TRUE}.
+##'
+##' Note that, by default, \code{\link{print.VarCorr.tramME}} prints the
+##' standard deviations of the random effects, similarly to \code{lme4}.
 ##' @param x A \code{tramME} object
 ##' @param ... optional arguments (for consistency with the generic method)
 ##' @return A list of vectors with variances and correlation matrices corresponding to the
@@ -564,7 +614,7 @@ VarCorr.tramME <- function(x, ...) {
     out <- list()
   } else {
     lv <- attr(x$param, "re")$levels
-    nl <- sapply(lv, length)
+    nl <- lengths(lv)
     out <- mapply(function(xx, n) {
       nm <- rownames(xx)
       v <- diag(xx)
@@ -590,8 +640,8 @@ VarCorr.tramME <- function(x, ...) {
 ##' @return Invisibly returns the input VarCorr.tramME object.
 ##' @export
 print.VarCorr.tramME <- function(x, sd = TRUE,
-                                digits = max(getOption("digits") - 2L, 3L),
-                                ...) {
+                                 digits = max(getOption("digits") - 2L, 3L),
+                                 ...) {
   if (length(x) == 0) {
     cat("\nNo random effects.\n")
   } else {
@@ -599,16 +649,16 @@ print.VarCorr.tramME <- function(x, sd = TRUE,
       cat("\nGrouping factor: ", names(x)[i], " (", attr(x[[i]], "nlevels"),
           " levels)", sep = "")
       if (sd) {
-        cat("\nStandard deviation:\n")
         vs <- sqrt(x[[i]]$var)
+        cat("\nStandard deviation", if (length(vs) > 1) "s",":\n", sep = "")
       } else {
-        cat("\nVariance:\n")
         vs <- x[[i]]$var
+        cat("\nVariance", if (length(vs) > 1) "s",":\n", sep = "")
       }
       print(signif(vs, digits))
       cr <- x[[i]]$corr
       if (nrow(cr) > 1) {
-        cat("\nCorrelations:\n")
+        cat("\nCorrelation", if (nrow(cr) > 2) "s", ":\n", sep = "")
         pcr <- format(cr, digits = digits, justify = "right")
         pcr[upper.tri(pcr, diag = TRUE)] <- ""
         pcr <- pcr[-1, -ncol(pcr), drop = FALSE]
@@ -687,6 +737,7 @@ variable.names.tramME <- function(object,
 ##' are supported in the case of profile confidence intervals, but snow
 ##' support is yet to be implemented.
 ##' @param object A \code{tramME} object.
+##' @param parm The indices or names of the parameters of interest.
 ##' @param level Confidence level.
 ##' @param type Type of the CI: either Wald or profile.
 ##' @param estimate Logical, add the point estimates in a thrid column.
@@ -1083,9 +1134,9 @@ print.summary.tramME <- function(x,
           wmsg, "\n", sep = "")
       if (!x$conv)
         cat("\t\033[0;31mOptimizer did not achieve convergence!\033[0m\n") ## TODO: add later optimizer name
-      if (x$nwarn > 0)
-        cat("\tThere were", x$nwarn, "warning messages captured during optimization.",
-            "\n", sep = " ")
+      ## if (x$nwarn > 0)
+      ##   cat("\tThere were", x$nwarn, "warning messages captured during optimization.",
+      ##       "\n", sep = " ")
     } else {
       cat("\n\t\033[0;31mNot fitted\033[0m\n")
     }
@@ -1094,9 +1145,9 @@ print.summary.tramME <- function(x,
       cat("\n\tFitted to dataset", x$data, wmsg, "\n", sep = " ")
       if (!x$conv)
         cat("\tOptimizer did not achieve convergence!\n") ## TODO: add later optimizer name
-      if (x$nwarn > 0)
-        cat("\tThere were", x$nwarn, "warning messages captured during optimization.",
-            "\n", sep = " ")
+      ## if (x$nwarn > 0)
+      ##   cat("\tThere were", x$nwarn, "warning messages captured during optimization.",
+      ##       "\n", sep = " ")
     } else {
       cat("\n\tNot fitted\n")
     }
@@ -1276,7 +1327,7 @@ fitmod.tramME <- function(object, initpar = NULL, control = optim_control(), ...
   opt <- optim_tramTMB(obj, par = initpar, method = control$method,
                        control = control$control,
                        trace = control$trace, ntry = control$ntry,
-                       scale = control$scale)
+                       scale = control$scale, ok_warnings = control$ok_warnings)
   ## parm <- .get_par(obj)
   ## att <- attributes(object$param)
   ## param <- .gen_param(parm, fe = att$fe,

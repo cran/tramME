@@ -20,7 +20,6 @@
 
 #include <TMB.hpp>
 
-
 // Valid error distributions
 enum valid_errdist {
     Normal = 0, Logistic = 1, MinExtrVal = 2, MaxExtrVal = 3, Exponential = 4
@@ -55,7 +54,7 @@ Type cdf(Type x, int errdist) {
       out = pexp(x, Type(1));
       break;
     default:
-      error("Unknown error distribution!");
+      Rf_error("Unknown error distribution!");
   }
   return out;
 }
@@ -81,7 +80,7 @@ Type ldens(Type x, int errdist) {
       out = dexp(x, Type(1), true);
       break;
     default:
-      error("Unknown error distribution!");
+      Rf_error("Unknown error distribution!");
   }
   return out;
 }
@@ -346,7 +345,7 @@ Type objective_function<Type>::operator() ()
         ADREPORT(pred);
         } break;
       default:
-        error("Unknown scale!");
+        Rf_error("Unknown scale!");
     }
   }
 
@@ -362,7 +361,7 @@ Type objective_function<Type>::operator() ()
       return npld;
       break;
     default:
-      error("Unknown output type!");
+      Rf_error("Unknown output type!");
   }
 
   // return nll;

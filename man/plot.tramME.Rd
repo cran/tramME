@@ -9,8 +9,9 @@
   newdata = model.frame(x),
   ranef = NULL,
   fix_smooth = TRUE,
-  type = c("trafo", "distribution", "survivor", "density", "logdensity", "hazard",
-    "loghazard", "cumhazard", "odds", "logodds", "quantile"),
+  type = c("trafo", "distribution", "logdistribution", "survivor", "logsurvivor",
+    "density", "logdensity", "hazard", "loghazard", "cumhazard", "logcumhazard", "odds",
+    "logodds", "quantile"),
   ...
 )
 }
@@ -29,15 +30,16 @@ terms are refitted to \code{newdata}. It's probably not what you want to do.}
 \itemize{
   \item trafo: The prediction evaluated on the scale of the
     transformation function.
-  \item distribution: The prediction evaluated on the scale of the
-    conditional CDF.
-  \item survivor: The prediction evaluated on the scale of the
-    (conditional) survivor function.
-  \item density, logdensity: The prediction evaluated on the scale of
+  \item (log)distribution: The prediction evaluated on the scale of the
+    conditional (log-)CDF.
+  \item (log)survivor: The prediction evaluated on the scale of the
+    (conditional) (log-)survivor function.
+  \item (log)density: The prediction evaluated on the scale of
     the conditional (log-)PDF.
-  \item hazard, loghazard, cumhazard: The prediction evaluated on the
-    hazard/log-hazard/cumulative hazard scale.
-  \item odds, logodds: The prediction evaluated on the (log-)odds scale.
+  \item (log)hazard: The prediction evaluated on the (log-)hazard scale.
+  \item (log)cumhazard: The prediction evaluated on the (log-)cumulative
+    hazard scale.
+  \item (log)odds: The prediction evaluated on the (log-)odds scale.
   \item quantile: Return the quantiles of the conditional outcome distribution
     corresponding to \code{newdata}. For more information, see Details.
 }}

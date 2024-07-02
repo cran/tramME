@@ -1,15 +1,32 @@
-##' Mixed-effects version of \code{\link[tram]{Survreg}}
+##' Mixed-effects Additive Parametric Survival Models
+##'
+##' Estimates various mixed-effects additive parametric models (not exclusively)
+##' for survival analysis.
+##'
+##' @inheritParams tramME
 ##' @inheritParams tram::Survreg
-##' @inheritParams LmME
-##' @param silent logical, make TMB functionality silent
-##' @param resid logical, Should the score residuals also be calculated?
-##' @param estinit logical, estimate a vector of initial values for the fixed effects parameters
-##'   from a (fixed effects only) mlt model
-##' @param initpar named list of initial parameter values, if \code{NULL}, it is ignored
-##' @inheritParams mlt::mlt
-##' @param nofit logical, if TRUE, creates the model object, but does not run the optimization
-##' @param control list with controls for optimization
-##' @return A \code{SurvregME} object.
+##' @details
+##'
+##' The parameterization is slightly different from
+##'   \code{\link[survival:survreg]{survival::survreg}}, see Hothorn et al.
+##'   (2018).  The results can be transformed back to the \code{survreg}
+##'   parameterization with specific methods provided by \code{tramME}.
+##'
+##' The model extends \code{\link[tram:Survreg]{tram::Survreg}} with random
+##'   effects and (optionally penalized) additive terms. For details on
+##'   mixed-effect transformation models, see Tamasi and Hothorn (2021).
+##'
+##' The elements of the linear predictor are parameterized with negative
+##'   parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).
+##' @inherit tramME references
+##' @return A \code{SurvregME} model object.
+##' @examples
+##' library("survival")
+##' rats$litter <- factor(rats$litter)
+##' m <- SurvregME(Surv(time, status) ~ rx + (1 | litter), data = rats,
+##'                dist = "weibull")
+##' summary(m)
+##' coef(m, as.survreg = TRUE)
 ##' @importFrom tram Survreg
 ##' @export
 SurvregME <- function(formula, data, subset, weights, offset, na.action = na.omit,

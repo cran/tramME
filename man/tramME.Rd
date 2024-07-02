@@ -2,7 +2,7 @@
 % Please edit documentation in R/models.R
 \name{tramME}
 \alias{tramME}
-\title{General function to define and fit \code{tramME} models}
+\title{Mixed-effects Additive transformation models}
 \usage{
 tramME(
   formula,
@@ -28,11 +28,9 @@ tramME(
 )
 }
 \arguments{
-\item{formula}{an object of class \code{"formula"}: a symbolic description 
-          of the model structure to be
-          fitted.  The details of model specification are given under
-          \code{\link[tram]{tram}} and in the package vignette.
-  }
+\item{formula}{A formula describing the model. Smooth additive terms are
+defined the way as in \code{mgcv}, and random effects consistently with
+the notation used in \code{lme4}.}
 
 \item{data}{an optional data frame, list or environment (or object
           coercible by \code{as.data.frame} to a data frame) containing the
@@ -44,7 +42,7 @@ tramME(
           used in the fitting process.
   }
 
-\item{weights}{an optional vector of weights to be used in the fitting
+\item{weights}{an optional vector of case weights to be used in the fitting
           process.  Should be \code{NULL} or a numeric vector. If present,
           the weighted log-likelihood is maximised.
   }
@@ -80,10 +78,10 @@ This comes with some performance cost.}
 \item{do_update}{Logical. If \code{TRUE}, the model is set up so that the weights and the
 offsets are updateable. This comes with some performance cost.}
 
-\item{estinit}{logical, estimate a vector of initial values for the fixed effects parameters
+\item{estinit}{Logical. Estimate a vector of initial values for the fixed effects parameters
 from a (fixed effects only) mlt model}
 
-\item{initpar}{named list of initial parameter values, if \code{NULL}, it is ignored}
+\item{initpar}{Named list of initial parameter values, if \code{NULL}, it is ignored}
 
 \item{fixed}{a named vector of fixed regression coefficients; the names
                need to correspond to column names of the design matrix}
@@ -92,15 +90,19 @@ from a (fixed effects only) mlt model}
 
 \item{control}{list with controls for optimization}
 
-\item{...}{additional arguments to \code{\link[tram]{tram}}.}
+\item{...}{Optional arguments to \code{\link[tram]{tram}}}
 }
 \description{
-General function to define and fit \code{tramME} models
+A general function to define and fit \code{tramME} models.
 }
 \details{
 The specific model functions (\code{\link[tramME]{LmME}},
 \code{\link[tramME]{BoxCoxME}}, \code{\link[tramME]{ColrME}}, etc.) are
 wrappers around this function.
+
+For a general description of the transformation model family, see Hothorn et
+  al. (2018), for details on the mixed-effects extension, see Tamasi and
+  Hothorn (2021).
 }
 \section{Warning}{
 
@@ -110,3 +112,12 @@ Typically, the \code{tramME} function shouldn't be called directly; it is
   models in a more flexible way from their basic building blocks.
 }
 
+\references{
+Hothorn, Torsten, Lisa Möst, and Peter Bühlmann. "Most Likely
+  Transformations."  Scandinavian Journal of Statistics 45, no. 1 (March
+  2018): 110–34.  <doi:10.1111/sjos.12291>
+
+Tamasi, Balint, and Torsten Hothorn. "tramME: Mixed-Effects Transformation
+  Models Using Template Model Builder." The R Journal 13, no. 2 (2021):
+  398–418. <doi:10.32614/RJ-2021-075>
+}

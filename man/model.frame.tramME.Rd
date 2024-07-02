@@ -15,8 +15,8 @@
 \arguments{
 \item{formula}{A \code{tramME} object.}
 
-\item{data}{a data.frame, list or environment (or object
-    coercible by \code{\link{as.data.frame}} to a data.frame),
+\item{data}{a data frame, list or environment (or object
+    coercible by \code{\link{as.data.frame}} to a data frame),
     containing the variables in \code{formula}.  Neither a matrix nor an
     array will be accepted.}
 

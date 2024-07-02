@@ -2,7 +2,7 @@
 % Please edit documentation in R/LmME.R
 \name{coef.LmME}
 \alias{coef.LmME}
-\title{Extract the coefficients of the fixed effects terms of an LmME model.}
+\title{Extract the coefficients of an \code{LmME} model}
 \usage{
 \method{coef}{LmME}(object, as.lm = FALSE, fixed = TRUE, ...)
 }
@@ -14,13 +14,17 @@
 
 \item{fixed}{If \code{TRUE}, also include the fixed parameters.}
 
-\item{...}{Optional arguments passed to \code{coef.tramME}.}
+\item{...}{Optional arguments passed to \code{\link{coef.tramME}}.}
 }
 \value{
 A numeric vector of the transformed coefficients.
 }
 \description{
-Extract the coefficients of the fixed effects terms of an LmME model.
+Extracts the fixed effects coefficents (default behavior), the baseline
+parameters or all (baseline, fixed and random) coefficients of the model.
+}
+\details{
+See also the documentation of \code{\link{coef.tramME}}.
 }
 \examples{
 data("sleepstudy", package = "lme4")

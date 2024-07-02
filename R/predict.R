@@ -52,15 +52,16 @@
 ##'     \item lp: Linear predictor (Xb + Zg). For more information, see Details.
 ##'     \item trafo: The prediction evaluated on the scale of the
 ##'       transformation function.
-##'     \item distribution: The prediction evaluated on the scale of the
-##'       conditional CDF.
-##'     \item survivor: The prediction evaluated on the scale of the
-##'       (conditional) survivor function.
-##'     \item density, logdensity: The prediction evaluated on the scale of
+##'     \item (log)distribution: The prediction evaluated on the scale of the
+##'       conditional (log-)CDF.
+##'     \item (log)survivor: The prediction evaluated on the scale of the
+##'       (conditional) (log-)survivor function.
+##'     \item (log)density: The prediction evaluated on the scale of
 ##'       the conditional (log-)PDF.
-##'     \item hazard, loghazard, cumhazard: The prediction evaluated on the
-##'       hazard/log-hazard/cumulative hazard scale.
-##'     \item odds, logodds: The prediction evaluated on the (log-)odds scale.
+##'     \item (log)hazard: The prediction evaluated on the (log-)hazard scale.
+##'     \item (log)cumhazard: The prediction evaluated on the (log-)cumulative
+##'       hazard scale.
+##'     \item (log)odds: The prediction evaluated on the (log-)odds scale.
 ##'     \item quantile: Return the quantiles of the conditional outcome distribution
 ##'       corresponding to \code{newdata}. For more information, see Details.
 ##'   }
@@ -84,9 +85,15 @@
 ## to obtain the standard errors
 predict.tramME <- function(object, newdata = model.frame(object),
   ranef = NULL, fix_smooth = TRUE,
-  type = c("lp", "trafo", "distribution", "survivor", "density",
-           "logdensity", "hazard", "loghazard", "cumhazard",
-           "odds", "logodds", "quantile"), ...) {
+  type = c("lp", "trafo",
+           "distribution", "logdistribution",
+           "survivor", "logsurvivor",
+           "density", "logdensity",
+           "hazard", "loghazard",
+           "cumhazard", "logcumhazard",
+           "odds", "logodds",
+           "quantile"),
+  ...) {
   type <- match.arg(type)
   rfs <- .ranef_predict_setup(object, newdata, ranef, fix_smooth)
   Zt  <- rfs$Zt
@@ -144,15 +151,16 @@ predict.tramME <- function(object, newdata = model.frame(object),
 ##'   \itemize{
 ##'     \item trafo: The prediction evaluated on the scale of the
 ##'       transformation function.
-##'     \item distribution: The prediction evaluated on the scale of the
-##'       conditional CDF.
-##'     \item survivor: The prediction evaluated on the scale of the
-##'       (conditional) survivor function.
-##'     \item density, logdensity: The prediction evaluated on the scale of
+##'     \item (log)distribution: The prediction evaluated on the scale of the
+##'       conditional (log-)CDF.
+##'     \item (log)survivor: The prediction evaluated on the scale of the
+##'       (conditional) (log-)survivor function.
+##'     \item (log)density: The prediction evaluated on the scale of
 ##'       the conditional (log-)PDF.
-##'     \item hazard, loghazard, cumhazard: The prediction evaluated on the
-##'       hazard/log-hazard/cumulative hazard scale.
-##'     \item odds, logodds: The prediction evaluated on the (log-)odds scale.
+##'     \item (log)hazard: The prediction evaluated on the (log-)hazard scale.
+##'     \item (log)cumhazard: The prediction evaluated on the (log-)cumulative
+##'       hazard scale.
+##'     \item (log)odds: The prediction evaluated on the (log-)odds scale.
 ##'     \item quantile: Return the quantiles of the conditional outcome distribution
 ##'       corresponding to \code{newdata}. For more information, see Details.
 ##'   }
@@ -167,9 +175,15 @@ predict.tramME <- function(object, newdata = model.frame(object),
 ##' @export
 plot.tramME <- function(x, newdata = model.frame(x),
   ranef = NULL, fix_smooth = TRUE,
-  type = c("trafo", "distribution", "survivor", "density",
-           "logdensity", "hazard", "loghazard", "cumhazard",
-           "odds", "logodds", "quantile"), ...) {
+  type = c("trafo",
+    "distribution", "logdistribution",
+    "survivor", "logsurvivor",
+    "density", "logdensity",
+    "hazard", "loghazard",
+    "cumhazard", "logcumhazard",
+    "odds", "logodds",
+    "quantile"),
+  ...) {
   type <- match.arg(type)
 
   rfs <- .ranef_predict_setup(x, newdata, ranef, fix_smooth)

@@ -317,7 +317,7 @@ is.pd <- function(m) {
 ## Generates proper model name for the tramME model
 ## @param obj A \code{tramME} object.
 .model_name <- function(obj) {
-  nm <- sub("ME$", "", obj$call[[1L]])
+  nm <- sub("ME$", "", class(obj)[1L])
   str <- if (is.null(obj$model$ctm$bases$interacting)) "" else "Stratified "
   me <- if (is.null(obj$model$ranef)) "" else "Mixed-effects "
   add <- if (is.null(obj$model$smooth)) "" else "Additive "

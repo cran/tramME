@@ -93,6 +93,10 @@ pr <- predict(m, newdata = nd, type = "trafo", ranef = "zero", K = 5)
 pr2 <- predict(m, newdata = nd, type = "trafo", ranef = 2, K = 5)
 chkeq(pr - 2, pr2)
 
+## FIXME Check warning messages
+## oc <- optim_control(ok_warnings = FALSE)
+## chkwarn(m <- update(m, control = oc), wm = "NA/NaN")
+## TODO: also check in the precious m the lack of warning messages
 
 ## --- w/ smooth terms
 ## lp

@@ -9,6 +9,7 @@ optim_control(
   scale = TRUE,
   trace = FALSE,
   ntry = 5,
+  ok_warnings = "NA/NaN function evaluation",
   ...
 )
 }
@@ -23,10 +24,20 @@ convergence.}
 \item{ntry}{Number of restarts with new random initialization if optimization
 fails to converge.}
 
+\item{ok_warnings}{Control for what warnings will be reported during
+optimization. If \code{TRUE}, no warnings will be reported, if
+\code{FALSE} all warnings are displayed. In case of a character vector,
+the matching warnings are treated as unimportant, and not reported. See also Notes.}
+
 \item{...}{Optional arguments passed to \code{\link[alabama]{auglag}},
 \code{\link[stats]{nlminb}} or \code{\link[stats]{optim}} as a list of control
 parameters.}
 }
 \description{
 Set up and control optimization parameters
+}
+\note{
+Irrespective of the value of the \code{ok_warnings} argument, all
+  warnings are collected in the \code{opt$warnings} element of the
+  \code{tramME} object.
 }

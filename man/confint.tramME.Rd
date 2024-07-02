@@ -20,7 +20,7 @@
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{parm}{The indeces or names of the parameters of interest. See in details.}
+\item{parm}{The indices or names of the parameters of interest.}
 
 \item{level}{Confidence level.}
 

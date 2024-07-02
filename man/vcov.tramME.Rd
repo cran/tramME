@@ -15,7 +15,7 @@
 \arguments{
 \item{object}{A fitted tramME object.}
 
-\item{parm}{The indeces or names of the parameters of interest. See in details.}
+\item{parm}{The names of the parameters of interest. See in details.}
 
 \item{pargroup}{The name of the parameter group to return:
 \itemize{
@@ -41,9 +41,9 @@ are on the same scale as the estimated parameter values, i.e. the standard
 deviations of the random effect terms are on log scale.
 }
 \details{
-The argument \code{parm} defines the indices or the names of the parameters
-of interest within the selected \code{pargroup}. When \code{pmatch = TRUE},
-partial matching of parameter names is allowed.
+Access to variances and covariances of penalized parameters is currently
+provided by the \code{parm} argument. Parameter names must be consistent
+with names in \code{object$param}.
 }
 \examples{
 data("sleepstudy", package = "lme4")

@@ -2,17 +2,24 @@
 % Please edit documentation in R/methods.R
 \name{coef.tramME}
 \alias{coef.tramME}
-\title{Extract the coefficients of the fixed effects terms.}
+\title{Extract the coefficients of a \code{tramME} model}
 \usage{
-\method{coef}{tramME}(object, with_baseline = FALSE, fixed = TRUE, ...)
+\method{coef}{tramME}(object, with_baseline = FALSE, fixed = TRUE, complete = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{tramME} object.}
 
-\item{with_baseline}{If \code{TRUE}, also include the baseline parameters and the
-fixed effects parameters from the smooth terms.}
+\item{with_baseline}{If \code{TRUE}, also include the baseline parameters
+and the fixed effects parameters from the smooth terms. (Kept for
+compatibility with \code{tram})}
 
 \item{fixed}{If \code{TRUE}, also include the fixed parameters.}
+
+\item{complete}{If \code{TRUE}, return all parameters that can be seen as
+coefficients (baseline, fixed, random) in the \code{tramME} model.  With
+\code{complete = TRUE}, \code{with_baseline = FALSE} and \code{fixed =
+FALSE} are ignored. (The behavior of this argument might change in the
+future).}
 
 \item{...}{Optional parameters (ignored).}
 }
@@ -20,7 +27,8 @@ fixed effects parameters from the smooth terms.}
 Numeric vector of parameter values.
 }
 \description{
-Extract the coefficients of the fixed effects terms.
+Extracts the fixed effects coefficents (default behavior), the baseline
+parameters or all (baseline, fixed and random) coefficients of the model.
 }
 \examples{
 library("survival")
@@ -28,4 +36,9 @@ mod <- SurvregME(Surv(time, status) ~ rx + (1 | litter/rx), data = rats,
                  dist = "exponential", nofit = TRUE)
 coef(mod, with_baseline = TRUE)
 coef(mod, with_baseline = TRUE, fixed = FALSE)
+
+data("sleepstudy", package = "lme4")
+mod2 <- BoxCoxME(Reaction ~ s(Days) + (Days || Subject), data = sleepstudy,
+                 nofit = TRUE)
+coef(mod2, complete = TRUE)
 }

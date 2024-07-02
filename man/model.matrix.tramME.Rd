@@ -23,7 +23,7 @@
 (transposed). "Y": Model matrices for the baseline transfromations.}
 
 \item{drop_unused_groups}{Logical; remove unused levels of the random effects.
-(see \code{drop.unused.levels} argument of \code{\link[lme4]{mkReTrms}})}
+(see \code{drop.unused.levels} argument of \code{\link[reformulas]{mkReTrms}})}
 
 \item{keep_sign}{Logical; the terms will have the same sign as in the
 \code{tramME} model if \code{TRUE}.}

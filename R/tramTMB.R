@@ -105,7 +105,8 @@ tramME_model <- function(formula = NULL, data = NULL, tram = NULL, ctm = NULL,
       !identical(formula, remove_from_formula(formula, c("te", "ti", "t2"))))
     stop("Tensor product splines are not implemented yet.")
   ## --
-  re <- lme4::findbars(formula)
+  if (length(f2 <- formula) > 2) f2 <- f2[-2L]
+  re <- reformulas::findbars(f2)
   if (!is.null(smooth) && inherits(smooth, "tramME_smooth")) {
     sm <- smooth
   } else {
@@ -268,7 +269,7 @@ fe_terms <- function(mod) {
 }
 
 ## Create random effects data and initial paramaters
-## @param ranef a list of random effects formulas from \code{\link[lme4]{findbars}}
+## @param ranef a list of random effects formulas from \code{\link[reformulas]{findbars}}
 ## @param data data.frame containing the variables of the model
 ## @param negative logical value that indicates whether the random effects have
 ##   a negative sign
@@ -282,8 +283,9 @@ re_terms <- function(ranef, data, negative, drop.unused.levels = TRUE) {
                 ci = numeric(0),
                 gamma = numeric(0), theta = numeric(0))
   } else {
-    rt <- lme4::mkReTrms(ranef, data, drop.unused.levels = drop.unused.levels,
-                         reorder.terms = FALSE)
+    rt <- reformulas::mkReTrms(ranef, data,
+                               drop.unused.levels = drop.unused.levels,
+                               reorder.terms = FALSE)
     out <- list()
     out$Zt <- rt$Zt
     if (negative) out$Zt <- -out$Zt
@@ -711,7 +713,8 @@ tramTMB <- function(data, parameters, constraint, negative, map = list(),
 ##' @importFrom stats optim
 ## FIXME: optional final check, w/ pdHess, mgc
 optim_tramTMB <- function(obj, par = NULL, method = "nlminb", control = list(),
-                          trace = FALSE, ntry = 5, scale = TRUE, ...) {
+                          trace = FALSE, ntry = 5, scale = TRUE, ok_warnings = TRUE,
+                          ...) {
   if (!is.null(par)) {
     if (!.check_par(obj, par))
       warning(paste("The supplied initial values do not satisfy the constraints.",
@@ -782,8 +785,12 @@ optim_tramTMB <- function(obj, par = NULL, method = "nlminb", control = list(),
                 op}, silent = !trace))
         },
         warning = function(w) {
-          warn <<- append(warn, conditionMessage(w))
-          invokeRestart("muffleWarning")
+          cm <- conditionMessage(w)
+          warn <<- append(warn, cm)
+          if (is.character(ok_warnings)) {
+            ok_warnings <- any(sapply(ok_warnings, grepl, cm, fixed = TRUE))
+          }
+          if (ok_warnings) invokeRestart("muffleWarning")
         })
       if (!inherits(opt, "try-error") && opt$convergence == 0) break
       par <- .optim_start(obj, par = par)
@@ -814,15 +821,24 @@ optim_tramTMB <- function(obj, par = NULL, method = "nlminb", control = list(),
 ##' @param trace Logical; print trace of the optimization.
 ##' @param ntry Number of restarts with new random initialization if optimization
 ##'   fails to converge.
+##' @param ok_warnings Control for what warnings will be reported during
+##'   optimization. If \code{TRUE}, no warnings will be reported, if
+##'   \code{FALSE} all warnings are displayed. In case of a character vector,
+##'   the matching warnings are treated as unimportant, and not reported. See also Notes.
 ##' @param ... Optional arguments passed to \code{\link[alabama]{auglag}},
 ##'   \code{\link[stats]{nlminb}} or \code{\link[stats]{optim}} as a list of control
 ##'   parameters.
+##' @note Irrespective of the value of the \code{ok_warnings} argument, all
+##'   warnings are collected in the \code{opt$warnings} element of the
+##'   \code{tramME} object.
 ##' @export
 optim_control <- function(method = c("nlminb", "BFGS", "CG", "L-BFGS-B"),
-                          scale = TRUE, trace = FALSE, ntry = 5, ...) {
+                          scale = TRUE, trace = FALSE, ntry = 5,
+                          ok_warnings = "NA/NaN function evaluation",
+                          ...) {
   method <- match.arg(method)
   list(method = method, scale = scale, trace = trace,
-       ntry = ntry, control = list(...))
+       ntry = ntry, ok_warnings = ok_warnings, control = list(...))
 }
 
 

@@ -20,11 +20,11 @@ A numeric vector or a \code{ranef.tramME} object depending on the inputs.
 \description{
 The \code{condVar} option is not implemented for \code{ranef.LmME}.
 Setting \code{raw=TURE} will return the raw random effects estimates from
-the transformation model parametrization.
+the transformation model parameterization.
 }
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-ranef(fit, raw = TRUE) ## transformation model parametrization!
+ranef(fit, raw = TRUE) ## transformation model parameterization!
 ranef(fit, as.lm = TRUE)
 }

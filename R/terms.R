@@ -128,20 +128,20 @@ nullTMatrix <- function(nrow = 0, ncol = 0) {
 
 ## Create random effects data and other required values
 ##
-## @param ranef a list of random effects formulas from \code{\link[lme4]{findbars}}
+## @param ranef a list of random effects formulas from \code{\link[reformulas]{findbars}}
 ## @param data data.frame containing the variables of the model
 ## @param negative logical value that indicates whether the random effects have
 ##   a negative sign
-## @param ... Passed to \code{\link[lme4]{mkReTrms}}.
+## @param ... Passed to \code{\link[reformulas]{mkReTrms}}.
 ## @return A list containing data and parameter values to be used in the TMB model.
 .ranef_trms <- function(ranef, data, negative, ...) {
-  ## XXX: a safer version of lme4::mkReTrms
+  ## XXX: a safer version of reformulas::mkReTrms
   mkReTrms <- function(bars, fr, ...) {
     fc <- match.call()
     m <- match(c("bars", "fr", "drop.unused.levels", "reorder.terms",
                  "reorder.vars"), names(fc), 0L)
     fc <- fc[c(1L, m)]
-    fc[[1L]] <- quote(lme4::mkReTrms)
+    fc[[1L]] <- quote(reformulas::mkReTrms)
     eval(fc, parent.frame())
   }
 
@@ -367,7 +367,7 @@ model.frame.tramME <- function(formula, data = NULL, group_as_factor = FALSE,
 ##' @param type "X": Fixed effects model matrix. "Zt": Random effects model matrix
 ##'   (transposed). "Y": Model matrices for the baseline transfromations.
 ##' @param drop_unused_groups Logical; remove unused levels of the random effects.
-##'   (see \code{drop.unused.levels} argument of \code{\link[lme4]{mkReTrms}})
+##'   (see \code{drop.unused.levels} argument of \code{\link[reformulas]{mkReTrms}})
 ##' @param keep_sign Logical; the terms will have the same sign as in the
 ##'   \code{tramME} model if \code{TRUE}.
 ##' @param simplify Logical; Remove empty \code{Y} matrices.
@@ -429,6 +429,10 @@ model.matrix.tramME <- function(object, data = model.frame(object),
     if (simplify) Y <- Y[sapply(Y, nrow) > 0]
     out[names(Y)] <- Y
   }
+  ## --- TODO: test out properly, if works, remove parnames attributes
+  colnames(out$X) <- attr(out$X, "parnames")
+  rownames(out$Zt) <- attr(out$Zt, "parnames")
+  ## ---
   return(out)
 }
 

@@ -1,12 +1,61 @@
-### R code from vignette source 'RJ-2021-075.Rnw'
+## ----setup, echo=FALSE, message=FALSE, results="hide"-------------------------
+knitr::opts_chunk$set(size = "small", prompt = TRUE, comment = NA,
+                      out.width=".9\\linewidth")
+knitr::knit_hooks$set(
+  document = function(x) {sub('\\usepackage[]{color}', '\\usepackage{xcolor}',
+                              x, fixed = TRUE)}
+)
+oldpar <- par(no.readonly = TRUE) ## NOTE: for setting back at the end
+oldopt <- options()
+options(prompt = "R> ", continue = "+  ")
+options(width = 80, digits = 3)
 
-###################################################
-### code chunk number 1: RJ-2021-075.Rnw:21-26 (eval = FALSE)
-###################################################
-## Y <- model.matrix(ecoli_m1_bc, data = nd, type = "Y")$Ye
-## b <- coef(ecoli_m1_bc, with_baseline = TRUE)[1:7]
-## vc <- vcov(ecoli_m1_bc, pargroup = "baseline")
-## ci <- confint(multcomp::glht(multcomp::parm(b, vc), linfct = Y),
-##               calpha = multcomp::univariate_calpha())$confint
+## ----trafo-plot, eval=FALSE---------------------------------------------------
+#  library("tramME")
+#  library("survival")
+#  data("eortc", package = "coxme")
+#  eortc$trt <- factor(eortc$trt, levels = c(0, 1))
+#  eortc_cp2 <- CoxphME(Surv(y, uncens) | 0 + trt ~ 0 + (1 | center/trt),
+#                       data = eortc, log_first = TRUE, order = 10)
+#  ## tr <- trafo(eortc_cp2, confidence = "interval") ## Does not work!
+#  
+#  nd <- model.frame(eortc_cp2)[c(1, 1), ]
+#  nd$trt <- unique(eortc$trt)
+#  tr <- confband(eortc_cp2, newdata = nd, baseline_only = TRUE)
+#  
+#  plot(tr, single_plot = TRUE, trafo_x = log,
+#       col = c("#005496FF", "#CA6C18FF"),
+#       fill = c("#0054968C", "#CA6C188C"),
+#       lty = 1, lwd = 2,
+#       xlim = c(5, 8), ylim = c(-5, 1),
+#       xlab = "log-time", ylab = "h(y)",
+#       panel.first = grid())
+#  legend("topleft", c("treatment", "control"),
+#         col = c("#005496FF", "#CA6C18FF"), lwd = 2,
+#         bty = "n")
 
+## ----echo=FALSE, message=FALSE, fig.width=7, fig.height=5, out.width="0.6\\textwidth"----
+par(mar = c(4, 4, 1, 1), las = 1)
+library("tramME")
+library("survival")
+data("eortc", package = "coxme")
+eortc$trt <- factor(eortc$trt, levels = c(0, 1))
+eortc_cp2 <- CoxphME(Surv(y, uncens) | 0 + trt ~ 0 + (1 | center/trt),
+                     data = eortc, log_first = TRUE, order = 10)
+## tr <- trafo(eortc_cp2, confidence = "interval") ## Does not work!
+
+nd <- model.frame(eortc_cp2)[c(1, 1), ]
+nd$trt <- unique(eortc$trt)
+tr <- confband(eortc_cp2, newdata = nd, baseline_only = TRUE)
+
+plot(tr, single_plot = TRUE, trafo_x = log,
+     col = c("#005496FF", "#CA6C18FF"),
+     fill = c("#0054968C", "#CA6C188C"),
+     lty = 1, lwd = 2,
+     xlim = c(5, 8), ylim = c(-5, 1),
+     xlab = "log-time", ylab = "h(y)",
+     panel.first = grid())
+legend("topleft", c("treatment", "control"),
+       col = c("#005496FF", "#CA6C18FF"), lwd = 2,
+       bty = "n")
 

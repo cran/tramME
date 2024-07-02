@@ -2,7 +2,7 @@
 % Please edit documentation in R/LmME.R
 \name{LmME}
 \alias{LmME}
-\title{Mixed-effects version of \code{\link[tram]{Lm}}}
+\title{Mixed-effects Additive Normal Linear Regression Model}
 \usage{
 LmME(
   formula,
@@ -23,11 +23,9 @@ LmME(
 )
 }
 \arguments{
-\item{formula}{an object of class \code{"formula"}: a symbolic description 
-          of the model structure to be
-          fitted.  The details of model specification are given under
-          \code{\link[tram]{tram}} and in the package vignette.
-  }
+\item{formula}{A formula describing the model. Smooth additive terms are
+defined the way as in \code{mgcv}, and random effects consistently with
+the notation used in \code{lme4}.}
 
 \item{data}{an optional data frame, list or environment (or object
           coercible by \code{as.data.frame} to a data frame) containing the
@@ -39,7 +37,7 @@ LmME(
           used in the fitting process.
   }
 
-\item{weights}{an optional vector of weights to be used in the fitting
+\item{weights}{an optional vector of case weights to be used in the fitting
           process.  Should be \code{NULL} or a numeric vector. If present,
           the weighted log-likelihood is maximised.
   }
@@ -62,10 +60,10 @@ This comes with some performance cost.}
 \item{do_update}{Logical. If \code{TRUE}, the model is set up so that the weights and the
 offsets are updateable. This comes with some performance cost.}
 
-\item{estinit}{logical, estimate a vector of initial values for the fixed effects parameters
+\item{estinit}{Logical. Estimate a vector of initial values for the fixed effects parameters
 from a (fixed effects only) mlt model}
 
-\item{initpar}{named list of initial parameter values, if \code{NULL}, it is ignored}
+\item{initpar}{Named list of initial parameter values, if \code{NULL}, it is ignored}
 
 \item{fixed}{a named vector of fixed regression coefficients; the names
                need to correspond to column names of the design matrix}
@@ -74,11 +72,56 @@ from a (fixed effects only) mlt model}
 
 \item{control}{list with controls for optimization}
 
-\item{...}{additional arguments to \code{\link[tram]{tram}}.}
+\item{...}{Optional arguments to \code{\link[tram]{tram}}}
 }
 \value{
-A LmME object.
+A \code{LmME} model object.
 }
 \description{
-Mixed-effects version of \code{\link[tram]{Lm}}
+Estimates the normal linear model parameterized as a linear transformation
+model.
+}
+\details{
+The additive mixed-effects normal linear model is a special case of the
+  mixed-effects additive transformation model family, with the
+  transformation function restricted to be linear and the inverse link set
+  to the standard Gaussian CDF (see Hothorn et al., 2018). This function
+  estimates this model with the transformation model parameterization, and
+  offers features that are typically not available in other mixed-effects
+  additive implementations, such as stratum-specific variances, and censored
+  and/or truncated observations.
+
+The model extends \code{\link[tram:Lm]{tram::Lm}} with random effects and
+  (optionally penalized) additive terms. For details on mixed-effect
+  transformation models, see Tamasi and Hothorn (2021).
+
+The elements of the linear predictor are parameterized with negative
+  parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).
+
+The results can be transformed back to the usual linear mixed/additive model
+  parametrization with specific methods provided by \code{tramME}. The
+  differences between the two parametrizations are discussed in Tamasi and
+  Hothorn (2021).
+}
+\examples{
+library("survival")
+data("sleepstudy", package = "lme4")
+## Create a version of the response with 200 ms detection limit and 50 ms
+## step sizes
+ub <- ceiling(sleepstudy$Reaction / 50) * 50
+lb <- floor(sleepstudy$Reaction / 50) * 50
+lb[ub == 200] <- 0
+sleepstudy$Reaction_ic <- Surv(lb, ub, type = "interval2")
+m <- LmME(Reaction_ic ~ Days + (Days | Subject), data = sleepstudy)
+summary(m)
+coef(m, as.lm = TRUE)
+}
+\references{
+Hothorn, Torsten, Lisa Möst, and Peter Bühlmann. "Most Likely
+  Transformations."  Scandinavian Journal of Statistics 45, no. 1 (March
+  2018): 110–34.  <doi:10.1111/sjos.12291>
+
+Tamasi, Balint, and Torsten Hothorn. "tramME: Mixed-Effects Transformation
+  Models Using Template Model Builder." The R Journal 13, no. 2 (2021):
+  398–418. <doi:10.32614/RJ-2021-075>
 }

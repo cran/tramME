@@ -10,7 +10,7 @@
 \item{object}{A \code{LmME} object.}
 
 \item{as.lm}{If \code{TRUE}, the returned values correspond to the LMM
-parametrization.}
+parameterization.}
 
 \item{as.theta}{Logical value, if \code{TRUE}, the values are returned
 in their reparameterized form.}

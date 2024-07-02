@@ -60,6 +60,19 @@ chkid({
     inherits(m2, "tramME")
   })[[1]]}, TRUE)
 
+chkid({
+lapply(1, function(i) {
+  supp <- c(4, 24)
+  m <- LmME(dist ~ speed, data = cars, support = supp)
+  inherits(m, "tramME")
+})[[1]]}, TRUE)
+
+
+## bugfix: model names after call with tramME::
+m3 <- tramME::CoxphME(dist ~ s(speed), data = cars, nofit = TRUE)
+pm <- suppressWarnings(capture.output(m3)) ## FIXME: don't try to calculate anything when the model is not fitted
+chkid(isTRUE(grepl("Cox", pm[2L], fixed = TRUE)), TRUE)
+
 summarize_tests()
 
 options(oldopt)

@@ -23,7 +23,7 @@
 \item{level}{Confidence level.}
 
 \item{as.lm}{Logical. If \code{TRUE}, return results consistent with the normal linear
-mixed model parametrization.}
+mixed model parameterization.}
 
 \item{pargroup}{The name of the parameter group to extract. With \code{as.lm = FALSE},
 the available options are described in \code{confint.tramME}. When \code{as.lm = TRUE},
@@ -52,8 +52,8 @@ When \code{as.lm = TRUE}, only Wald CIs are available.
 \examples{
 data("sleepstudy", package = "lme4")
 fit <- LmME(Reaction ~ Days + (Days | Subject), data = sleepstudy)
-confint(fit) ## transformation model parametrization
-confint(fit, as.lm = TRUE) ## LMM parametrization
+confint(fit) ## transformation model parameterization
+confint(fit, as.lm = TRUE) ## LMM parameterization
 confint(fit, as.lm = TRUE, pargroup = "fixef", estimate = TRUE)
 confint(fit, as.lm = TRUE, parm = "(Sigma)") ## error SD
 }

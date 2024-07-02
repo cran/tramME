@@ -1,3 +1,28 @@
+# tramME 1.0.5.9000 (development version)
+
+* Bugfix: some arguments passed as variables were not found. This was introduced
+  by moving away from NSE and not exporting some internal functions.
+* Bugfix: error with printing models called with `tramME::`.
+* Documentation: Clarify that the print method of `VarCorr.tramME` shows the
+  random effect standard deviations by default. 
+* New functionality: `coef.tramME` now has a `complete` argument that returns
+  all coefficients (baseline, fixed, random) of the model as a named vector
+* New functionality: Access variances and covariances of penalized parameters
+  (coefficients of smooth terms and random effects) through the `parm` argument
+  of `vcov.tramME`.
+* New functionality/change of behavior: The new `ok_warnings` argument of
+  `optim_control` provides control over what warning messages are reported
+  during optimization. `summary.tramME` doesn't report the number of warnings
+  during optimization anymore. 
+* New functionality: New scales are available in `predict.tramME` and
+  `plot.tramME`.
+* New functionality: `confband.tramME` calculates confidence bands and pointwise
+  confidence intervals for various scales of the conditional outcome
+  distribution. 
+* Documentation: Update documentation of the model functions with additional
+  details, examples and references.
+* Processing random effects formula elements with `reformulas`. 
+
 # tramME 1.0.5 (2023-06-28)
 
 * Refactor code, clean up documentation, unexport internal functions.

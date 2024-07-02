@@ -12,7 +12,7 @@
 \item{as.survreg}{If \code{TRUE}, return the transformed coefficients as in a
 \code{survival::survreg} object.}
 
-\item{...}{Optional arguments passed to \code{coef.tramME}.}
+\item{...}{Optional arguments passed to \code{\link{coef.tramME}}.}
 }
 \value{
 A numeric vector of the transformed coefficients.

@@ -1,6 +1,11 @@
+%\VignetteEngine{knitr::knitr}
+% \VignetteIndexEntry{R Journal 2021}
+%\VignetteDepends{tramME, survival, multcomp}
+
 \documentclass{article}
 \usepackage{pdfpages}
-%\VignetteIndexEntry{R Journal 2021}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{enumitem}
 
 \begin{document}
 
@@ -8,23 +13,62 @@
 
 \newpage
 
+<<setup, echo=FALSE, message=FALSE, results="hide">>=
+knitr::opts_chunk$set(size = "small", prompt = TRUE, comment = NA,
+                      out.width=".9\\linewidth")
+knitr::knit_hooks$set(
+  document = function(x) {sub('\\usepackage[]{color}', '\\usepackage{xcolor}',
+                              x, fixed = TRUE)}
+)
+oldpar <- par(no.readonly = TRUE) ## NOTE: for setting back at the end
+oldopt <- options()
+options(prompt = "R> ", continue = "+  ")
+options(width = 80, digits = 3)
+@
+
+
 \subsection*{Changes}
 
-The original paper was written using version 0.1.2.
-The list of changes in the current version (1.0.0):
+The original paper was written using version \texttt{0.1.2}.
+The list of changes in the current version (\texttt{1.0.6}):
 
-\begin{itemize}
-  \item[pp. 15:] The \texttt{trafo} method has been removed from the package.
-        To create similar plots, the transformation function can be evaluated manually.
-        An example for this can be found in the vignette \texttt{mixed-effects-additive-models}:
-        %
-<<eval=FALSE>>=
-Y <- model.matrix(ecoli_m1_bc, data = nd, type = "Y")$Ye
-b <- coef(ecoli_m1_bc, with_baseline = TRUE)[1:7]
-vc <- vcov(ecoli_m1_bc, pargroup = "baseline")
-ci <- confint(multcomp::glht(multcomp::parm(b, vc), linfct = Y),
-              calpha = multcomp::univariate_calpha())$confint
+\begin{itemize}[align=left]
+  \item[pp.~15, Figure~11:] The \texttt{trafo} method has been removed from the package.
+        To recreate the plot, we can use the \texttt{confband.tramME} method (see Figure~\ref{fig:trafo}):
+  %
+<<trafo-plot, eval=FALSE>>=
+library("tramME")
+library("survival")
+data("eortc", package = "coxme")
+eortc$trt <- factor(eortc$trt, levels = c(0, 1))
+eortc_cp2 <- CoxphME(Surv(y, uncens) | 0 + trt ~ 0 + (1 | center/trt),
+                     data = eortc, log_first = TRUE, order = 10)
+## tr <- trafo(eortc_cp2, confidence = "interval") ## Does not work!
+
+nd <- model.frame(eortc_cp2)[c(1, 1), ]
+nd$trt <- unique(eortc$trt)
+tr <- confband(eortc_cp2, newdata = nd, baseline_only = TRUE)
+
+plot(tr, single_plot = TRUE, trafo_x = log,
+     col = c("#005496FF", "#CA6C18FF"),
+     fill = c("#0054968C", "#CA6C188C"),
+     lty = 1, lwd = 2,
+     xlim = c(5, 8), ylim = c(-5, 1),
+     xlab = "log-time", ylab = "h(y)",
+     panel.first = grid())
+legend("topleft", c("treatment", "control"),
+       col = c("#005496FF", "#CA6C18FF"), lwd = 2,
+       bty = "n")
 @
 \end{itemize}
+
+\begin{figure}[ht!]
+  \centering
+<<echo=FALSE, message=FALSE, fig.width=7, fig.height=5, out.width="0.6\\textwidth">>=
+par(mar = c(4, 4, 1, 1), las = 1)
+<<trafo-plot>>
+@
+\caption{Recreating Figure~11 of the original article with \texttt{confband.tramME}.}\label{fig:trafo}
+\end{figure}
 
 \end{document}

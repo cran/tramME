@@ -2,7 +2,8 @@
 % Please edit documentation in R/models.R
 \name{PolrME}
 \alias{PolrME}
-\title{Mixed-effects version of \code{\link[tram]{Polr}}}
+\title{Mixed-effects Additive Transformation Models for Ordered Categorical
+Responses}
 \usage{
 PolrME(
   formula,
@@ -24,11 +25,9 @@ PolrME(
 )
 }
 \arguments{
-\item{formula}{an object of class \code{"formula"}: a symbolic description 
-          of the model structure to be
-          fitted.  The details of model specification are given under
-          \code{\link[tram]{tram}} and in the package vignette.
-  }
+\item{formula}{A formula describing the model. Smooth additive terms are
+defined the way as in \code{mgcv}, and random effects consistently with
+the notation used in \code{lme4}.}
 
 \item{data}{an optional data frame, list or environment (or object
           coercible by \code{as.data.frame} to a data frame) containing the
@@ -40,7 +39,7 @@ PolrME(
           used in the fitting process.
   }
 
-\item{weights}{an optional vector of weights to be used in the fitting
+\item{weights}{an optional vector of case weights to be used in the fitting
           process.  Should be \code{NULL} or a numeric vector. If present,
           the weighted log-likelihood is maximised.
   }
@@ -66,10 +65,10 @@ This comes with some performance cost.}
 \item{do_update}{Logical. If \code{TRUE}, the model is set up so that the weights and the
 offsets are updateable. This comes with some performance cost.}
 
-\item{estinit}{logical, estimate a vector of initial values for the fixed effects parameters
+\item{estinit}{Logical. Estimate a vector of initial values for the fixed effects parameters
 from a (fixed effects only) mlt model}
 
-\item{initpar}{named list of initial parameter values, if \code{NULL}, it is ignored}
+\item{initpar}{Named list of initial parameter values, if \code{NULL}, it is ignored}
 
 \item{fixed}{a named vector of fixed regression coefficients; the names
                need to correspond to column names of the design matrix}
@@ -78,11 +77,38 @@ from a (fixed effects only) mlt model}
 
 \item{control}{list with controls for optimization}
 
-\item{...}{additional arguments to \code{\link[tram]{tram}}.}
+\item{...}{Optional arguments to \code{\link[tram]{tram}}}
 }
 \value{
-A PolrME object.
+A \code{PolrME} model object.
 }
 \description{
-Mixed-effects version of \code{\link[tram]{Polr}}
+Estimates mixed-effects additive transformation models for ordered
+categorical responses with various link functions.
+}
+\details{
+The transformation function is parameterized as a step function on a scale
+  defined by the link function (see Hothorn et al., 2018).
+
+The model extends \code{\link[tram:Polr]{tram::Polr}} with random effects and
+  (optionally penalized) additive terms. For details on mixed-effect
+  transformation models, see Tamasi and Hothorn (2021).
+
+The elements of the linear predictor are parameterized with negative
+  parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).
+}
+\examples{
+data("soup", package = "ordinal")
+m <- PolrME(SURENESS | SOUPFREQ ~ PROD + (1 | RESP/PROD),
+            data = soup, method = "probit")
+summary(m)
+}
+\references{
+Hothorn, Torsten, Lisa Möst, and Peter Bühlmann. "Most Likely
+  Transformations."  Scandinavian Journal of Statistics 45, no. 1 (March
+  2018): 110–34.  <doi:10.1111/sjos.12291>
+
+Tamasi, Balint, and Torsten Hothorn. "tramME: Mixed-Effects Transformation
+  Models Using Template Model Builder." The R Journal 13, no. 2 (2021):
+  398–418. <doi:10.32614/RJ-2021-075>
 }

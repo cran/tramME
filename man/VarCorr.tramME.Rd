@@ -17,12 +17,17 @@ A list of vectors with variances and correlation matrices corresponding to the
   various grouping variables.
 }
 \description{
-This function calculates the variances and correlations from \code{varcov.tramME}.
+This function calculates the variances and correlations from
+\code{varcov.tramME}.
 }
 \details{
-The function only returns the correlation matrices that belong to actual random effects
-(defined for groups in the data) and ignores the random effects parameters of the smooth
-shift terms. To extract these, the user should use \code{varcov} with \code{full = TRUE}.
+The function only returns the correlation matrices that belong to actual
+random effects (defined for groups in the data) and ignores the random
+effects parameters of the smooth shift terms. To extract these, the user
+should use \code{varcov} with \code{full = TRUE}.
+
+Note that, by default, \code{\link{print.VarCorr.tramME}} prints the
+standard deviations of the random effects, similarly to \code{lme4}.
 }
 \examples{
 data("sleepstudy", package = "lme4")
