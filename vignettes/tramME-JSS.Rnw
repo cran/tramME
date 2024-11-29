@@ -1,0 +1,11 @@
+%\VignetteEngine{knitr::knitr}
+% \VignetteIndexEntry{Mixed-effects Additive Transformation Models with the R Package tramME}
+
+\documentclass{article}
+\usepackage{pdfpages}
+
+\begin{document}
+
+\includepdf[pages=-, fitpaper=true]{tramME-JSS_orig.pdf}
+
+\end{document}

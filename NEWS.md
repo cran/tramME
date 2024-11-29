@@ -1,4 +1,8 @@
-# tramME 1.0.5.9000 (development version)
+# tramME 1.0.7 (2024-11-29)
+
+* New vignette: "Mixed-effects Additive Transformation Models with the R Package tramME"
+
+# tramME 1.0.6 (2024-07-01)
 
 * Bugfix: some arguments passed as variables were not found. This was introduced
   by moving away from NSE and not exporting some internal functions.

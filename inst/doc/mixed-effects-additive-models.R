@@ -19,21 +19,21 @@ library("xtable")
 library("gamm4")
 
 ## ----tramME-exmpl1, eval=FALSE, echo=TRUE-------------------------------------
-#  ## tramME is available from CRAN:
-#  ## install.packages("tramME")
-#  library("tramME")
-#  mc1 <- CoxphME(                            ### conditional proportional hazards
-#      Time ~                                 ### response time intervals
-#             Insects +                       ### fixed effects
-#             Habitat +
-#             Landscape +
-#             s(Temperature, k = 20) +        ### non-linear terms, as in mgcv
-#             s(Elevation100, k = 20) +
-#             (1 | PlotID),                   ### random intercept, as in lme4
-#      data = carrion,                        ### data
-#      log_first = TRUE,                      ### log(Time) before modeling
-#      order = 6                              ### order of Bernstein
-#  )
+# ## tramME is available from CRAN:
+# ## install.packages("tramME")
+# library("tramME")
+# mc1 <- CoxphME(                            ### conditional proportional hazards
+#     Time ~                                 ### response time intervals
+#            Insects +                       ### fixed effects
+#            Habitat +
+#            Landscape +
+#            s(Temperature, k = 20) +        ### non-linear terms, as in mgcv
+#            s(Elevation100, k = 20) +
+#            (1 | PlotID),                   ### random intercept, as in lme4
+#     data = carrion,                        ### data
+#     log_first = TRUE,                      ### log(Time) before modeling
+#     order = 6                              ### order of Bernstein
+# )
 
 ## ----load-carrion, include=FALSE----------------------------------------------
 carrion <- read.csv("carrion.csv")
@@ -87,7 +87,7 @@ dcmp <- CoxphME(Time ~ Insects + Habitat + Landscape
 summary(dcmp)
 
 ## ----plot-carrion-smooth, eval=FALSE------------------------------------------
-#  plot(smooth_terms(dcmp), panel.first = grid())
+# plot(smooth_terms(dcmp), panel.first = grid())
 
 ## ----plot-carrion-smooth2, echo=FALSE, fig.width=8, fig.height=4--------------
 par(mar = c(4, 4, 1, 1))
@@ -435,8 +435,8 @@ for (ii in 2:4) {
 legend("bottomright", levels(andrew$TREAT), lty = 1:4, lwd = 2, bty = "n", cex = 0.9)
 
 ## ----algae-glmm, eval=FALSE---------------------------------------------------
-#  urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
-#                        data = andrew, family = beta_family())
+# urchin_zib <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH), ziformula = ~ TREAT,
+#                       data = andrew, family = beta_family())
 
 ## ----algae-tram---------------------------------------------------------------
 urchin_tram <- ColrME(
@@ -585,9 +585,9 @@ legend("center",
        col = c(cols, 1), lty = 1, bty = "n", lwd = c(rep(2, 2), 1), horiz = TRUE)
 
 ## ----algae-glmm2, eval=FALSE--------------------------------------------------
-#  urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
-#                             ziformula = ~ TREAT, dispformula = ~ TREAT,
-#                             data = andrew, family = beta_family())
+# urchin_zib_disp <- glmmTMB(pALGAE ~ TREAT + (1 | PATCH),
+#                            ziformula = ~ TREAT, dispformula = ~ TREAT,
+#                            data = andrew, family = beta_family())
 
 ## ----algae-tram2--------------------------------------------------------------
 urchin_tram_strat <- ColrME(
@@ -658,38 +658,38 @@ AGO[factors] <- lapply(AGO[factors], factor)
 AGO$AEAfemale <- as.integer(AGO$AEAfemale)
 
 ## ----cotram-model, echo=TRUE, eval=FALSE--------------------------------------
-#  ## Additive count transformation model
-#  ## See ?cotram::cotram for the documentation
-#  CotramME <- function(formula, data,
-#                       method = c("logit", "cloglog", "loglog", "probit"),
-#                       log_first = TRUE, plus_one = log_first, prob = 0.9,
-#                       ...) {
-#    method <- match.arg(method)
-#    rv <- all.vars(formula)[1]
-#    stopifnot(is.integer(data[[rv]]), all(data[[rv]] >= 0))
-#    data[[rv]] <- data[[rv]] + as.integer(plus_one)
-#    sup <- c(-0.5 + log_first, quantile(data[[rv]], prob = prob))
-#    bou <- c(-0.9 + log_first, Inf)
-#    data[[rv]] <- as.Surv(R(data[[rv]], bounds = bou))
-#    fc <- match.call()
-#    fc[[1L]] <- switch(method, logit = quote(ColrME), cloglog = quote(CoxphME),
-#                       loglog = quote(LehmannME), probit = quote(BoxCoxME))
-#    fc$method <- NULL
-#    fc$plus_one <- NULL
-#    fc$prob <- NULL
-#    fc$log_first <- log_first
-#    fc$bounds <- bou
-#    fc$support <- sup
-#    fc$data <- data
-#    out <- eval(fc, parent.frame())
-#    out$call$data <- match.call()$data
-#    class(out) <- c("CotramME", class(out))
-#    out
-#  }
-#  mosquito_tram <- CotramME(AEAfemale ~ Year + Income*Placement
-#    + s(Week) + s(CovRate200) + (1|HouseID)
-#    + (1|Community), offset = -log(daystrapping), data = AGO,
-#    method = "logit", order = 5, log_first = TRUE, prob = 0.9)
+# ## Additive count transformation model
+# ## See ?cotram::cotram for the documentation
+# CotramME <- function(formula, data,
+#                      method = c("logit", "cloglog", "loglog", "probit"),
+#                      log_first = TRUE, plus_one = log_first, prob = 0.9,
+#                      ...) {
+#   method <- match.arg(method)
+#   rv <- all.vars(formula)[1]
+#   stopifnot(is.integer(data[[rv]]), all(data[[rv]] >= 0))
+#   data[[rv]] <- data[[rv]] + as.integer(plus_one)
+#   sup <- c(-0.5 + log_first, quantile(data[[rv]], prob = prob))
+#   bou <- c(-0.9 + log_first, Inf)
+#   data[[rv]] <- as.Surv(R(data[[rv]], bounds = bou))
+#   fc <- match.call()
+#   fc[[1L]] <- switch(method, logit = quote(ColrME), cloglog = quote(CoxphME),
+#                      loglog = quote(LehmannME), probit = quote(BoxCoxME))
+#   fc$method <- NULL
+#   fc$plus_one <- NULL
+#   fc$prob <- NULL
+#   fc$log_first <- log_first
+#   fc$bounds <- bou
+#   fc$support <- sup
+#   fc$data <- data
+#   out <- eval(fc, parent.frame())
+#   out$call$data <- match.call()$data
+#   class(out) <- c("CotramME", class(out))
+#   out
+# }
+# mosquito_tram <- CotramME(AEAfemale ~ Year + Income*Placement
+#   + s(Week) + s(CovRate200) + (1|HouseID)
+#   + (1|Community), offset = -log(daystrapping), data = AGO,
+#   method = "logit", order = 5, log_first = TRUE, prob = 0.9)
 
 ## ----mosquito-est, echo=FALSE-------------------------------------------------
 if (file.exists("mosquito_models.rda")) {
