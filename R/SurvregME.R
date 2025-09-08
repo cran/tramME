@@ -14,7 +14,8 @@
 ##'
 ##' The model extends \code{\link[tram:Survreg]{tram::Survreg}} with random
 ##'   effects and (optionally penalized) additive terms. For details on
-##'   mixed-effect transformation models, see Tamasi and Hothorn (2021).
+##'   mixed-effect transformation models, see Tamasi and Hothorn (2021). For the
+##'   penalized smooth extensions, see Tamasi (2025).
 ##'
 ##' The elements of the linear predictor are parameterized with negative
 ##'   parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).

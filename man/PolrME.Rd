@@ -90,9 +90,10 @@ categorical responses with various link functions.
 The transformation function is parameterized as a step function on a scale
   defined by the link function (see Hothorn et al., 2018).
 
-The model extends \code{\link[tram:Polr]{tram::Polr}} with random effects and
-  (optionally penalized) additive terms. For details on mixed-effect
-  transformation models, see Tamasi and Hothorn (2021).
+The model extends \code{\link[tram:Polr]{tram::Polr}} with random effects
+  and (optionally penalized) additive terms. For details on mixed-effect
+  transformation models, see Tamasi and Hothorn (2021). For the penalized
+  smooth extensions, see Tamasi (2025).
 
 The elements of the linear predictor are parameterized with negative
   parameters (i.e. \code{negative = TRUE} in \code{\link[tram]{tram}}).
@@ -111,4 +112,8 @@ Hothorn, Torsten, Lisa Möst, and Peter Bühlmann. "Most Likely
 Tamasi, Balint, and Torsten Hothorn. "tramME: Mixed-Effects Transformation
   Models Using Template Model Builder." The R Journal 13, no. 2 (2021):
   398–418. <doi:10.32614/RJ-2021-075>
+
+Tamasi, Balint. "Mixed-Effects Additive Transformation Models with the R
+  Package tramME." Journal of Statistical Software 114, no. 11 (2025): 1-40.
+  <doi:10.18637/jss.v114.i11>
 }

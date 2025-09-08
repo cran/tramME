@@ -120,4 +120,8 @@ Hothorn, Torsten, Lisa Möst, and Peter Bühlmann. "Most Likely
 Tamasi, Balint, and Torsten Hothorn. "tramME: Mixed-Effects Transformation
   Models Using Template Model Builder." The R Journal 13, no. 2 (2021):
   398–418. <doi:10.32614/RJ-2021-075>
+
+Tamasi, Balint. "Mixed-Effects Additive Transformation Models with the R
+  Package tramME." Journal of Statistical Software 114, no. 11 (2025): 1-40.
+  <doi:10.18637/jss.v114.i11>
 }

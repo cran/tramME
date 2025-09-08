@@ -1,3 +1,7 @@
+# tramME 1.0.8 (2025-09-08)
+
+* Update citations and manual with the JSS publication.
+
 # tramME 1.0.7 (2024-11-29)
 
 * New vignette: "Mixed-effects Additive Transformation Models with the R Package tramME"
